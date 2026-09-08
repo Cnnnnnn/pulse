@@ -69,6 +69,9 @@ export class HtmlChangelogDetector extends Detector {
     const r = await ctx.http.get(url, {
       timeout: ctx.timeout || this.timeout,
       headers: { Accept: "text/html,application/xhtml+xml" },
+      // changelog 页是合法 HTML 且持续追加 (MiniMax Mintlify 站已 1.05MB+),
+      // 放宽到 3MB — worker 默认 1MB 上限会把页面当 too_large 拒掉
+      maxBodyBytes: 3 * 1024 * 1024,
     });
     assertHttpResponse(r, this.constructor.name, url);
 

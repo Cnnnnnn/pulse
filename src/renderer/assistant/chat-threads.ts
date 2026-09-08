@@ -175,7 +175,20 @@ export function saveThreads(threads: ChatThread[], activeId: string | null) {
   if (typeof localStorage === "undefined") return;
   let sorted: ChatThread[] = threads;
   try {
+    // 图片附件只保留在会话内存态 — 持久化剥离 (dataURL 体积大, 撑爆 quota/state.json)
     sorted = [...threads]
+      .map((t) =>
+        t.messages?.some((m: any) => m.attachments?.length)
+          ? {
+              ...t,
+              messages: t.messages.map((m: any) =>
+                m.attachments?.length
+                  ? { ...m, attachments: undefined }
+                  : m,
+              ),
+            }
+          : t,
+      )
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, MAX_THREADS);
     localStorage.setItem(

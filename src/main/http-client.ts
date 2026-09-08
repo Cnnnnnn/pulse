@@ -285,6 +285,19 @@ export class HttpClient {
           });
         });
         res.on("error", () => resolve({ status: 0, body: "", headers: {}, error: "network" }));
+        // body 超限 res.destroy() 后 Node 只发 close, end/error 都不触发 —
+        // 不在这里兜底 resolve, _request 的 promise 会永远 pending, detector
+        // 一直挂到 worker 超时 (MiniMax Code changelog 页 content-length
+        // 1059694 > 1MB 上限触发, Node 22 实测复现). 正常流 end 已先 resolve,
+        // 重复 resolve 是 no-op.
+        res.on("close", () => {
+          resolve({
+            status: res.statusCode || 0,
+            body: Buffer.concat(chunks).toString("utf-8"),
+            headers: (res.headers || {}) as Record<string, string>,
+            error: truncated ? "too_large" : "network",
+          });
+        });
       });
       req.on("error", () => resolve({ status: 0, body: "", headers: {}, error: "network" }));
       if (timeout) {

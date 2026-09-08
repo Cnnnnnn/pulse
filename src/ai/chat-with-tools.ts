@@ -9,6 +9,7 @@ import {
   isBudgetBlocked,
   extractUsageTotalTokens,
   recordTokenSpend,
+  resolveLlmTimeoutMs,
 } from "./shared-llm";
 import type { AssistantAction } from "./assistant-prompt";
 import {
@@ -37,7 +38,7 @@ const { HttpClient } = require("../main/http-client.js");
 
 let _http: any = null;
 function getHttp() {
-  if (!_http) _http = new HttpClient({ timeout: 120_000, maxRetries: 0 });
+  if (!_http) _http = new HttpClient({ timeout: resolveLlmTimeoutMs(), maxRetries: 0 });
   return _http;
 }
 
@@ -175,6 +176,7 @@ export async function chatWithTools(
             onDelta: opts.onDelta,
             isAborted: opts.isAborted,
             onAbortRegister: opts.onAbortRegister,
+            timeoutMs: resolveLlmTimeoutMs(),
           },
         );
         if (streamed.ok) {
@@ -249,6 +251,7 @@ export async function chatWithTools(
             onDelta: opts.onDelta,
             isAborted: opts.isAborted,
             onAbortRegister: opts.onAbortRegister,
+            timeoutMs: resolveLlmTimeoutMs(),
           },
         );
         if (streamed.ok) {

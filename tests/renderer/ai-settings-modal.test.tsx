@@ -232,7 +232,7 @@ it('healthcheck ok → 显示 IconCheck + latency', async () => {
  const { container } = render(<AIConfigForm />);
  fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接')));
  await new Promise((r) => setTimeout(r,10));
- const result = container.querySelectorAll('.settings-card')[3].querySelector('.ai-settings-test-result');
+ const result = container.querySelector('.ai-config-form__test-card').querySelector('.ai-settings-test-result');
  expect(result.textContent).toMatch(/234ms/);
  expect(result.classList.contains('is-ok')).toBe(true);
  });
@@ -250,7 +250,7 @@ it('healthcheck fail → 显示 IconX + error', async () => {
  const { container } = render(<AIConfigForm />);
  fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接')));
  await new Promise((r) => setTimeout(r,10));
- const result = container.querySelectorAll('.settings-card')[3].querySelector('.ai-settings-test-result');
+ const result = container.querySelector('.ai-config-form__test-card').querySelector('.ai-settings-test-result');
  expect(result.textContent).toMatch(/auth_401/);
  expect(result.classList.contains('is-fail')).toBe(true);
  });

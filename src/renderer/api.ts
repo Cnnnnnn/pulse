@@ -175,6 +175,10 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     aiChatCancel: pick(overrides, "aiChatCancel"),
     onAiChatDelta: pick(overrides, "onAiChatDelta"),
     onAiChatStatus: pick(overrides, "onAiChatStatus"),
+    assistantScreenshot: pick(overrides, "assistantScreenshot"),
+    assistantMemoryList: pick(overrides, "assistantMemoryList"),
+    assistantMemoryRemove: pick(overrides, "assistantMemoryRemove"),
+    assistantMemoryClear: pick(overrides, "assistantMemoryClear"),
     // v2.10+ 基金管理
     fundsList: pick(overrides, "fundsList"),
     fundsAdd: pick(overrides, "fundsAdd"),
@@ -346,6 +350,7 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
   getLeaderboard: pick(overrides, "getLeaderboard"),
   refreshLeaderboard: pick(overrides, "refreshLeaderboard"),
   rateBudget: pick(overrides, "rateBudget"),
+  onLeaderboardSourceUpdated: pick(overrides, "onLeaderboardSourceUpdated"),
   // 2026-07-22: 工具栏「导出 CSV」
   exportLeaderboardCsv: pick(overrides, "exportLeaderboardCsv"),
   // 财经新闻 + 行情 (P0): 7 个主通道 + 2 个推送订阅

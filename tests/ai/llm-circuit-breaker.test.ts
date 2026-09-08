@@ -6,6 +6,7 @@ import {
   recordLlmSuccess,
   recordLlmFailure,
   resetLlmBreaker,
+  getLlmBreakerInfo,
   defaultRetryable,
   withRetryBackoff,
 } from "../../src/ai/llm-circuit-breaker";
@@ -88,5 +89,26 @@ describe("llm-circuit-breaker", () => {
     const r = await withRetryBackoff(() => fn(), { attempts: 3, baseDelayMs: 1 });
     expect(r).toEqual({ status: 401 });
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("getLlmBreakerInfo: closed / open / 恢复窗口快照", () => {
+    expect(getLlmBreakerInfo("info-p").state).toBe("closed");
+    expect(getLlmBreakerInfo("info-p").openUntilMs).toBeNull();
+
+    for (let i = 0; i < BREAKER_FAILURE_THRESHOLD; i++) recordLlmFailure("info-p");
+    const openInfo = getLlmBreakerInfo("info-p");
+    expect(openInfo.state).toBe("open");
+    expect(openInfo.openUntilMs).toBe(openInfo.openedAt! + BREAKER_OPEN_MS);
+    expect(isLlmOpen("info-p")).toBe(true);
+
+    // 越过 open 窗口 → half-open (放行探测)
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + BREAKER_OPEN_MS + 1);
+    const half = getLlmBreakerInfo("info-p");
+    expect(half.state).toBe("half-open");
+    expect(isLlmOpen("info-p")).toBe(false); // half-open 放行
+    vi.useRealTimers();
+    resetLlmBreaker("info-p");
+    expect(getLlmBreakerInfo("info-p").state).toBe("closed");
   });
 });

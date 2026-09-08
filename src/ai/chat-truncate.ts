@@ -1,6 +1,8 @@
 /**
  * 裁剪发给 LLM 的历史消息，避免上下文过长.
  */
+import { textContentOf } from "./multimodal";
+
 export const MAX_LLM_MESSAGES = 18;
 export const KEEP_RECENT_MESSAGES = 12;
 /** P1-7: 发给 LLM 的上下文 token 预算 (估算值, 给输出留富余) */
@@ -18,28 +20,29 @@ export function estimateTokens(text: unknown): number {
   return Math.ceil(cjk + other * 0.25);
 }
 
-/** P1-7: 估算消息数组 token 总数 (每条 +4 分隔/role 开销) */
-export function estimateMessagesTokens<T extends { role: string; content: string }>(
+/** P1-7: 估算消息数组 token 总数 (每条 +4 分隔/role 开销); content 兼容多模态数组 */
+export function estimateMessagesTokens<T extends { role: string; content: unknown }>(
   messages: T[],
 ): number {
   let total = 0;
   for (const m of messages) {
     if (!m || !m.content) continue;
-    total += estimateTokens(m.content) + 4;
+    total += estimateTokens(textContentOf(m.content)) + 4;
   }
   return total;
 }
 
-export function summarizeOmittedTurns<T extends { role: string; content: string }>(
+export function summarizeOmittedTurns<T extends { role: string; content: unknown }>(
   messages: T[],
 ): string {
   const lines: string[] = [];
   for (const m of messages) {
-    if (!m?.content?.trim()) continue;
+    const text = textContentOf(m?.content);
+    if (!text) continue;
     if (m.role === "user") {
-      lines.push(`· 用户：${m.content.trim().slice(0, SUMMARY_USER_CHARS)}`);
+      lines.push(`· 用户：${text.slice(0, SUMMARY_USER_CHARS)}`);
     } else if (m.role === "assistant") {
-      const oneLine = m.content.trim().replace(/\s+/g, " ");
+      const oneLine = text.replace(/\s+/g, " ");
       lines.push(`· 助手：${oneLine.slice(0, SUMMARY_ASSISTANT_CHARS)}`);
     }
     if (lines.length >= SUMMARY_MAX_LINES) break;
@@ -49,7 +52,7 @@ export function summarizeOmittedTurns<T extends { role: string; content: string 
 
 export type HistorySummarySource = "extractive" | "llm";
 
-export function buildOmittedHistoryNoteFromSummary<T extends { role: string; content: string }>(
+export function buildOmittedHistoryNoteFromSummary<T extends { role: string; content: unknown }>(
   omittedCount: number,
   summary: string,
   source: HistorySummarySource = "extractive",
@@ -65,7 +68,7 @@ export function buildOmittedHistoryNoteFromSummary<T extends { role: string; con
   } as T;
 }
 
-export function buildOmittedHistoryNote<T extends { role: string; content: string }>(
+export function buildOmittedHistoryNote<T extends { role: string; content: unknown }>(
   omitted: T[],
   omittedCount: number,
 ): T {
@@ -74,7 +77,7 @@ export function buildOmittedHistoryNote<T extends { role: string; content: strin
 }
 
 /** P1-7: 计算需省略的前缀长度 (0 = 无需裁剪). 条数 + token 双维度. */
-export function computeTrimStart<T extends { role: string; content: string }>(
+export function computeTrimStart<T extends { role: string; content: unknown }>(
   messages: T[],
 ): number {
   if (!Array.isArray(messages) || messages.length === 0) return 0;
@@ -94,7 +97,7 @@ export function computeTrimStart<T extends { role: string; content: string }>(
   return start;
 }
 
-export function trimMessagesForLlm<T extends { role: string; content: string }>(
+export function trimMessagesForLlm<T extends { role: string; content: unknown }>(
   messages: T[],
 ): T[] {
   const start = computeTrimStart(messages);

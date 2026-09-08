@@ -343,6 +343,12 @@ export const api = {
     subscribe("ai:chat-tool-results", cb),
   // P3-13: 助手多模态 — 当前页面截图 (返回 data:image/png;base64,...)
   assistantScreenshot: () => invokeChannel("assistant:screenshot"),
+  // 长期记忆管理 (设置页)
+  assistantMemoryList: () => invokeChannel("assistant-memory:list"),
+  assistantMemoryRemove: (
+    payload: IpcChannelMap["assistant-memory:remove"]["args"][0],
+  ) => invokeChannel("assistant-memory:remove", payload),
+  assistantMemoryClear: () => invokeChannel("assistant-memory:clear"),
 
   // Universal "open URL in system browser" bridge (validated http/https in main process).
   openUrl: (url: IpcChannelMap["open-url:open"]["args"][0]) =>
@@ -613,6 +619,9 @@ export const api = {
   refreshLeaderboard: (opts: IpcChannelMap["leaderboard:refresh"]["args"][0]) =>
     invokeChannel("leaderboard:refresh", opts || {}),
   rateBudget: () => invokeChannel("leaderboard:rate-budget"),
+  // SWR 后台刷新完成推送 — renderer 收到后静默重取，无需手动点刷新
+  onLeaderboardSourceUpdated: (cb: Callback<{ source: string }>) =>
+    subscribe("leaderboard:source-updated", cb),
   // 2026-07-22: 工具栏「导出 CSV」→ 主进程 dialog.showSaveDialog + fs.writeFile
   exportLeaderboardCsv: (
     payload: IpcChannelMap["leaderboard:export-csv"]["args"][0],

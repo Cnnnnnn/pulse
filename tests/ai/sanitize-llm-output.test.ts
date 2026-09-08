@@ -26,4 +26,12 @@ describe("sanitizeLlmOutput", () => {
     const out = sanitizeLlmOutput(raw);
     expect(out).toContain("重新总结");
   });
+
+  it("MiniMax 原生工具标记整块清除, 正文保留", () => {
+    const raw =
+      '我再试一次:<minimax:tool_call>[{"name":"query_apps","arguments":{}}]</minimax:tool_call>';
+    const out = sanitizeLlmOutput(raw);
+    expect(out).toBe("我再试一次:");
+    expect(out).not.toContain("minimax");
+  });
 });

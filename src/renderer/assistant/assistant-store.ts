@@ -86,12 +86,16 @@ export const chatStatus = signal<string | null>(null);
 export const chatError = signal<string | null>(null);
 export const chatRetryText = signal<string | null>(null);
 export const chatBudgetHint = signal<string | null>(null);
+/** #10 熔断状态提示 (provider 熔断 open/half-open 时非空) */
+export const chatBreakerNote = signal<string | null>(null);
 export const chatUiTraceSummary = signal<string | null>(null);
 export const chatUiTraceTitle = signal<string>("");
 export const chatUiTraceWarn = signal(false);
 export const chatProactiveHint = signal<string | null>(null);
 export const chatSessionQuery = signal("");
 export const chatAttachPageContext = signal(true);
+/** 待发送的附加截图 (dataURL, v1 单张) */
+export const chatPendingImage = signal<string | null>(null);
 export const chatExportIncludeSystem = signal(loadExportIncludeSystem());
 export const chatExportIncludeTimestamps = signal(loadExportIncludeTimestamps());
 
@@ -183,6 +187,7 @@ function prepareGlobalChatOpen() {
   refreshProactiveState();
   globalChatOpen.value = true;
   void refreshChatBudgetHint();
+  void refreshAiRuntimeStatus();
   refreshChatUiTraceSummary();
 }
 
@@ -340,20 +345,55 @@ export async function refreshChatBudgetHint() {
   }
   try {
     const r = await api.tokenBudgetGet();
-    const limit = r?.config?.dailyLimit ?? 0;
-    if (!r?.ok || limit <= 0) {
+    if (!r?.ok) {
       chatBudgetHint.value = null;
       return;
     }
+    const limit = r?.config?.dailyLimit ?? 0;
     const used = r.todaySpend ?? 0;
-    const pct = Math.round((used / limit) * 100);
-    if (pct >= 80) {
-      chatBudgetHint.value = `今日 Token 已用 ${pct}%（${used.toLocaleString()} / ${limit.toLocaleString()}）`;
-    } else {
+    // #9 用量可见: 有消耗就展示 (不再只在逼近上限时出现)
+    if (used <= 0) {
       chatBudgetHint.value = null;
+      return;
+    }
+    if (limit > 0) {
+      const pct = Math.round((used / limit) * 100);
+      chatBudgetHint.value = `今日 Token ${used.toLocaleString()} / ${limit.toLocaleString()}（${pct}%）`;
+    } else {
+      chatBudgetHint.value = `今日 Token 已用 ${used.toLocaleString()}`;
     }
   } catch {
     chatBudgetHint.value = null;
+  }
+}
+
+/**
+ * #10 熔断状态刷新 — provider 熔断 open/half-open 时给出恢复时间提示.
+ * 在抽屉打开 / 每次对话结束后调用 (熔断窗口 30s, 轮询意义不大).
+ */
+export async function refreshAiRuntimeStatus() {
+  if (typeof api.getAiSharedConfig !== "function") {
+    chatBreakerNote.value = null;
+    return;
+  }
+  try {
+    const r = await api.getAiSharedConfig();
+    const b = r && (r as any).breaker;
+    if (
+      b &&
+      (b.state === "open" || b.state === "half-open") &&
+      typeof b.openUntilMs === "number"
+    ) {
+      const until = new Date(b.openUntilMs).toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      chatBreakerNote.value = `AI 服务熔断中（${b.providerId}），预计 ${until} 自动恢复；期间对话可能失败，请稍后再试。`;
+    } else {
+      chatBreakerNote.value = null;
+    }
+  } catch {
+    chatBreakerNote.value = null;
   }
 }
 
@@ -782,12 +822,35 @@ export async function cancelChat() {
   showToast("已停止生成", "info", 2000);
 }
 
+/** 附加当前窗口截图 (P3-13 多模态入口) */
+export async function attachChatScreenshot() {
+  if (chatLoading.value || chatPendingImage.value) return;
+  if (typeof (api as any).assistantScreenshot !== "function") {
+    showToast("当前版本不支持附加截图", "warn", 2500);
+    return;
+  }
+  try {
+    const r = await (api as any).assistantScreenshot();
+    if (r && r.ok && r.dataUrl) {
+      chatPendingImage.value = r.dataUrl;
+    } else {
+      showToast("截图失败, 请重试", "warn", 2500);
+    }
+  } catch {
+    showToast("截图失败, 请重试", "warn", 2500);
+  }
+}
+
+export function clearChatPendingImage() {
+  chatPendingImage.value = null;
+}
+
 export async function sendChatMessage(
   text: string,
   opts?: { skipUserAppend?: boolean },
 ) {
   const trimmed = text.trim();
-  if (!trimmed || chatLoading.value) return;
+  if ((!trimmed && !chatPendingImage.value) || chatLoading.value) return;
 
   if (needsConfig()) {
     showToast("请先在设置中配置 AI（Provider + API Key）", "warn", 5000);
@@ -798,11 +861,14 @@ export async function sendChatMessage(
     newChatThread();
   }
 
+  const pendingImage = chatPendingImage.value;
   const userMsg: AiChatMessage = {
     role: "user",
     content: trimmed,
     ts: Date.now(),
+    ...(pendingImage ? { attachments: [{ dataUrl: pendingImage }] } : {}),
   };
+  chatPendingImage.value = null;
   const nextHistory = opts?.skipUserAppend
     ? [...chatMessages.value]
     : [...chatMessages.value, userMsg];
@@ -841,9 +907,10 @@ export async function sendChatMessage(
   if (typeof api.onAiChatStatus === "function") {
     unsubStatus = api.onAiChatStatus((payload) => {
       if (!payload || typeof payload.status !== "string") return;
-      if (!chatStreaming.value) {
-        chatStatus.value = payload.status;
-      }
+      // 工具执行期的状态 (「正在查询…」) 发生在两轮流式文本之间, 此时
+      // chatStreaming 仍为 true — 不能拿它做 guard, 否则执行期进度永远不显示。
+      // delta 到来时会自动清掉 status, 两者天然互斥。
+      chatStatus.value = payload.status;
     });
   }
   // P3-15: 工具结果即时展示 (渐进式, 不等综合回复)
@@ -877,6 +944,9 @@ export async function sendChatMessage(
       .map((m) => ({
         role: m.role,
         content: m.content,
+        ...(m.attachments && m.attachments.length > 0
+          ? { attachments: m.attachments }
+          : {}),
       }));
     const resp = await api.aiChat({
       messages: apiMessages,
@@ -938,6 +1008,7 @@ export async function sendChatMessage(
     persistActiveThread();
     chatRetryText.value = null;
     void refreshChatBudgetHint();
+    void refreshAiRuntimeStatus();
 
     const lastUserText =
       [...apiMessages].reverse().find((m) => m.role === "user")?.content || trimmed;

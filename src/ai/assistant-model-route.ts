@@ -2,6 +2,7 @@
  * 助手多模型路由 — 简单问答走轻量模型，省 token / 延迟.
  */
 import { assistantTextBeforeLastUser } from "./assistant-nav-infer";
+import { textContentOf } from "./multimodal";
 import { DEFAULT_MODELS, FAST_MODELS } from "./default-models";
 import { wantsUiTool } from "../shared/pulse-infer-registry";
 
@@ -32,12 +33,12 @@ export function pickFastModel(providerId: string): string {
 }
 
 export function lastUserText(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: unknown }>,
 ): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
-    if (m?.role === "user" && typeof m.content === "string") {
-      return m.content.trim();
+    if (m?.role === "user" && m.content != null) {
+      return textContentOf(m.content);
     }
   }
   return "";
@@ -45,7 +46,7 @@ export function lastUserText(
 
 function fastPathUiIntent(
   text: string,
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: unknown }>,
 ): boolean {
   const prior = assistantTextBeforeLastUser(messages);
   if (
@@ -66,7 +67,7 @@ function fastPathUiIntent(
  * 是否可走轻量模型直答（跳过 FC / 多轮 Agent）.
  */
 export function shouldUseFastAssistantPath(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: unknown }>,
   primaryModel: string,
   fastModel: string,
 ): boolean {
@@ -80,7 +81,7 @@ export function shouldUseFastAssistantPath(
   if (fastPathUiIntent(text, messages)) return false;
 
   const turns = messages.filter(
-    (m) => m && (m.role === "user" || m.role === "assistant") && m.content?.trim(),
+    (m) => m && (m.role === "user" || m.role === "assistant") && textContentOf(m.content),
   );
   if (turns.length > 8) return false;
 

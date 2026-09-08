@@ -100,7 +100,7 @@
           "url": "https://agent.minimaxi.com/docs/changelog",
           "section_pattern": "<h2 ",
           "section_end": "<h2 ",
-          "version_pattern": "<span class=\"cursor-pointer\">v([0-9.]+)</span>"
+          "version_pattern": "<span class=\"cursor-pointer\">v([0-9.]+)"
         },
         {
           "type": "electron_yml",

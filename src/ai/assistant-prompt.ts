@@ -156,7 +156,7 @@ export function buildAssistantSystemPrompt(ctx?: {
     );
   }
   if (ctx?.pageSnapshot) {
-    ctxParts.push(ctx.pageSnapshot);
+    ctxParts.push(String(ctx.pageSnapshot).slice(0, PROMPT_SNAPSHOT_MAX_CHARS));
   }
   // P3-14: 长期记忆注入到上下文末尾
   const memoryLine = ctx?.memory ? `\n\n${ctx.memory}` : "";
@@ -207,6 +207,9 @@ export function stripActionTags(text: string): string {
 
 /** P0-2: 单条工具结果注入 LLM 的长度上限 */
 export const MAX_TOOL_RESULT_CHARS = 2000;
+
+/** pageSnapshot 注入 system prompt 的长度上限 — 防止页面数据把 prompt 撑爆 */
+export const PROMPT_SNAPSHOT_MAX_CHARS = 4000;
 
 /**
  * P0-2: 把工具结果包成「不可信数据」边界文本并截断.

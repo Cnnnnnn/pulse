@@ -2,6 +2,25 @@
 
 ---
 
+## v2.82.7 (🛡️ AI 榜单抗波动加固) — 2026-09-08
+
+**🛡️ AI 榜单上游抗波动 + 冷启动体验** (针对 HF datasets-server 匿名限流间歇挂起的系统性加固):
+- **超时与预算**: Arena HF 主源单页超时 8s→20s (冷建索引实测 8-10s+ 常态)；HF 阶段整体 90s 总预算，到期未完成的 board 直接落 wulong 社区快照 — 冷启动硬上限 ~110s 必出数据
+- **stale-while-revalidate**: 有过期缓存立即展示 (标"数据陈旧") + 后台刷新；刷新完成后经 `leaderboard:source-updated` 推送 renderer 静默重取，无需手动点刷新
+- **in-flight 去重**: 超时重试 / 调度器 / 多视角并发共享同一次上游请求，不再重复打限流敏感的 datasets-server
+- **可选 HF token**: 密钥库条目 `huggingface` 或 .env `HUGGINGFACE_TOKEN`/`HF_TOKEN`，Arena datasets-server 与 Hub API 均接线，额度显著放大
+- **AA key 修复**: 打包版读不到 cwd/.env 导致 AA 恒 401 — 新增解析链 密钥库(`artificial-analysis`) > env > .env；健康卡对 401 给出配置引导
+- **AA 令牌持久化**: 当日计数落盘 aa-rate.json，重启不再静默超 Free 配额
+- **子榜修复**: 上游把 text 榜 `hard` 改名 `hard_prompts` (旧 key 0 行)；新增 创意写作/长查询/多轮 3 个子榜；快照兜底数据自动隐藏子榜切换并提示
+- **LiveBench 解析加固**: 去掉对压缩产物变量名 (`const pe=`) 的依赖，官方换 hash/换名不再静默挂 (实测官方当天就换了 hash)
+- **启动预热**: 启动 15s 后台预拉全量，二次打开秒出
+- **UI 修复**: 筛选展开不再把按钮/许可胶囊挤成圆形 (独占一行贴右)；rail 下拉双箭头 + 标签折行修复；单 board 大类 (Agent/Code) 不再渲染冗余"子榜"下拉
+
+## ♻️ AI 助手: MiniMax 原生工具标记清洗 (v2.82.7 同批)
+
+- **`<minimax:tool_call>` 标记清洗**: 续轮不带 tools 参数时 MiniMax 退回原生内联标记，原样漏进聊天气泡 + 调用意图丢失 — 新增清洗 + 解析 (minimax-tool-markup.ts)，坏 JSON 静默跳过
+- **历史会话迁移**: 旧版本持久化进 assistantThreads 的脏标记，读取时一次性清洗、下次保存自愈 (assistant-threads-migrate.ts)
+
 ## v2.83.0 (🔑 密钥库) — 2026-08-29
 
 **🔑 新增「密钥库」模块** — 任意 token / API key 的本机加密管理，解决「申请完关闭页面就再也复制不到」的问题:

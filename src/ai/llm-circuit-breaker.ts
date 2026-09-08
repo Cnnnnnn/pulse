@@ -62,6 +62,26 @@ export function resetLlmBreaker(providerId?: string): void {
   for (const k of Object.keys(state)) delete state[k];
 }
 
+export type LlmBreakerInfo = {
+  providerId: string;
+  state: "closed" | "open" | "half-open";
+  openedAt: number | null;
+  /** open 期 → 预计恢复时间 (epoch ms); closed → null */
+  openUntilMs: number | null;
+};
+
+/** 熔断状态快照 — 供 UI/诊断展示 (#10 熔断可视化) */
+export function getLlmBreakerInfo(providerId: string): LlmBreakerInfo {
+  const s = state[providerId];
+  if (!s || s.openedAt == null) {
+    return { providerId, state: "closed", openedAt: null, openUntilMs: null };
+  }
+  const openUntilMs = s.openedAt + BREAKER_OPEN_MS;
+  const phase: "open" | "half-open" =
+    Date.now() - s.openedAt < BREAKER_OPEN_MS ? "open" : "half-open";
+  return { providerId, state: phase, openedAt: s.openedAt, openUntilMs };
+}
+
 export type RetryableResult = { error?: string; status?: number };
 
 export interface RetryBackoffOpts {

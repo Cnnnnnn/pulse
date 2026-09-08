@@ -3,6 +3,8 @@ import {
   parseDataUrl,
   buildUserContentWithImage,
   providerSupportsImage,
+  textContentOf,
+  normalizeMultimodalHistory,
 } from "../../src/ai/multimodal";
 
 describe("multimodal", () => {
@@ -50,5 +52,59 @@ describe("multimodal", () => {
     expect(providerSupportsImage("anthropic")).toBe(true);
     expect(providerSupportsImage("deepseek")).toBe(false);
     expect(providerSupportsImage("minimax")).toBe(false);
+  });
+
+  it("textContentOf 从 string / content 数组提取纯文本", () => {
+    expect(textContentOf("hello")).toBe("hello");
+    expect(
+      textContentOf([
+        { type: "text", text: "看图 " },
+        { type: "image_url", image_url: { url: "data:..." } },
+        { type: "text", text: "说" },
+      ]),
+    ).toBe("看图 说");
+    expect(textContentOf(null)).toBe("");
+    expect(textContentOf([{ type: "image_url", image_url: { url: "x" } }])).toBe("");
+  });
+
+  it("normalizeMultimodalHistory: 末条带图消息按协议转数组, 其余轮次降为文本", () => {
+    const img = "data:image/png;base64,abc";
+    const messages = [
+      { role: "user", content: "第一轮", attachments: [{ dataUrl: img }] },
+      { role: "assistant", content: "回复" },
+      { role: "user", content: "这一张呢?", attachments: [{ dataUrl: img }] },
+    ];
+    const out = normalizeMultimodalHistory(messages as any, "openai");
+    // 末条带图 → openai content 数组
+    const last: any = out[2];
+    expect(Array.isArray(last.content)).toBe(true);
+    expect(last.content[0]).toEqual({ type: "text", text: "这一张呢?" });
+    expect(last.content[1].type).toBe("image_url");
+    // 更早的图片轮次 → 文本占位
+    expect(out[0].content).toBe("第一轮\n(该轮附加过截图, 已省略)");
+    expect(out[1].content).toBe("回复");
+  });
+
+  it("normalizeMultimodalHistory: 无协议时带图消息也降为文本", () => {
+    const img = "data:image/png;base64,abc";
+    const out = normalizeMultimodalHistory(
+      [{ role: "user", content: "看", attachments: [{ dataUrl: img }] }] as any,
+      null,
+    );
+    expect(out[0].content).toBe("看\n(该轮附加过截图, 已省略)");
+  });
+
+  it("normalizeMultimodalHistory: 无附件消息归一为纯文本", () => {
+    const out = normalizeMultimodalHistory(
+      [
+        { role: "user", content: "plain" },
+        { role: "assistant", content: "ok" },
+      ] as any,
+      "openai",
+    );
+    expect(out).toEqual([
+      { role: "user", content: "plain" },
+      { role: "assistant", content: "ok" },
+    ]);
   });
 });

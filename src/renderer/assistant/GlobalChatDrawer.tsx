@@ -18,6 +18,7 @@ import {
   chatError,
   chatRetryText,
   chatBudgetHint,
+  chatBreakerNote,
   chatUiTraceSummary,
   chatUiTraceTitle,
   clearChatUiTraceData,
@@ -40,6 +41,9 @@ import {
   chatAttachPageContext,
   setAttachPageContext,
   syncAttachPageContextForThread,
+  chatPendingImage,
+  attachChatScreenshot,
+  clearChatPendingImage,
   clearProactiveSystemMessages,
   chatExportIncludeSystem,
   setExportIncludeSystem,
@@ -72,6 +76,7 @@ import {
   IconSparkles,
   IconX,
   IconArrowUp,
+  IconImage,
 } from "../components/icons.tsx";
 import {
   collectPageContext,
@@ -142,6 +147,7 @@ export function GlobalChatDrawer() {
   const error = chatError.value;
   const retryText = chatRetryText.value;
   const budgetHint = chatBudgetHint.value;
+  const breakerNote = chatBreakerNote.value;
   const uiTraceSummary = chatUiTraceSummary.value;
   const uiTraceTitle = chatUiTraceTitle.value;
   const threadModel = getActiveThreadModelConfig();
@@ -158,6 +164,7 @@ export function GlobalChatDrawer() {
   const modelLabel = formatThreadModelLabel(aiSessionsConfig.value, threadModel);
   const pageContextBadge = formatPageContextBadge(collectPageContext());
   const attachPageContext = chatAttachPageContext.value;
+  const pendingImage = chatPendingImage.value;
   const exportIncludeSystem = chatExportIncludeSystem.value;
   const exportIncludeTimestamps = chatExportIncludeTimestamps.value;
   const hasProactiveSystem = messages.some((m) => proactiveKindFromMessage(m));
@@ -545,7 +552,9 @@ export function GlobalChatDrawer() {
     navigateTo("settings", "ai");
   }
 
-  const showTyping = loading && !streaming && status;
+  // status 只在两轮流式文本之间的工具执行期出现 (delta 到来即清空),
+  // 所以不再要求 !streaming — 否则工具执行期的进度提示永远不可见
+  const showTyping = loading && !!status;
   const showCursor = loading && streaming;
 
   return (
@@ -848,7 +857,31 @@ export function GlobalChatDrawer() {
               </div>
             </details>
           </div>
+          {pendingImage && (
+            <div class="global-chat-pending-image">
+              <img src={pendingImage} alt="待发送截图" />
+              <button
+                type="button"
+                class="global-chat-pending-image__remove"
+                onClick={clearChatPendingImage}
+                aria-label="移除截图"
+                title="移除截图"
+              >
+                <IconX size={12} />
+              </button>
+            </div>
+          )}
           <form class="global-chat-input" onSubmit={handleSubmit}>
+          <button
+            type="button"
+            class="global-chat-input__attach"
+            disabled={loading || notReady || !!pendingImage}
+            onClick={() => void attachChatScreenshot()}
+            aria-label="附加当前窗口截图"
+            title="附加当前窗口截图"
+          >
+            <IconImage size={16} />
+          </button>
           <textarea
             ref={inputRef}
             class="global-chat-input__field"
@@ -911,6 +944,12 @@ export function GlobalChatDrawer() {
       {budgetHint && (
         <div class="global-chat-budget-hint" role="status">
           {budgetHint}
+        </div>
+      )}
+
+      {breakerNote && (
+        <div class="global-chat-budget-hint global-chat-breaker-note" role="alert">
+          ⚠ {breakerNote}
         </div>
       )}
 
@@ -991,6 +1030,18 @@ export function GlobalChatDrawer() {
               data-msg-index={i}
               class={`global-chat-msg global-chat-msg--${m.role}${searchClassForIndex(i)}`}
             >
+              {m.attachments && m.attachments.length > 0 && (
+                <div class="global-chat-msg__attachments">
+                  {m.attachments.map((img: any, k: number) => (
+                    <img
+                      key={k}
+                      src={img.dataUrl}
+                      alt="附加截图"
+                      class="global-chat-msg__image"
+                    />
+                  ))}
+                </div>
+              )}
               {m.content ? (
                 <div class="global-chat-msg__bubble">
                   {m.role === "assistant" ? (

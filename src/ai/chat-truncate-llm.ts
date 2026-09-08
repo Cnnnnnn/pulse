@@ -4,6 +4,7 @@
 import { chatCompletion, resolveSharedAiConfig } from "./shared-llm";
 import { pickFastModel } from "./assistant-model-route";
 import { loadAISessionsConfig } from "../main/state-store";
+import { textContentOf } from "./multimodal";
 import {
   buildOmittedHistoryNote,
   buildOmittedHistoryNoteFromSummary,
@@ -34,20 +35,21 @@ function isLlmHistorySummaryEnabled(): boolean {
   return true;
 }
 
-function formatTranscript<T extends { role: string; content: string }>(
+function formatTranscript<T extends { role: string; content: unknown }>(
   messages: T[],
 ): string {
   const lines: string[] = [];
   for (const m of messages) {
-    if (!m?.content?.trim()) continue;
+    const text = textContentOf(m?.content);
+    if (!text) continue;
     const role = m.role === "assistant" ? "助手" : "用户";
-    lines.push(`${role}：${m.content.trim()}`);
+    lines.push(`${role}：${text}`);
   }
   return lines.join("\n").slice(0, LLM_SUMMARY_TRANSCRIPT_CHARS);
 }
 
 export async function summarizeOmittedTurnsWithLlm<
-  T extends { role: string; content: string },
+  T extends { role: string; content: unknown },
 >(omitted: T[], opts: TrimMessagesOpts = {}): Promise<string | null> {
   if (omitted.length < LLM_SUMMARY_MIN_OMITTED) return null;
   if (opts.isAborted?.()) return null;
@@ -73,7 +75,7 @@ export async function summarizeOmittedTurnsWithLlm<
 }
 
 export async function trimMessagesForLlmAsync<
-  T extends { role: string; content: string },
+  T extends { role: string; content: unknown },
 >(messages: T[], opts: TrimMessagesOpts = {}): Promise<T[]> {
   const start = computeTrimStart(messages);
   if (start === 0) return messages;

@@ -132,6 +132,9 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const [vaultOptions, setVaultOptions] = useState([]);
  const [vaultPick, setVaultPick] = useState('');
  const [vaultBusy, setVaultBusy] = useState(false);
+ // 长期记忆管理 (assistant-threads 同源的 state.json 持久层)
+ const [memoryItems, setMemoryItems] = useState([]);
+ const [memoryBusy, setMemoryBusy] = useState(false);
 
  // mount 时拉一次 keyStatus (modal复用也会调; drawer 用也安全 — 已 cached)
  useEffect(() => {
@@ -139,7 +142,37 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  api.vaultList?.().then((r) => {
  if (r && r.ok) setVaultOptions(r.entries || []);
  }).catch(() => {});
+ api.assistantMemoryList?.().then((r) => {
+ if (r && r.ok) setMemoryItems(r.items || []);
+ }).catch(() => {});
  }, []);
+
+ async function removeMemoryItem(id: string) {
+ setMemoryBusy(true);
+ try {
+ await api.assistantMemoryRemove?.({ id });
+ setMemoryItems((list) => list.filter((i) => i.id !== id));
+ showToast('已删除这条记忆', 'info', 2000);
+ } catch {
+ showToast('删除失败, 请重试', 'warn', 2500);
+ } finally {
+ setMemoryBusy(false);
+ }
+ }
+
+ async function clearAllMemory() {
+ if (!window.confirm('确定清空全部长期记忆? 此操作不可撤销。')) return;
+ setMemoryBusy(true);
+ try {
+ await api.assistantMemoryClear?.();
+ setMemoryItems([]);
+ showToast('已清空全部记忆', 'info', 2000);
+ } catch {
+ showToast('清空失败, 请重试', 'warn', 2500);
+ } finally {
+ setMemoryBusy(false);
+ }
+ }
 
  //外部 cfg变化 (e.g.另一个 settings同步了),重置表单
  useEffect(() => {
@@ -397,6 +430,59 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  )}
  </div>
  </div>
+ </section>
+
+ {/* ── 长期记忆段 ── */}
+ <section class="settings-card ai-config-form__memory-card">
+ <div class="settings-card__heading">
+ <div>
+ <h3 class="settings-card__title">
+ 长期记忆
+ {memoryItems.length > 0 && (
+ <span class="settings-ai-badge settings-ai-badge--ready">
+ {memoryItems.length} 条
+ </span>
+ )}
+ </h3>
+ <p class="settings-card__intro">
+ 助手按你的要求记住的偏好与事实，对话时取最近 20 条注入。删除后立即生效。
+ </p>
+ </div>
+ </div>
+ {memoryItems.length === 0 ? (
+ <span class="settings-row__hint">
+ 暂无记忆。在对话里说「记住…」即可添加。
+ </span>
+ ) : (
+ <>
+ <ul class="ai-memory-list">
+ {memoryItems.map((item) => (
+ <li key={item.id} class="ai-memory-list__item">
+ <span class="ai-memory-list__text">{item.text}</span>
+ <button
+ type="button"
+ class="ai-memory-list__remove"
+ disabled={memoryBusy}
+ aria-label={`删除记忆 ${item.text}`}
+ title="删除这条记忆"
+ onClick={() => void removeMemoryItem(item.id)}
+ >
+ <IconX size={12} />
+ </button>
+ </li>
+ ))}
+ </ul>
+ <button
+ type="button"
+ class="settings-btn settings-btn--danger-ghost"
+ disabled={memoryBusy}
+ onClick={() => void clearAllMemory()}
+ title="删除全部长期记忆"
+ >
+ 清空全部记忆
+ </button>
+ </>
+ )}
  </section>
 
  {/* ── API Key 段 ── */}

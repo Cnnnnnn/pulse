@@ -12,6 +12,8 @@ import { readEntryFull } from "../vault/secret-vault";
 import { CloudSummarizer, PROVIDER_ENDPOINTS } from "../../ai-sessions/provider-cloud";
 import { HttpClient } from "../http-client";
 import { resolveSharedAiConfig } from "../../ai/shared-llm";
+import { createMiniMaxDeltaFilter } from "../../ai/minimax-tool-markup";
+import { sanitizePersistedThreads } from "../../ai/assistant-threads-migrate";
 import type { IpcMainInvokeEvent } from "electron";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
@@ -330,6 +332,15 @@ export function registerAiHandlers(ctx: any) {
     async () => {
       const cfg = stateStore.loadAISessionsConfig();
       const resolved = resolveSharedAiConfig();
+      // #10 熔断状态 + #9 今日用量 — 供助手抽屉状态条展示
+      const { getLlmBreakerInfo } = require("../../ai/llm-circuit-breaker");
+      const breaker = resolved.ok
+        ? getLlmBreakerInfo(resolved.providerId as string)
+        : null;
+      const spend = stateStore.loadTokenSpend();
+      const dayKey = localDateKey(0);
+      const todayTokens =
+        spend && typeof spend[dayKey] === "number" ? spend[dayKey] : 0;
       return {
         ok: true,
         config: cfg,
@@ -337,6 +348,8 @@ export function registerAiHandlers(ctx: any) {
         reason: resolved.ok ? null : resolved.reason,
         providerId: resolved.providerId || null,
         model: resolved.model || null,
+        breaker,
+        todayTokens,
       };
     },
     { log: false },
@@ -355,6 +368,8 @@ export function registerAiHandlers(ctx: any) {
       const ctx = (opts && opts.context) || {};
       const wantStream = Boolean(opts && opts.stream);
       const session = beginChatSession();
+      // MiniMax 原生工具标记流式过滤 — 气泡不出现中间态乱码
+      const deltaFilter = wantStream ? createMiniMaxDeltaFilter() : null;
       try {
         const result = await runAssistantAgent(messages, {
           activeNav: typeof ctx.activeNav === "string" ? ctx.activeNav : undefined,
@@ -377,7 +392,10 @@ export function registerAiHandlers(ctx: any) {
               ? opts.model.trim()
               : undefined,
           onDelta: wantStream
-            ? (delta: string) => sendToRenderer("ai:chat-delta", { delta })
+            ? (delta: string) => {
+                const clean = deltaFilter ? deltaFilter.push(delta) : delta;
+                if (clean) sendToRenderer("ai:chat-delta", { delta: clean });
+              }
             : undefined,
           onStatus: (status: string) =>
             sendToRenderer("ai:chat-status", { status }),
@@ -386,6 +404,10 @@ export function registerAiHandlers(ctx: any) {
           isAborted: session.isAborted,
           onAbortRegister: session.setAbortHandler,
         });
+        if (deltaFilter) {
+          const tail = deltaFilter.flush();
+          if (tail) sendToRenderer("ai:chat-delta", { delta: tail });
+        }
         if (session.isAborted()) {
           return { ok: false, reason: "cancelled" };
         }
@@ -425,8 +447,41 @@ export function registerAiHandlers(ctx: any) {
 
   safeHandle("assistant-threads:load", async () => {
     const { threads, activeId } = stateStore.loadAssistantThreads();
-    return { ok: true, threads, activeId };
+    // 旧版本把 MiniMax 原生工具标记原样持久化过 — 读取时统一清洗
+    return {
+      ok: true,
+      threads: sanitizePersistedThreads(threads),
+      activeId,
+    };
   });
+
+  // 长期记忆管理 (设置页) — 读写走 assistant-memory 纯模块
+  safeHandle(
+    "assistant-memory:list",
+    async () => {
+      const { listMemory } = require("../../ai/assistant-memory");
+      return { ok: true, items: listMemory() };
+    },
+    { log: false },
+  );
+  safeHandle(
+    "assistant-memory:remove",
+    async (_evt: unknown, payload: any) => {
+      const { removeMemory } = require("../../ai/assistant-memory");
+      const sel = payload && typeof payload === "object" ? payload : {};
+      return { ok: true, removed: removeMemory(sel) };
+    },
+    { log: false },
+  );
+  safeHandle(
+    "assistant-memory:clear",
+    async () => {
+      const { clearMemory } = require("../../ai/assistant-memory");
+      clearMemory();
+      return { ok: true };
+    },
+    { log: false },
+  );
 
   // P3-13: 当前页面截图 (供助手多模态附加)
   safeHandle("assistant:screenshot", async (event: any) => {

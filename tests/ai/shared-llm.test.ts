@@ -51,4 +51,15 @@ describe("shared-llm", () => {
     expect(resolveMaxOutputTokens()).toBe(DEFAULT_MAX_OUTPUT_TOKENS);
     expect(resolveMaxOutputTokens(undefined, 4096)).toBe(4096);
   });
+
+  it("clampLlmTimeoutMs: 默认/下限/上限/自定义", async () => {
+    const { clampLlmTimeoutMs, LLM_TIMEOUT_DEFAULT_MS, LLM_TIMEOUT_MIN_MS, LLM_TIMEOUT_MAX_MS } =
+      await import("../../src/ai/shared-llm");
+    expect(clampLlmTimeoutMs(undefined)).toBe(LLM_TIMEOUT_DEFAULT_MS);
+    expect(clampLlmTimeoutMs(0)).toBe(LLM_TIMEOUT_DEFAULT_MS);
+    expect(clampLlmTimeoutMs(-5)).toBe(LLM_TIMEOUT_DEFAULT_MS);
+    expect(clampLlmTimeoutMs(500)).toBe(LLM_TIMEOUT_MIN_MS); // 低于下限 → 10s
+    expect(clampLlmTimeoutMs(999_999)).toBe(LLM_TIMEOUT_MAX_MS); // 高于上限 → 300s
+    expect(clampLlmTimeoutMs(60_000)).toBe(60_000);
+  });
 });

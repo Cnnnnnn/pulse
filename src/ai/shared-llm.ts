@@ -30,8 +30,32 @@ export const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"
 
 let _http: any = null;
 function _getHttp() {
-  if (!_http) _http = new HttpClient({ timeout: 120_000, maxRetries: 1 });
+  if (!_http) _http = new HttpClient({ timeout: resolveLlmTimeoutMs(), maxRetries: 1 });
   return _http;
+}
+
+export const LLM_TIMEOUT_MIN_MS = 10_000;
+export const LLM_TIMEOUT_MAX_MS = 300_000;
+export const LLM_TIMEOUT_DEFAULT_MS = 120_000;
+
+/** clamp 纯函数 (单测用) */
+export function clampLlmTimeoutMs(raw: unknown): number {
+  const n = typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
+  if (n <= 0) return LLM_TIMEOUT_DEFAULT_MS;
+  return Math.min(LLM_TIMEOUT_MAX_MS, Math.max(LLM_TIMEOUT_MIN_MS, n));
+}
+
+/**
+ * LLM 调用超时 (ms) — cfg.llmTimeoutMs 可配 (10s..300s), 默认 120s.
+ * 长思考模型可调大; 各 LLM 路径 (http client / SSE) 统一取这里.
+ */
+export function resolveLlmTimeoutMs(): number {
+  try {
+    const cfg = stateStore.loadAISessionsConfig();
+    return clampLlmTimeoutMs(cfg && cfg.llmTimeoutMs);
+  } catch {
+    return LLM_TIMEOUT_DEFAULT_MS;
+  }
 }
 
 function _loadApiKey(providerId: any) {
@@ -227,4 +251,9 @@ module.exports = {
   isBudgetBlocked,
   extractUsageTotalTokens,
   recordTokenSpend,
+  clampLlmTimeoutMs,
+  resolveLlmTimeoutMs,
+  LLM_TIMEOUT_MIN_MS,
+  LLM_TIMEOUT_MAX_MS,
+  LLM_TIMEOUT_DEFAULT_MS,
 };

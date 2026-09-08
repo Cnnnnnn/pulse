@@ -4,6 +4,8 @@
  * 清理 LLM 输出：去掉思考链标签内容，保留给用户看的正文。
  */
 
+import { MINIMAX_TOOL_BLOCK_RE, MINIMAX_TAG_RE } from "./minimax-tool-markup";
+
 const THINK_OPEN = "<" + "think" + ">";
 const THINK_CLOSE = "<" + "/" + "think" + ">";
 
@@ -48,6 +50,10 @@ export function sanitizeLlmOutput(raw: any, opts: any = {}) {
     text = text.replace(re, "");
   }
   text = stripThinkTags(text);
+  // MiniMax M2/M3 原生工具标记漏进 content 的清洗 (FC 续轮不带 tools 参数时触发)
+  text = text
+    .replace(MINIMAX_TOOL_BLOCK_RE, "")
+    .replace(MINIMAX_TAG_RE, "");
   text = text.replace(/\n{3,}/g, "\n\n").trim();
 
   if (!text) return emptyFallback;

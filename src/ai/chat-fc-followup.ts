@@ -17,21 +17,25 @@ export type FcRoundMeta = {
 
 function resultForCall(
   call: FcToolCall,
-  results: ToolResult[],
+  results: Array<ToolResult | null>,
   index: number,
 ): string {
-  const hit = results.find((r) => r.tool === call.tool);
-  const r = hit || results[index];
+  // results 与 meta.toolCalls 按位对齐 (agent 构建) — 同名并行调用各取各位,
+  // 不再按 tool 名 find (两个 query_apps 并行时会互相串结果)
+  const r = results[index];
   return untrustedToolResult(call.tool, r?.summary);
 }
 
 /**
  * 在 FC 工具执行后，把 assistant tool_use / tool_result 追加到消息链.
+ *
+ * @param results 与 meta.toolCalls 按位对齐: 主进程工具 → 执行结果 (校验被拒 →
+ *   失败占位), renderer 工具/无结果 → null.
  */
 export function appendFcToolResults(
   baseMessages: Array<Record<string, unknown>>,
   meta: FcRoundMeta,
-  results: ToolResult[],
+  results: Array<ToolResult | null>,
   assistantText?: string,
 ): Array<Record<string, unknown>> {
   const out = [...baseMessages];

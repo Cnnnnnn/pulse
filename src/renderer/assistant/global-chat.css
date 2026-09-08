@@ -1898,11 +1898,6 @@
   box-shadow: 0 1px 2px color-mix(in oklch, #0f172a 4%, transparent);
 }
 
-.global-chat-messages-wrap {
-  margin-top: 12px;
-  border-top: 1px solid var(--border-subtle, var(--bg-secondary));
-}
-
 .global-chat-message-tools {
   margin: 0 24px 4px;
 }
@@ -3078,4 +3073,83 @@
 /* 分隔线弱化 */
 .global-chat-messages > * + * {
   border-top-color: color-mix(in oklch, var(--gray-200, #d1d1d6) 32%, transparent);
+}
+
+/* ── 附加截图 (P3-13 多模态入口) ── */
+.global-chat-input__attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  align-self: flex-end;
+  margin-bottom: 2px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+.global-chat-input__attach:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+  color: var(--accent-primary);
+}
+.global-chat-input__attach:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.global-chat-pending-image {
+  position: relative;
+  align-self: flex-start;
+  margin: 0 16px 4px;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.global-chat-pending-image img {
+  max-width: 180px;
+  max-height: 110px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--bg-secondary));
+  object-fit: cover;
+}
+.global-chat-pending-image__remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in oklch, #0f172a 72%, transparent);
+  color: #fff;
+  cursor: pointer;
+}
+.global-chat-pending-image__remove:hover {
+  background: color-mix(in oklch, #0f172a 88%, transparent);
+}
+
+.global-chat-msg__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.global-chat-msg__image {
+  max-width: 220px;
+  max-height: 150px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--bg-secondary));
+  object-fit: cover;
+}
+
+/* ── #10 熔断状态提示 ── */
+.global-chat-breaker-note {
+  background: color-mix(in oklch, #f59e0b 12%, var(--bg-elevated));
+  color: var(--text-secondary);
+  border: 1px solid color-mix(in oklch, #f59e0b 30%, transparent);
 }

@@ -81,4 +81,22 @@ describe("assistant-memory", () => {
     expect(out).toContain("用户常看基金");
     expect(out).toContain("不要把");
   });
+
+  it("formatMemoryForPrompt 超过 MAX_MEMORY_INJECT 只注入最近 N 条 + 提示省略数", async () => {
+    const { MAX_MEMORY_INJECT } = await import("../../src/ai/assistant-memory");
+    const store = makeStore();
+    const total = MAX_MEMORY_INJECT + 7;
+    for (let i = 0; i < total; i++) {
+      addMemory("记忆-" + i, store as any);
+    }
+    const out = formatMemoryForPrompt(store as any);
+    // 最新的在, 最旧的被省略
+    expect(out).toContain("记忆-" + (total - 1));
+    expect(out).toContain("记忆-" + MAX_MEMORY_INJECT);
+    expect(out).not.toContain("记忆-0\n");
+    expect(out).toContain(`另有 7 条更早记忆未展示`);
+    // 注入条数 = MAX_MEMORY_INJECT
+    const injected = out.split("\n").filter((l) => l.startsWith("- 记忆-"));
+    expect(injected).toHaveLength(MAX_MEMORY_INJECT);
+  });
 });

@@ -314,7 +314,7 @@ describe("MiniMax Code changelog (mintlify/next.js)", () => {
     url: "https://agent.minimaxi.com/docs/changelog",
     section_pattern: "<h2 ",
     section_end: "</h2>",
-    version_pattern: '<span class="cursor-pointer">v([0-9.]+)</span>',
+    version_pattern: '<span class="cursor-pointer">v([0-9.]+)',
   };
 
   it("首个 h2 里有版本 → 直接拿", async () => {
@@ -325,6 +325,21 @@ describe("MiniMax Code changelog (mintlify/next.js)", () => {
     expect(r.version).toBe("3.0.47");
     expect(r.confidence).toBe("high");
     expect(r.note).toContain("first section");
+  });
+
+  it("版本 span 带日期后缀 (2026-08 线上结构) → 仍能提取版本", async () => {
+    // 线上最新结构: <span class="cursor-pointer">v3.0.68 — 2026-08-27</span>,
+    // 旧 pattern 要求版本号后紧跟 </span>, 匹配不到 → 整个 detector 报 no_version
+    const html = MINIMAX_HTML.replace(
+      '<span class="cursor-pointer">v3.0.47</span>',
+      '<span class="cursor-pointer">v3.0.68 — 2026-08-27</span>',
+    );
+    const http = new MockHttp({ get: [{ status: 200, body: html }] });
+    const r = await new HtmlChangelogDetector(MINIMAX_CFG).detect(
+      makeCtx({ http }),
+    );
+    expect(r.version).toBe("3.0.68");
+    expect(r.confidence).toBe("high");
   });
 
   it("首个 h2 没有版本 → 退化到 page-max 取最大版本", async () => {

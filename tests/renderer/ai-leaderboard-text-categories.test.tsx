@@ -77,10 +77,23 @@ describe("文本榜 category 子榜切换", () => {
     expect(store.columnValue(A, "arena", "votes")).toBe(500);
   });
 
-  it("TEXT_CATEGORIES 含 6 个 category，默认 overall", () => {
+  it("TEXT_CATEGORIES 含 9 个 category，默认 overall（2026-09 上游 hard→hard_prompts + 3 新子榜）", () => {
     expect(TEXT_CATEGORIES.map((c: any) => c.key)).toEqual([
-      "overall", "coding", "math", "hard", "instruction_following", "non_english",
+      "overall", "coding", "math", "hard_prompts", "creative_writing",
+      "longer_query", "multi_turn", "instruction_following", "non_english",
     ]);
     expect(TEXT_CATEGORY_DEFAULT).toBe("overall");
+  });
+
+  it("textCatAvailable：数据带 categories → true；快照兜底（无 categories）→ false", () => {
+    store.items.value = [A]; // A 带 overall/coding categories
+    expect(store.textCatAvailable.value).toBe(true);
+    const snapshotOnly = {
+      ...A,
+      arena: { text: { rank: 1, score: 1500, ci: 5, votes: 1000 } },
+    };
+    store.items.value = [snapshotOnly];
+    expect(store.textCatAvailable.value).toBe(false);
+    store.items.value = [];
   });
 });

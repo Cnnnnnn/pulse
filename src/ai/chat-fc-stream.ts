@@ -162,6 +162,7 @@ function postSseStream(
   opts: {
     isAborted?: () => boolean;
     onAbortRegister?: (fn: () => void) => void;
+    timeoutMs?: number;
   },
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -250,7 +251,7 @@ function postSseStream(
       }
     });
     req.on("error", reject);
-    req.setTimeout(120_000, () => {
+    req.setTimeout(opts.timeoutMs ?? 120_000, () => {
       req.destroy();
       reject(new Error("stream_timeout"));
     });
@@ -267,6 +268,7 @@ function postOpenAiFcStream(
     onDelta?: (delta: string) => void;
     isAborted?: () => boolean;
     onAbortRegister?: (fn: () => void) => void;
+    timeoutMs?: number;
   },
 ): Promise<{ text: string; toolAcc: Map<number, ToolCallAccum>; totalTokens: number }> {
   return new Promise((resolve, reject) => {
@@ -373,7 +375,7 @@ function postOpenAiFcStream(
       }
     });
     req.on("error", reject);
-    req.setTimeout(120_000, () => {
+    req.setTimeout(opts.timeoutMs ?? 120_000, () => {
       req.destroy();
       reject(new Error("stream_timeout"));
     });
@@ -393,6 +395,7 @@ export async function chatWithToolsStreamOpenAi(
     onDelta?: (delta: string) => void;
     isAborted?: () => boolean;
     onAbortRegister?: (fn: () => void) => void;
+    timeoutMs?: number;
   },
 ): Promise<{
   ok: boolean;
@@ -427,6 +430,7 @@ export async function chatWithToolsStreamOpenAi(
         onDelta: opts.onDelta,
         isAborted: opts.isAborted,
         onAbortRegister: opts.onAbortRegister,
+        timeoutMs: opts.timeoutMs,
       },
     );
     recordTokenSpend(totalTokens);
@@ -455,6 +459,7 @@ export async function chatWithToolsStreamAnthropic(
     onDelta?: (delta: string) => void;
     isAborted?: () => boolean;
     onAbortRegister?: (fn: () => void) => void;
+    timeoutMs?: number;
   },
 ): Promise<{
   ok: boolean;
@@ -505,6 +510,7 @@ export async function chatWithToolsStreamAnthropic(
       {
         isAborted: opts.isAborted,
         onAbortRegister: opts.onAbortRegister,
+        timeoutMs: opts.timeoutMs,
       },
     );
     if (state.currentTool) {

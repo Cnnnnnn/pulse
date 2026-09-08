@@ -6,6 +6,8 @@
 import { chatCompletion, resolveSharedAiConfig } from "./shared-llm";
 import { chatCompletionStream } from "./chat-stream";
 import { chatWithTools } from "./chat-with-tools";
+import { normalizeMultimodalHistory } from "./multimodal";
+import { PROVIDER_ENDPOINTS } from "../ai-sessions/provider-cloud";
 import {
   buildAssistantSystemPrompt,
   parseAssistantActions,
@@ -13,6 +15,10 @@ import {
   untrustedToolResult,
   type AssistantAction,
 } from "./assistant-prompt";
+import {
+  extractMiniMaxToolCalls,
+  stripMiniMaxToolMarkup,
+} from "./minimax-tool-markup";
 import { executeMainTool, splitActions, type ToolResult } from "./assistant-tools";
 import { formatToolStatusMessage } from "../shared/assistant-tool-labels";
 import { trimMessagesForLlmAsync } from "./chat-truncate-llm";
@@ -66,6 +72,19 @@ export type AgentContext = {
 
 export const MAX_ROUNDS = 4;
 
+/**
+ * 展示文本清洗: 去 <action> 标签 + MiniMax 原生工具标记 (FC 续轮不带
+ * tools 参数时模型会把 <minimax:tool_call> 写进 content, 见 minimax-tool-markup).
+ */
+function cleanVisibleText(t: string): string {
+  return stripMiniMaxToolMarkup(stripActionTags(t || ""));
+}
+
+/** FC 续轮 (非协议) 文本里的工具调用: <action> XML + MiniMax 原生标记都收 */
+function parseAllTextActions(rawText: string): AssistantAction[] {
+  return [...parseAssistantActions(rawText), ...extractMiniMaxToolCalls(rawText)];
+}
+
 function finalizeRendererActions(
   history: Array<{ role: string; content: string }>,
   actions: AssistantAction[],
@@ -97,52 +116,67 @@ function resolveAgentModel(deps: AgentDeps, providerId?: string): string | undef
   return raw;
 }
 
-async function callLlmRound0(
-  llmMessages: Array<Record<string, unknown>>,
-  ctx: AgentContext | undefined,
-  deps: AgentDeps,
-  history: Array<{ role: string; content: string }>,
-): Promise<{
+type LlmRoundOutcome = {
   ok: boolean;
   text?: string;
   actions: AssistantAction[];
   fcMeta?: FcRoundMeta;
   reason?: string;
   error?: string;
-}> {
+};
+
+/** FC 调用公共 opts — round0 与续轮共享; ui 推断上下文始终来自原始 history */
+function fcCallOpts(
+  ctx: AgentContext | undefined,
+  history: Array<{ role: string; content: string }>,
+  deps: AgentDeps,
+) {
+  return {
+    isAborted: deps.isAborted,
+    onAbortRegister: deps.onAbortRegister,
+    model: deps.model,
+    onDelta: deps.onDelta,
+    uiInferContext: {
+      userText: lastUserText(history),
+      priorAssistantText: assistantTextBeforeLastUser(history),
+      activeNav: ctx?.activeNav,
+    },
+    pageCtx: extractFcPageContext(ctx?.pageData, {
+      activeNav: ctx?.activeNav,
+      route: ctx?.route,
+    }),
+  };
+}
+
+/** FC ok 分支的统一出口: 协议 tool_calls 优先, 否则解析文本协议 (<action>/原生标记) */
+function fcOutcomeToRound(fc: {
+  text?: string;
+  toolCalls?: AssistantAction[];
+  fcMeta?: FcRoundMeta;
+}): LlmRoundOutcome {
+  const rawText = fc.text || "";
+  const actions =
+    fc.toolCalls && fc.toolCalls.length > 0
+      ? fc.toolCalls
+      : parseAllTextActions(rawText);
+  return { ok: true, text: rawText, actions, fcMeta: fc.fcMeta };
+}
+
+async function callLlmRound0(
+  llmMessages: Array<Record<string, unknown>>,
+  ctx: AgentContext | undefined,
+  deps: AgentDeps,
+  history: Array<{ role: string; content: string }>,
+): Promise<LlmRoundOutcome> {
   if (deps.isAborted?.()) {
     return { ok: false, reason: "cancelled", actions: [] };
   }
   const fc = await chatWithTools(
     llmMessages as Array<{ role: string; content: string }>,
-    {
-      isAborted: deps.isAborted,
-      onAbortRegister: deps.onAbortRegister,
-      model: deps.model,
-      onDelta: deps.onDelta,
-      uiInferContext: {
-        userText: lastUserText(history),
-        priorAssistantText: assistantTextBeforeLastUser(history),
-        activeNav: ctx?.activeNav,
-      },
-      pageCtx: extractFcPageContext(ctx?.pageData, {
-        activeNav: ctx?.activeNav,
-        route: ctx?.route,
-      }),
-    },
+    fcCallOpts(ctx, history, deps),
   );
   if (fc.ok) {
-    const rawText = fc.text || "";
-    const actions =
-      fc.toolCalls && fc.toolCalls.length > 0
-        ? fc.toolCalls
-        : parseAssistantActions(rawText);
-    return {
-      ok: true,
-      text: rawText,
-      actions,
-      fcMeta: fc.fcMeta,
-    };
+    return fcOutcomeToRound(fc);
   }
 
   if (deps.isAborted?.()) {
@@ -178,7 +212,49 @@ async function callLlmRound0(
     return { ok: false, reason: llm.reason, error: llm.error, actions: [] };
   }
   const rawText = llm.text || "";
-  return { ok: true, text: rawText, actions: parseAssistantActions(rawText) };
+  return { ok: true, text: rawText, actions: parseAllTextActions(rawText) };
+}
+
+/**
+ * 续轮 (round >= 1) — 继续走 FC 协议。此前续轮退化纯文本 (不带 tools 参数),
+ * 模型只能靠 <action>/原生标记调工具: MiniMax M2/M3 会把
+ * <minimax:tool_call> 写进 content 且协议层调用直接丢失, 工具链越长越容易
+ * 在第二轮哑火。FC 失败时降级纯文本续写 (线程已含 tool 消息, 不换 system prompt)。
+ */
+async function callLlmFollowupRound(
+  llmMessages: Array<Record<string, unknown>>,
+  ctx: AgentContext | undefined,
+  deps: AgentDeps,
+  history: Array<{ role: string; content: string }>,
+): Promise<LlmRoundOutcome> {
+  if (deps.isAborted?.()) {
+    return { ok: false, reason: "cancelled", actions: [] };
+  }
+  const fc = await chatWithTools(
+    llmMessages as Array<{ role: string; content: string }>,
+    fcCallOpts(ctx, history, deps),
+  );
+  if (fc.ok) {
+    return fcOutcomeToRound(fc);
+  }
+
+  if (deps.isAborted?.()) {
+    return { ok: false, reason: "cancelled", actions: [] };
+  }
+
+  const llm = deps.onDelta
+    ? await chatCompletionStream(llmMessages, {
+        model: deps.model,
+        onDelta: deps.onDelta,
+        isAborted: deps.isAborted,
+        onAbortRegister: deps.onAbortRegister,
+      })
+    : await chatCompletion(llmMessages, { model: deps.model });
+  if (!llm.ok) {
+    return { ok: false, reason: llm.reason, error: llm.error, actions: [] };
+  }
+  const rawText = llm.text || "";
+  return { ok: true, text: rawText, actions: parseAllTextActions(rawText) };
 }
 
 /** P1-4: 单主进程工具硬超时 (ms) */
@@ -251,17 +327,25 @@ export async function runAssistantAgent(
   if (memory) {
     ctx = ctx ? { ...ctx, memory } : { memory };
   }
-  const history = await trimMessagesForLlmAsync(
-    messages.filter(
-      (m) =>
-        m &&
-        typeof m.content === "string" &&
-        (m.role === "user" || m.role === "assistant"),
+
+  // P3-13 多模态: 末条带图 user 消息按 provider 协议转 content 数组,
+  // 更早的图片轮次降为纯文本 (协议从 PROVIDER_ENDPOINTS 查)
+  const resolvedCfg = resolveSharedAiConfig();
+  const protocol = resolvedCfg.ok
+    ? ((PROVIDER_ENDPOINTS as Record<string, any>)[resolvedCfg.providerId as string]
+        ?.protocol as "openai" | "anthropic" | undefined) || null
+    : null;
+  const normalized = normalizeMultimodalHistory(messages as any, protocol);
+
+  // content: string | 多模态 content 数组 — 下游 provider 调用原样透传
+  const history = (await trimMessagesForLlmAsync(
+    normalized.filter(
+      (m: any) => m && (m.role === "user" || m.role === "assistant"),
     ),
     { isAborted: deps.isAborted },
-  );
+  )) as Array<{ role: string; content: any }>;
 
-  const resolved = resolveSharedAiConfig();
+  const resolved = resolvedCfg;
   const sessionModel = resolveAgentModel(
     deps,
     resolved.ok ? (resolved.providerId as string) : undefined,
@@ -306,7 +390,7 @@ export async function runAssistantAgent(
       }
       return {
         ok: true,
-        text: stripActionTags(llm.text || ""),
+        text: cleanVisibleText(llm.text || ""),
       };
     }
   }
@@ -335,8 +419,6 @@ export async function runAssistantAgent(
       return { ok: false, reason: "cancelled", toolResults: allToolResults };
     }
 
-    const useStream = Boolean(agentDeps.onDelta) && round > 0;
-
     let rawText = "";
     let actions: AssistantAction[] = [];
 
@@ -355,46 +437,41 @@ export async function runAssistantAgent(
       pendingFcMeta = r0.fcMeta;
       pendingFcText = rawText;
     } else {
-      const llm = useStream
-        ? await chatCompletionStream(llmThread, {
-            model: agentDeps.model,
-            onDelta: agentDeps.onDelta,
-            isAborted: agentDeps.isAborted,
-            onAbortRegister: agentDeps.onAbortRegister,
-          })
-        : await chatCompletion(llmThread, { model: agentDeps.model });
-
-      if (!llm.ok) {
+      const r = await callLlmFollowupRound(llmThread, ctx, agentDeps, history);
+      if (!r.ok) {
         return {
           ok: false,
-          reason: llm.reason,
-          error: llm.error,
+          reason: r.reason,
+          error: r.error,
           toolResults: allToolResults.length > 0 ? allToolResults : undefined,
         };
       }
-      rawText = llm.text || "";
-      actions = parseAssistantActions(rawText);
+      rawText = r.text || "";
+      actions = r.actions;
+      pendingFcMeta = r.fcMeta;
+      pendingFcText = rawText;
     }
 
     if (agentDeps.isAborted?.()) {
       return {
         ok: false,
         reason: "cancelled",
-        text: stripActionTags(rawText),
+        text: cleanVisibleText(rawText),
         actions: finalizeRendererActions(
           history,
           allRendererActions,
-          stripActionTags(rawText),
+          cleanVisibleText(rawText),
           ctx?.activeNav,
         ),
         toolResults: allToolResults,
       };
     }
 
-    finalText = stripActionTags(rawText);
+    finalText = cleanVisibleText(rawText);
     const { main: rawMain, renderer: rawRenderer } = splitActions(actions);
     // P0-3: 执行前统一校验 tool 名 + 参数 schema, 丢弃模型/注入产出的非法 action.
-    const main = rawMain.filter((a) => validateToolCall(a.tool, a.params).valid);
+    const validFlags = rawMain.map((a) => validateToolCall(a.tool, a.params).valid);
+    const main = rawMain.filter((_, i) => validFlags[i]);
     const renderer = rawRenderer.filter((a) => validateToolCall(a.tool, a.params).valid);
     allRendererActions.push(...renderer);
 
@@ -405,7 +482,7 @@ export async function runAssistantAgent(
         actions: finalizeRendererActions(
           history,
           allRendererActions,
-          stripActionTags(rawText),
+          cleanVisibleText(rawText),
           ctx?.activeNav,
         ),
         toolResults: allToolResults.length > 0 ? allToolResults : undefined,
@@ -422,31 +499,53 @@ export async function runAssistantAgent(
     }
     // P3-15: 每轮工具执行完即时推给 renderer 展示 (渐进式, 不等综合回复)
     if (allToolResults.length > 0) {
-      agentDeps.onToolResults?.(allToolResults.map((r) => ({ ...r })));
+      agentDeps.onToolResults?.(allToolResults.map((r: any) => ({ ...r })));
+    }
+
+    // 按 fc 调用序对齐结果 (appendFcToolResults 按位取用):
+    // renderer 工具 → null; 校验被拒 → 失败占位, 让模型知道该调用没执行
+    let fcResults: Array<ToolResult | null> | null = null;
+    if (pendingFcMeta && pendingFcMeta.toolCalls.length > 0) {
+      let mi = 0;
+      let ri = 0;
+      fcResults = actions.map((a) => {
+        if (mi >= rawMain.length || rawMain[mi] !== a) return null;
+        const valid = validFlags[mi];
+        mi += 1;
+        if (!valid) {
+          return toolFailureResult(a.tool, "调用不合法, 已拒绝执行");
+        }
+        const r = roundResults[ri];
+        ri += 1;
+        return r ?? null;
+      });
     }
 
     if (round === MAX_ROUNDS - 1) {
-      const suffix = roundResults.length > 0
-        ? `\n\n${formatToolResultsForLlm(roundResults)}`
-        : "";
+      // 末轮不再把工具结果原文拼进回复 (会漏出「不可信数据」包装给用户);
+      // 结果已通过 toolResults 工具卡片展示, 这里只提示可以继续追问
+      const suffix =
+        roundResults.length > 0
+          ? "\n\n(已连续执行多轮查询, 本轮到此; 需要我汇总以上结果请继续说。)"
+          : "";
       return {
         ok: true,
         text: finalText + suffix,
         actions: finalizeRendererActions(
           history,
           allRendererActions,
-          stripActionTags(rawText),
+          cleanVisibleText(rawText),
           ctx?.activeNav,
         ),
         toolResults: allToolResults,
       };
     }
 
-    if (pendingFcMeta && pendingFcMeta.toolCalls.length > 0) {
+    if (pendingFcMeta && pendingFcMeta.toolCalls.length > 0 && fcResults) {
       llmThread = appendFcToolResults(
         llmThread,
         pendingFcMeta,
-        roundResults,
+        fcResults,
         pendingFcText,
       );
       pendingFcMeta = undefined;

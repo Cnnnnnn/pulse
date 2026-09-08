@@ -408,6 +408,8 @@ export interface AiSessionsConfig {
   assistantLlmHistorySummary?: boolean;
   /** 助手会话自定义模型候选列表 */
   assistantModelPresets?: string[];
+  /** LLM 调用超时 (ms, 10000..300000, 默认 120000) */
+  llmTimeoutMs?: number;
   [key: string]: unknown;
 }
 
@@ -482,6 +484,14 @@ export interface AiSessionsConfigUpdatedPayload {
   config: AiSessionsConfig | null;
 }
 
+export interface AiLlmBreakerInfo {
+  providerId: string;
+  state: "closed" | "open" | "half-open";
+  openedAt: number | null;
+  /** open 期 → 预计恢复时间 (epoch ms); closed → null */
+  openUntilMs: number | null;
+}
+
 export interface AiSharedConfigResponse {
   ok: boolean;
   config?: AiSessionsConfig | null;
@@ -490,6 +500,10 @@ export interface AiSharedConfigResponse {
   providerId: string | null;
   model: string | null;
   error?: string;
+  /** #10 熔断状态 (closed 时也返回; null = 无 provider) */
+  breaker?: AiLlmBreakerInfo | null;
+  /** #9 今日累计 token 用量 (state.json tokenSpend[today]) */
+  todayTokens?: number;
 }
 
 export interface AiChatToolCardItem {
@@ -511,10 +525,17 @@ export interface AiChatSystemItem {
   message?: string;
 }
 
+export interface AiChatImageAttachment {
+  /** data:image/png;base64,... (截图/图片原始 dataURL) */
+  dataUrl: string;
+}
+
 export interface AiChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   toolCards?: AiChatToolCard[];
+  /** 附加图片 (仅当前会话内存态; 线程持久化时剥离) */
+  attachments?: AiChatImageAttachment[];
   /** 消息创建时间（本地 ms） */
   ts?: number;
   /** 用户对助手回复的评价（本地持久化） */
@@ -571,6 +592,20 @@ export interface AiChatApiContract {
   aiChatCancel(): Promise<{ ok: boolean }>;
   onAiChatDelta(cb: (payload: AiChatStreamDeltaPayload) => void): () => void;
   onAiChatStatus(cb: (payload: AiChatStreamStatusPayload) => void): () => void;
+  /** 抓取当前窗口截图 (dataURL), 供消息附加图片 */
+  assistantScreenshot(): Promise<{ ok: boolean; dataUrl?: string; reason?: string }>;
+  /** 长期记忆管理 (设置页) */
+  assistantMemoryList(): Promise<{
+    ok: boolean;
+    items?: Array<{ id: string; text: string; createdAt: number }>;
+    reason?: string;
+  }>;
+  assistantMemoryRemove(payload: {
+    id?: string;
+    query?: string;
+    index?: number;
+  }): Promise<{ ok: boolean; removed?: boolean; reason?: string }>;
+  assistantMemoryClear(): Promise<{ ok: boolean; reason?: string }>;
 }
 
 export interface AiSessionsApiContract {
@@ -2753,6 +2788,9 @@ export interface IpcChannelMap {
   "ai:chat-cancel": { args: []; result: { ok: boolean } };
   "assistant-threads:save": { args: [payload: { threads: unknown[]; activeId: string | null }]; result: { ok: boolean } };
   "assistant-threads:load": { args: []; result: { ok: boolean; threads: unknown[]; activeId: string | null } };
+  "assistant-memory:list": { args: []; result: { ok: boolean; items?: Array<{ id: string; text: string; createdAt: number }>; reason?: string } };
+  "assistant-memory:remove": { args: [payload: { id?: string; query?: string; index?: number }]; result: { ok: boolean; removed?: boolean; reason?: string } };
+  "assistant-memory:clear": { args: []; result: { ok: boolean; reason?: string } };
   "assistant:screenshot": { args: []; result: { ok: boolean; dataUrl?: string; reason?: string; error?: string } };
   "feedback:record": { args: [payload: AiFeedbackRecordPayload]; result: AiFeedbackRecordResponse };
   "feedback:export": { args: []; result: AiFeedbackExportResponse };

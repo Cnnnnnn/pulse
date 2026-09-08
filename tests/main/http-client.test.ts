@@ -3,8 +3,10 @@
  *
  * Phase 24: HttpClient 网络失败重试.
  * 5 case: 一次性成功 / 重试成功 / 重试用完仍失败 / 4xx/5xx 不重试 / too_large 不重试.
+ * body 超限 (real socket): Content-Length 超限 / 流式累计超限 都要 resolve
+ * too_large, 不允许 res.destroy() 后 promise 永远 pending (MiniMax Code 挂死修复).
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const { HttpClient } = requireMain('http-client');
 describe('HttpClient 重试 (Phase 24)', () => {
@@ -110,5 +112,65 @@ describe('HttpClient 重试 (Phase 24)', () => {
     const p = await client.post('https://x', {});
     expect(p.status).toBe(201);
     expect(calls.post).toBe(2);
+  });
+});
+
+describe('HttpClient body 超限不挂死 (real socket)', () => {
+  let server: any;
+  let baseUrl: string;
+  beforeAll(async () => {
+    const http = require('node:http');
+    server = http.createServer((req: any, res: any) => {
+      if (req.url === '/big-content-length') {
+        // MiniMax/Kimi 场景: headers 里 Content-Length 已超限. 故意不 end —
+        // 修复前客户端 res.destroy() 后 promise 永远 pending, 测试按超时失败.
+        res.writeHead(200, { 'Content-Length': String(2 * 1024 * 1024) });
+        res.write('x');
+      } else if (req.url === '/big-chunked') {
+        // 无 Content-Length, 流式累计超限
+        res.writeHead(200, { 'Transfer-Encoding': 'chunked' });
+        res.write('x'.repeat(600 * 1024));
+        res.write('x'.repeat(600 * 1024));
+        res.end();
+      } else {
+        res.writeHead(200, { 'Content-Length': 2 });
+        res.end('ok');
+      }
+    });
+    await new Promise((resolve: any) => server.listen(0, '127.0.0.1', resolve));
+    baseUrl = `http://127.0.0.1:${server.address().port}`;
+  });
+  afterAll(() => {
+    return new Promise((resolve: any) => {
+      if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+      if (typeof server.closeIdleConnections === 'function') server.closeIdleConnections();
+      server.close(resolve);
+    });
+  });
+
+  it('Content-Length 超限 → res.destroy 后仍要 resolve too_large (不悬挂)', async () => {
+    const client = new HttpClient({ maxRetries: 0 });
+    const r = await client.get(`${baseUrl}/big-content-length`, {
+      maxBodyBytes: 1024 * 1024,
+    });
+    expect(r.error).toBe('too_large');
+    expect(r.status).toBe(200);
+  });
+
+  it('无 Content-Length 流式累计超限 → resolve too_large', async () => {
+    const client = new HttpClient({ maxRetries: 0 });
+    const r = await client.get(`${baseUrl}/big-chunked`, {
+      maxBodyBytes: 1024 * 1024,
+    });
+    expect(r.error).toBe('too_large');
+    expect(r.status).toBe(200);
+  });
+
+  it('小 body 正常响应不受 close 兜底影响', async () => {
+    const client = new HttpClient({ maxRetries: 0 });
+    const r = await client.get(`${baseUrl}/ok`);
+    expect(r.status).toBe(200);
+    expect(r.body).toBe('ok');
+    expect(r.error).toBeUndefined();
   });
 });

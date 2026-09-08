@@ -30,7 +30,7 @@ function pickTool(
 }
 
 export function assistantTextBeforeLastUser(
-  history: Array<{ role: string; content: string }>,
+  history: Array<{ role: string; content: unknown }>,
 ): string {
   for (let i = history.length - 1; i >= 0; i--) {
     if (history[i]?.role !== "user") continue;

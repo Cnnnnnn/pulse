@@ -10,6 +10,7 @@ import {
   chatCompletion,
   isBudgetBlocked,
   recordTokenSpend,
+  resolveLlmTimeoutMs,
 } from "./shared-llm";
 import {
   isLlmOpen,
@@ -209,7 +210,7 @@ function postStream(
       }
     });
     req.on("error", reject);
-    req.setTimeout(120_000, () => {
+    req.setTimeout(resolveLlmTimeoutMs(), () => {
       req.destroy();
       reject(new Error("stream_timeout"));
     });
