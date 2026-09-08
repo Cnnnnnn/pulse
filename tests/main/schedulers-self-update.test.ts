@@ -130,6 +130,21 @@ describe("makeSelfUpdateController", () => {
     expect(au.quitAndInstall).toHaveBeenCalledTimes(1);
   });
 
+  it("quitAndInstall 先 prepareQuitAndInstall 再 autoUpdater.quitAndInstall", () => {
+    const au = makeMockAutoUpdater();
+    const prepare = vi.fn();
+    const c = makeSelfUpdateController({
+      autoUpdater: au,
+      prepareQuitAndInstall: prepare,
+    });
+    c.quitAndInstall();
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(au.quitAndInstall).toHaveBeenCalledTimes(1);
+    expect(prepare.mock.invocationCallOrder[0]).toBeLessThan(
+      au.quitAndInstall.mock.invocationCallOrder[0],
+    );
+  });
+
   it("半自动档: autoDownload=true, autoInstallOnAppQuit=false 被设置", () => {
     const au = makeMockAutoUpdater();
     makeSelfUpdateController({ autoUpdater: au });

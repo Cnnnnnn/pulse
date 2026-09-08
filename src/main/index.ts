@@ -176,6 +176,50 @@ function initSelfUpdateTimer(ctx: any) {
         pushSelfUpdateToTray(state);
         sendToRenderer("self-update:state", state);
       },
+      // macOS 菜单栏应用: quitAndInstall 前必须清 tray + 关窗拦截, 否则进程挂着,
+      // Squirrel 已暂存更新但要等用户手动退出再开才生效.
+      prepareQuitAndInstall: () => {
+        isQuitting = true;
+        if (trayMgr) {
+          try {
+            trayMgr.dispose();
+          } catch {
+            /* noop */
+          }
+          try {
+            registerTrayManager(null);
+          } catch {
+            /* noop */
+          }
+          trayMgr = null;
+        }
+        try {
+          const {
+            BrowserWindow,
+            autoUpdater: nativeUpdater,
+          } = require("electron");
+          for (const win of BrowserWindow.getAllWindows()) {
+            if (win.isDestroyed()) continue;
+            win.removeAllListeners("close");
+          }
+          // Squirrel.Mac 发 before-quit-for-update 后强制 exit（tray 场景 app.quit 常不够）
+          if (
+            process.platform === "darwin" &&
+            nativeUpdater &&
+            typeof nativeUpdater.once === "function"
+          ) {
+            nativeUpdater.once("before-quit-for-update", () => {
+              try {
+                app.exit(0);
+              } catch {
+                /* noop */
+              }
+            });
+          }
+        } catch {
+          /* noop */
+        }
+      },
     });
   } catch (err: any) {
     mainLog.warn(`[self-update] bootstrap failed: ${errMsg(err)}`);

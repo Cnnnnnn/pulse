@@ -329,6 +329,7 @@ export function wireRecentActivityListener(deps: any) {
  *
  * @param {object} deps
  * @param {object} deps.autoUpdater  electron-updater autoUpdater (测试可注入 mock)
+ * @param {Function} [deps.prepareQuitAndInstall]  macOS tray 应用需先清 tray/关窗拦截再装
  * @returns {{
  *   getState: () => object,
  *   checkNow: () => Promise<{ok: boolean, reason?: string}>,
@@ -340,6 +341,10 @@ export function makeSelfUpdateController(deps: any) {
   const onStateChange =
     deps && typeof deps.onStateChange === "function"
       ? deps.onStateChange
+      : null;
+  const prepareQuitAndInstall =
+    deps && typeof deps.prepareQuitAndInstall === "function"
+      ? deps.prepareQuitAndInstall
       : null;
   const {
     INITIAL_UPDATE_STATE,
@@ -436,6 +441,8 @@ export function makeSelfUpdateController(deps: any) {
     },
     quitAndInstall: () => {
       try {
+        // tray 应用 close→hide；不先清 tray/拦截，quitAndInstall 会退不干净
+        if (prepareQuitAndInstall) prepareQuitAndInstall();
         if (typeof autoUpdater.quitAndInstall === "function") {
           autoUpdater.quitAndInstall();
         }
@@ -465,6 +472,7 @@ export function startSelfUpdateTimer(deps: {
   getPowerIdleState?: () => unknown;
   logSkip?: (reason: string) => void;
   onStateChange?: (_state: unknown) => void;
+  prepareQuitAndInstall?: () => void;
 } = {}) {
   const intervalMs =
     typeof deps.intervalMs === "number" && deps.intervalMs > 0
@@ -494,6 +502,7 @@ export function startSelfUpdateTimer(deps: {
   const controller = makeSelfUpdateController({
     autoUpdater,
     onStateChange: deps.onStateChange,
+    prepareQuitAndInstall: deps.prepareQuitAndInstall,
   });
 
   // P52 §增量自更新: 6h 周期 tick 仅在 idle 跑. 启动检测 + 手动 trigger 不受限.
