@@ -40,6 +40,13 @@ describe("cross-platform build scripts", () => {
 
     expect(renderer).toContain("esbuild.build");
     expect(renderer).toContain("cleanRendererCssChunks()");
+    // 2026-09 回归护栏：hash 命名的 chunk 不清会无限堆积并被 electron-builder
+    // 打进 asar；生产构建还必须 minify + 输出 UTF-8。行为断言在
+    // tests/typescript/preload-contract.test.ts（真实跑 build:renderer）。
+    expect(renderer).toContain("cleanStaleChunkJs()");
+    expect(renderer).toContain("cleanMergedChunkCss()");
+    expect(renderer).toContain("minify: true");
+    expect(renderer).toContain('charset: "utf8"');
     expect(renderer).toContain("mergeRendererCss()");
     expect(cleaner).toContain("require.main === module");
     expect(cleaner).not.toContain("process.exit(0)");

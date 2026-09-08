@@ -50,6 +50,38 @@ const extractIpcChannels = (source) =>
   )].sort();
 
 /**
+ * 从 entry 出发做 `./xxx.js` 静态/动态 import 的可达性遍历，返回可达文件名集合。
+ * 用于断言「磁盘上的 chunk-*.js 都是 index.js 真正引用的」——esbuild 的 chunk
+ * 名带内容 hash，若构建前不清理旧产物，死 chunk 会被 electron-builder 的
+ * `renderer-dist/chunk-*.js` 通配符一起打进 app.asar（2026-09 实测 1012 个 / 71MB）。
+ *
+ * @param {string} distDir renderer-dist 绝对路径
+ * @param {string} entry 入口文件名（相对 distDir）
+ * @returns {Set<string>}
+ */
+const collectReachableJs = (distDir, entry) => {
+  const seen = new Set();
+  const stack = [entry];
+  while (stack.length) {
+    const file = stack.pop();
+    if (!file || seen.has(file)) continue;
+    seen.add(file);
+    let source = "";
+    try {
+      source = fs.readFileSync(path.join(distDir, file), "utf8");
+    } catch {
+      continue;
+    }
+    const importPattern = /["']\.\/([A-Za-z0-9_.-]+\.js)["']/g;
+    let match;
+    while ((match = importPattern.exec(source))) {
+      if (!seen.has(match[1])) stack.push(match[1]);
+    }
+  }
+  return seen;
+};
+
+/**
  * Run the workspace's installed ESLint CLI on the given file(s).
  * Uses Node 22, the project's eslint.config.mjs, no extra deps.
  *
@@ -206,10 +238,12 @@ describe("TypeScript foundation", () => {
     it("npm run build:renderer produces renderer-dist/{index.js,index.css,news-share-card.bundle.js}", () => {
       const distDir = path.join(root, "renderer-dist");
       // Run the script; tolerating "already exists" so this is idempotent.
+      // NODE_ENV=production 固定走生产分支（minify + charset:utf8），避免开发机
+      // 上 NODE_ENV=development 时断言压缩产物的护栏误报。
       const proc = spawnSync(npmCommand, ["run", "build:renderer", "--silent"], {
         cwd: root,
         encoding: "utf8",
-        env: { ...process.env, NO_COLOR: "1" },
+        env: { ...process.env, NO_COLOR: "1", NODE_ENV: "production" },
         shell: process.platform === "win32",
       });
       expect(proc.status).toBe(0);
@@ -231,6 +265,42 @@ describe("TypeScript foundation", () => {
         path.join(distDir, "index.css"),
         path.join(distDir, "news-share-card.bundle.js"),
       ]);
+
+      // ── bundle hygiene guard (2026-09) ──
+      // 1) 无孤儿 chunk：磁盘上的每个 chunk-*.js 都必须能从 index.js 的 import
+      //    图到达。这是防止「renderer-dist 无限堆积 → asar 里塞死文件」的回归护栏。
+      const chunkJsOnDisk = fs
+        .readdirSync(distDir)
+        .filter((f) => /^chunk-.*\.js$/.test(f));
+      expect(chunkJsOnDisk.length).toBeGreaterThan(0);
+      const reachable = collectReachableJs(distDir, "index.js");
+      const orphans = chunkJsOnDisk.filter((f) => !reachable.has(f));
+      expect(
+        orphans,
+        `orphan renderer chunks (not imported by index.js): ${orphans.join(", ")}`,
+      ).toEqual([]);
+
+      // 2) chunk-*.css 是 merge-renderer-css 的中间产物，合并进 index.css 后必须
+      //    删掉，否则会被 electron-builder 的 `renderer-dist/chunk-*.css` 打进包。
+      const chunkCssOnDisk = fs
+        .readdirSync(distDir)
+        .filter((f) => /^chunk-.*\.css$/.test(f));
+      expect(
+        chunkCssOnDisk,
+        `chunk-*.css should be merged into index.css and removed: ${chunkCssOnDisk.join(", ")}`,
+      ).toEqual([]);
+
+      // 3) 生产产物必须是压缩过的，且中文不再被逐字转义成 \uXXXX。
+      const entrySource = fs.readFileSync(path.join(distDir, "index.js"), "utf8");
+      expect(
+        entrySource.split("\n").length,
+        "index.js looks unminified (too many lines); build-renderer should minify production output",
+      ).toBeLessThan(200);
+      const cjkEscapes = entrySource.match(/\\u[0-9a-fA-F]{4}/g) || [];
+      expect(
+        cjkEscapes.length,
+        `index.js still escapes non-ASCII characters (${cjkEscapes.length} \\uXXXX); charset:"utf8" regressed`,
+      ).toBeLessThan(10);
     });
 
     // ── vitest include behavior: ──
