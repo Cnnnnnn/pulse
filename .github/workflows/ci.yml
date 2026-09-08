@@ -58,6 +58,11 @@ jobs:
         # pnpm 由上面的 pnpm/action-setup 提供，这里不再全局安装。
         run: pnpm install --frozen-lockfile --reporter=append-only
 
+      - name: Security audit (prod deps)
+        # 只拦会进 app 包的生产链路 (fast-uri / @xmldom/xmldom 等都是 dev/build-only,
+        # 不该在进包依赖上留漏洞)。阻止有人 pnpm update 把漏洞拉回 prod 依赖树。
+        run: pnpm audit --prod
+
       - name: Run unit tests
         # pnpm test 的 pretest 会先生成 dist/main 与 dist/workers，供
         # worker-pool 的真实 worker_threads 集成测试加载。
