@@ -73,4 +73,5 @@ export function tokenize(text: unknown): string[] {
   return [...tokens];
 }
 
-module.exports = { tokenize, STOPWORDS, bigramCjk };
+export { STOPWORDS };
+

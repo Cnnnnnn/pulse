@@ -65,4 +65,3 @@ function indicators(closes: any) {
   };
 }
 
-module.exports = { fetchTechIndicators };

@@ -103,9 +103,5 @@ export function parseIthomeRss(xml: any): any[] {
     return items;
 }
 
-module.exports = {
-    parseIthomeRss,
-    stripHtml,
-    toShanghaiDateKey,
-    EXCERPT_MAX,
-};
+export { stripHtml, toShanghaiDateKey, EXCERPT_MAX };
+

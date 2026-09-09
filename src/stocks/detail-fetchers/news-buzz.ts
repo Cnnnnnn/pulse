@@ -112,4 +112,3 @@ function classifySentiment(title: any) {
   return "neutral";
 }
 
-module.exports = { fetchNewsBuzz };

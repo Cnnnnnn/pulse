@@ -113,9 +113,5 @@ export function hasArticleContent(parsed: any): boolean {
     return !!(parsed && parsed.ok && parsed.body && parsed.body.length > 0);
 }
 
-module.exports = {
-    parseIthomeArticlePage,
-    hasArticleContent,
-    MIN_BODY_CHARS,
-    MAX_BODY_CHARS,
-};
+export { MIN_BODY_CHARS, MAX_BODY_CHARS };
+

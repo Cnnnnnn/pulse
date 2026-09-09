@@ -149,10 +149,5 @@ export function migrateState(obj: any): StateMigrationResult {
   };
 }
 
-module.exports = {
-  STATE_SCHEMA_VERSION,
-  validateState,
-  isStateValid,
-  migrateState,
-  FIELD_SPECS,
-};
+export { STATE_SCHEMA_VERSION, FIELD_SPECS };
+

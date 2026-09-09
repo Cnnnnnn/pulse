@@ -127,4 +127,3 @@ function parseDatacenterBody(body: any) {
   return [];
 }
 
-module.exports = { fetchIndustryPeers };

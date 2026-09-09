@@ -212,18 +212,5 @@ export function backfillFromNav(code: string, latestNav: number, statePath?: any
   return { ok: true, holding: next, all: saved };
 }
 
-module.exports = {
-  loadAll,
-  saveAll,
-  setNavSource,
-  setAlertPrefs,
-  add,
-  update,
-  remove,
-  restore,
-  cleanExpiredDeleted,
-  backfillFromNav,
-  FUNDS_DELETED_GC_DAYS,
-  VALID_CATEGORIES,
-  ValidationError,
-};
+export { setNavSource, FUNDS_DELETED_GC_DAYS, VALID_CATEGORIES };
+

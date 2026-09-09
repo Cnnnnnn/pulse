@@ -645,31 +645,5 @@ function genId(): string {
   return crypto.randomBytes(8).toString("hex");
 }
 
-module.exports = {
-  // CRUD
-  list,
-  create,
-  update,
-  remove,
-  markFired,
-  markDone,
-  markDismissed,
-  // 调度
-  startScheduler,
-  stopScheduler,
-  isSchedulerRunning,
-  _sweepOnce,
-  // 常量
-  SWEEP_INTERVAL_MS,
-  VALID_REPEATS,
-  MAX_TITLE_LEN,
-  MAX_TRIGGER_AT,
-  // test-only
-  setSearchIndex,
-  _validateCreateInput,
-  _validatePatch,
-  _normalizeReminder,
-  _normalizeAll,
-  _computeNextFireTime,
-  _readStateRaw,
-};
+export { VALID_REPEATS, MAX_TITLE_LEN, MAX_TRIGGER_AT, _validateCreateInput, _validatePatch, _normalizeReminder, _normalizeAll, _readStateRaw };
+

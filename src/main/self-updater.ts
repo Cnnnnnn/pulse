@@ -109,8 +109,5 @@ export function reduceUpdateState(state: any, action: any): any {
   }
 }
 
-module.exports = {
-  INITIAL_UPDATE_STATE,
-  reduceUpdateState,
-  compareVersions,
-};
+export { INITIAL_UPDATE_STATE };
+

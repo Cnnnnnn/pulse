@@ -137,7 +137,8 @@ export async function getInstalledVersion(bundleName: any, versionSources: any) 
   return lookupSp(bundleName, spMap);
 }
 
-// ponytail: Phase 7 7a 保留 module.exports, 给 CJS 测试 mock (eg: 测试改写
-// getInstalledVersion spy). 7b 删 shim 阶段再去掉, 此时测试改 vi.mock.
-module.exports = { getInstalledVersion, lookupSp, plistShortVersion };
 
+
+// ponytail: Phase 7b — 保留 module.exports。platform/macos 测试
+// `iv.getInstalledVersion = spy`。
+module.exports = { getInstalledVersion, lookupSp, plistShortVersion };

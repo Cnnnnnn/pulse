@@ -23,4 +23,3 @@ export async function fetchEastmoneyF10(httpClient: any, code: any) {
   }
 }
 
-module.exports = { fetchEastmoneyF10 };

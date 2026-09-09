@@ -29,7 +29,7 @@ import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
 import { loadHfToken } from "./hf-token";
 
 /** 安全取数字 (HF 偶发返 null/missing). null/undefined 走默认. ponytail: 3 fetcher 各 1 份, 不抽. */
-function num(v: any, d: number = 0): number {
+export function num(v: any, d: number = 0): number {
   if (v == null) return d;
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
@@ -277,22 +277,8 @@ export function normalize(raw: any): any[] {
   return out;
 }
 
-module.exports = {
-  id: "huggingface",
-  label: "HuggingFace",
-  requiresKey: false,
-  fetch,
-  normalize,
-  // 暴露给单测 + ranking.ts hf_trending 排序用
-  num,
+export { HF_API, HF_PAGE_SIZE, HF_TOP_N };
 
-  categoryFromPipelineTag,
-  summarizeTags,
-  computeTrendingScore,
-  HF_API,
-  HF_PAGE_SIZE,
-  HF_TOP_N,
-};
 
 export const id = "huggingface";
 export const label = "HuggingFace";

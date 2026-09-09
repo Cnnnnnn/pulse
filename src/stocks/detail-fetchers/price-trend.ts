@@ -68,4 +68,3 @@ function avg(arr: any) {
   return arr.reduce((s: any, x: any) => s + x, 0) / arr.length;
 }
 
-module.exports = { fetchPriceTrend };

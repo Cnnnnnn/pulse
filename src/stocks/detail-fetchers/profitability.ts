@@ -86,5 +86,3 @@ async function fetchDatacenterFinance(httpClient: any, code: any) {
   }
 }
 
-
-module.exports = { fetchProfitability };

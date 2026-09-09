@@ -233,10 +233,5 @@ export function __resetForTest(): void {
   _handle.deps = null;
 }
 
-module.exports = {
-  startDailySummaryJob,
-  __resetForTest,
-  parseTargetMinutes,
+export { parseTargetMinutes };
 
-  tryRewriteSummary,
-};

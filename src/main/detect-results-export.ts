@@ -133,6 +133,11 @@ export function exportDetectResults(opts: any): any {
   };
 }
 
+export { CSV_COLUMNS };
+
+
+// ponytail: Phase 7b — 保留 module.exports。register-core-detect-results-export
+// 测试 vi.spyOn(exportDetectResults)。
 module.exports = {
   CSV_COLUMNS,
   pickExportFields,

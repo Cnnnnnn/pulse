@@ -62,4 +62,3 @@ export function parseEastmoneyKlines(body: any) {
   return out;
 }
 
-module.exports = { fetchEastmoneyKline, parseEastmoneyKlines };

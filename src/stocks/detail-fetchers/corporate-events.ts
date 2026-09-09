@@ -132,4 +132,3 @@ function safeJson(s: any) {
   }
 }
 
-module.exports = { fetchCorporateEvents };

@@ -191,14 +191,8 @@ export function normalize(raw: any): any[] {
   return out;
 }
 
-module.exports = {
-  id: "artificial-analysis",
-  label: "Artificial Analysis",
-  requiresKey: true,
-  fetch,
-  normalize,
-  loadAaKey,
-};
+export { loadAaKey };
+
 
 export const id = "artificial-analysis";
 export const label = "Artificial Analysis";

@@ -187,4 +187,5 @@ export function aggregate(state: any, opts: { now?: Date } = {}): AggregateResul
   return { date: ymd(now), sections, lines };
 }
 
-module.exports = { aggregate, MAX_LINES, SECTION_ORDER, MAX_LINE_LEN, ymd };
+export { MAX_LINES, SECTION_ORDER, MAX_LINE_LEN, ymd };
+

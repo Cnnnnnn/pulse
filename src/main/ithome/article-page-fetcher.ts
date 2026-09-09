@@ -97,9 +97,5 @@ export async function fetchAndAttachBody(opts: any): Promise<any> {
     return { ok: true, reason: "fetched", body };
 }
 
-module.exports = {
-    fetchAndAttachBody,
-    needsBodyFetch,
-    MIN_USEFUL_BODY_CHARS,
-    MAX_USEFUL_BODY_CHARS,
-};
+export { MIN_USEFUL_BODY_CHARS, MAX_USEFUL_BODY_CHARS };
+
