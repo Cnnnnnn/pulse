@@ -472,6 +472,15 @@ export function load(statePath = defaultPath()) {
  * changelog), 把 prev 的 changelog 推到 prev.changelog_history, 限定最多 10 条.
  */
 const CHANGELOG_HISTORY_MAX = 10;
+/** 单条 changelog 上限 — 防整页 HTML/RSS 全文把 apps 撑到百 KB 级 */
+const CHANGELOG_MAX_CHARS = 20_000;
+
+function clipChangelog(text: any): string {
+  if (typeof text !== "string") return "";
+  return text.length > CHANGELOG_MAX_CHARS
+    ? text.slice(0, CHANGELOG_MAX_CHARS)
+    : text;
+}
 
 export function saveAll(results: any, statePath = defaultPath()) {
   return patchState((next: any, existing: any, now: any) => {
@@ -495,7 +504,7 @@ export function saveAll(results: any, statePath = defaultPath()) {
         history = [
           {
             version: oldVersion,
-            changelog: prev.changelog,
+            changelog: clipChangelog(prev.changelog),
             changelog_url: prev.changelog_url || "",
             ts: prev.ts || now,
           },
@@ -507,6 +516,7 @@ export function saveAll(results: any, statePath = defaultPath()) {
 
       apps[r.name] = {
         ...r,
+        changelog: clipChangelog(r.changelog),
         ts: now,
         last_notified: prev.last_notified,
         changelog_history: history.length > 0 ? history : undefined,
@@ -981,7 +991,11 @@ export function writeAtomic(filePath: any, data: any) {
   }
   const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
   try {
-    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
+    // compact（去掉 pretty-print）：state.json 已是 MB 级，indent 空白
+    // 在每次 mute/nav/收藏 的 read-modify-write 上白占 30%+ 体积与 IO。
+    // 人类可读导出走 register-config-portability / detect-results-export 的
+    // stringify(..., null, 2)，不经过这里。
+    fs.writeFileSync(tmp, JSON.stringify(data), "utf-8");
     fs.renameSync(tmp, filePath);
   } catch (err: any) {
     // 清理 tmp, 重新抛

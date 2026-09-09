@@ -232,6 +232,25 @@ describe('state-store', () => {
       saveAll([{ name: 'X', latest_version: '1.0.0', changelog: 'A2' }], statePath);
       expect(load(statePath).apps.X.changelog_history).toBeUndefined();
     });
+
+    it('changelog 超长截断到 20_000 字符', () => {
+      const huge = 'x'.repeat(50_000);
+      saveAll([{ name: 'X', latest_version: '1.0', changelog: huge }], statePath);
+      expect(load(statePath).apps.X.changelog).toHaveLength(20_000);
+      // 推 history 时同样截断
+      saveAll([{ name: 'X', latest_version: '2.0', changelog: 'next' }], statePath);
+      expect(load(statePath).apps.X.changelog_history[0].changelog).toHaveLength(20_000);
+    });
+  });
+
+  describe('writeAtomic compact', () => {
+    it('落盘为 compact JSON（无 indent 空白）', () => {
+      saveAll([{ name: 'Cursor', installed_version: '1.0', changelog: 'line1\nline2' }], statePath);
+      const raw = fs.readFileSync(statePath, 'utf-8');
+      // pretty-print 会在顶层数字后跟换行+空格；compact 没有
+      expect(raw.includes('\n  ')).toBe(false);
+      expect(JSON.parse(raw).apps.Cursor.name).toBe('Cursor');
+    });
   });
 
   describe('defaultPath', () => {
