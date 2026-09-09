@@ -54,4 +54,5 @@ export function createWechatHotCache({ fetcher, onUpdate }: any = {}): any {
     return { load, refresh };
 }
 
-module.exports = { createWechatHotCache, EMPTY };
+export { EMPTY };
+

@@ -152,11 +152,5 @@ function withReason(reason: string, msg: string): Error {
     return err;
 }
 
-module.exports = {
-    fetchWechatHot,
-    parseWeiboAjaxRealtime,
-    SOURCE_PRIMARY,
-    SOURCE_FALLBACK,
-    URL_PRIMARY,
-    URL_FALLBACK,
-};
+export { parseWeiboAjaxRealtime, SOURCE_PRIMARY, SOURCE_FALLBACK, URL_PRIMARY, URL_FALLBACK };
+

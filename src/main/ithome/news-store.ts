@@ -441,20 +441,5 @@ export function toggleFavorite(id: string, statePath: any): any {
     return { ok: true, favorited: true, id };
 }
 
-module.exports = {
-    RSS_URL,
-    loadAll,
-    refresh,
-    fetchDay,
-    getArticle,
-    saveSummary,
-    toggleFavorite,
+export { RSS_URL, _pruneArticles, _mergeArticles, MAX_ARTICLES_PER_DAY, MAX_ARTICLES_TOTAL };
 
-    attachArticleBody,
-    markArticleRead,
-    setSearchIndex,
-    _pruneArticles,
-    _mergeArticles,
-    MAX_ARTICLES_PER_DAY,
-    MAX_ARTICLES_TOTAL,
-};

@@ -294,26 +294,5 @@ export function clearConfigCache(): void {
   _cachedConfigAt = 0;
 }
 
-module.exports = {
-  // CRUD
-  list,
-  push,
-  broadcast,
-  setOnUpdate,
-  clearConfigCache,
-  // 常量
-  DEFAULT_MAX_ENTRIES,
-  MIN_MAX_ENTRIES,
-  MAX_MAX_ENTRIES,
-  DEDUP_WINDOW_MS,
-  VALID_KINDS,
-  // test-only
-  _validateEntry,
-  _normalizeEntry,
-  _normalizeAll,
-  _dedupAndPush,
-  _getMaxEntries,
-  _setupDefaultConfigPath,
-  _readStateRaw,
-  _withStateShell,
-};
+export { MIN_MAX_ENTRIES, MAX_MAX_ENTRIES, DEDUP_WINDOW_MS, VALID_KINDS, _normalizeEntry, _normalizeAll, _dedupAndPush, _getMaxEntries, _setupDefaultConfigPath, _readStateRaw, _withStateShell };
+

@@ -72,13 +72,5 @@ export function listPageUrl(dateKey: string): string {
     return `https://www.ithome.com/list/${dateKey}.html`;
 }
 
-module.exports = {
-    DATE_RE,
-    todayShanghaiDateKey,
+export { DATE_RE };
 
-    isInCurrentMonth,
-    isFetchableDate,
-    monthDayRange,
-    assertFetchableDate,
-    listPageUrl,
-};

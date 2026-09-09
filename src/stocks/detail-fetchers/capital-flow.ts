@@ -58,4 +58,3 @@ function parseFlow(body: any) {
   };
 }
 
-module.exports = { fetchCapitalFlow };

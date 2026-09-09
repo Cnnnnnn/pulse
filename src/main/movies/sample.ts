@@ -263,4 +263,5 @@ export function getMoviesSample(): any {
   };
 }
 
-module.exports = { getMoviesSample, NOW_PLAYING, COMING };
+export { NOW_PLAYING, COMING };
+

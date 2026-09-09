@@ -264,10 +264,5 @@ export function applyVaultImport(importId: unknown): {
   return { ok: true, imported, updated, failed };
 }
 
-module.exports = {
-  exportVaultToFile,
-  loadVaultImportFile,
-  applyVaultImport,
-  EXPORT_SCHEMA,
-  resetImportCacheForTest,
-};
+export { EXPORT_SCHEMA, resetImportCacheForTest };
+

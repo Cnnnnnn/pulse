@@ -52,4 +52,3 @@ export function parseSinaKlines(body: any) {
   return out;
 }
 
-module.exports = { fetchSinaKline, parseSinaKlines };

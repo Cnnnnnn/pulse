@@ -128,4 +128,3 @@ function safeJson(s: any) {
   }
 }
 
-module.exports = { fetchShareholders };

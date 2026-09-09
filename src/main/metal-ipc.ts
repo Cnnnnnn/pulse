@@ -334,13 +334,5 @@ export function stopMetalScheduler(): void {
   }
 }
 
-module.exports = {
-  registerMetalIpc,
-  startMetalScheduler,
-  stopMetalScheduler,
-  loadConfig,
-  getTraySnapshot,
-  triggerBackfill,
-  saveHistoryMap,
-  markBackfilled,
-};
+export { loadConfig, saveHistoryMap, markBackfilled };
+

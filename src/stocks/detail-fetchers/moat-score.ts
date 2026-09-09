@@ -238,4 +238,3 @@ function safeJson(s: any) {
   }
 }
 
-module.exports = { fetchMoatScore };

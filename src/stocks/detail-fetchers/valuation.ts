@@ -146,4 +146,3 @@ function round2(v: any) {
   return Math.round(v * 100) / 100;
 }
 
-module.exports = { fetchValuation };

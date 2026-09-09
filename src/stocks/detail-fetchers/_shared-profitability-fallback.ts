@@ -28,4 +28,3 @@ export function parseSinaProfitability(text: any) {
   };
 }
 
-module.exports = { fetchSinaProfitability, parseSinaProfitability };

@@ -53,4 +53,5 @@ export function pruneToCap(list: any[], cap: number = FEEDBACK_CAP): any[] {
   return list.slice(0, cap); // list 头部最新, 截尾部
 }
 
-module.exports = { recordFeedback, dedupeKey, pruneToCap, FEEDBACK_CAP };
+export { FEEDBACK_CAP };
+

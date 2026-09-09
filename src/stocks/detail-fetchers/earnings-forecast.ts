@@ -78,4 +78,3 @@ function safeJson(s: any) {
   }
 }
 
-module.exports = { fetchEarningsForecast };

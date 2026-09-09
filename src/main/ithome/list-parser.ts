@@ -76,7 +76,5 @@ export function parseIthomeListPage(html: any, dateKey: string): any[] {
     return items;
 }
 
-module.exports = {
-    parseIthomeListPage,
-    normalizeLink,
-};
+export { normalizeLink };
+
