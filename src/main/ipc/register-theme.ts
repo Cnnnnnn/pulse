@@ -31,7 +31,7 @@ function resolveTheme(mode: any) {
 }
 
 export function registerThemeHandlers(ctx: any) {
-  const { sendToRenderer } = ctx;
+  const { sendToRenderer, safeHandle } = ctx;
 
   // 监听系统外观变化: 'system' 模式下同步给 renderer (tray icon 已经在 install() 监听了).
   // 这里只负责 IPC 广播, 不动 lastThemeMode (用户偏好).
@@ -47,11 +47,11 @@ export function registerThemeHandlers(ctx: any) {
     }
   });
 
-  ipcMain.handle("theme:get", () => {
+  safeHandle("theme:get", () => {
     return { mode: lastThemeMode, resolved: resolveTheme(lastThemeMode) };
   });
 
-  ipcMain.handle(
+  safeHandle(
     "theme:set",
     (
       _event: unknown,

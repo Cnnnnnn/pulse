@@ -61,7 +61,7 @@ export function registerTrayConfigHandlers(ctx: any) {
     }
   });
 
-  ipcMain.handle("tray:get-prefs", () => {
+  safeHandle("tray:get-prefs", () => {
     try {
       return { ok: true, prefs: stateStore.loadTrayMenuPrefs() };
     } catch (err: any) {

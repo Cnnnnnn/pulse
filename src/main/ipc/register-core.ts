@@ -36,7 +36,7 @@ export function registerCoreHandlers(ctx: any) {
     safeHandle,
   } = ctx;
 
-  ipcMain.handle("get-config", () => {
+  safeHandle("get-config", () => {
     try {
       return getConfig();
     } catch {
@@ -44,7 +44,7 @@ export function registerCoreHandlers(ctx: any) {
     }
   });
 
-  ipcMain.handle("get-cached-state", () => {
+  safeHandle("get-cached-state", () => {
     if (typeof getCachedState !== "function") return null;
     try {
       return getCachedState();
@@ -53,7 +53,7 @@ export function registerCoreHandlers(ctx: any) {
     }
   });
 
-  ipcMain.handle("check-updates", async () => {
+  safeHandle("check-updates", async () => {
     const r = await runCheckQueued(
       buildRunCheckDeps({
         getConfig,
@@ -91,7 +91,7 @@ export function registerCoreHandlers(ctx: any) {
     return r;
   });
 
-  ipcMain.handle(
+  safeHandle(
     "check-updates:cancel",
     (
       _event: IpcMainInvokeEvent,
@@ -99,7 +99,7 @@ export function registerCoreHandlers(ctx: any) {
     ) => cancelRunCheck(typeof jobId === "string" ? jobId : undefined),
   );
 
-  ipcMain.handle(
+  safeHandle(
     "brew-upgrade",
     async (
       _event: IpcMainInvokeEvent,
@@ -125,7 +125,7 @@ export function registerCoreHandlers(ctx: any) {
     },
   );
 
-  ipcMain.handle(
+  safeHandle(
     "bulk-upgrade:start",
     async (
       _event: IpcMainInvokeEvent,
@@ -188,7 +188,7 @@ export function registerCoreHandlers(ctx: any) {
     },
   );
 
-  ipcMain.handle("bulk-upgrade:cancel", async () => {
+  safeHandle("bulk-upgrade:cancel", async () => {
     if (!bulkUpgradeRunning || !bulkUpgradeCtrl) {
       return { ok: false, reason: "not running" };
     }
@@ -196,7 +196,7 @@ export function registerCoreHandlers(ctx: any) {
     return { ok: true };
   });
 
-  ipcMain.handle(
+  safeHandle(
     "get-app-icon",
     async (
       _event: IpcMainInvokeEvent,
@@ -221,18 +221,18 @@ export function registerCoreHandlers(ctx: any) {
   // Win 走 titleBarStyle:'hidden' 把 OS 三键隐藏, renderer 画三个按钮调这里.
   // mac 走 hiddenInset 自带三颗灯, 不调这里. 不做平台守卫 — 调了也对 mac 无副作用
   // (Win 上 hide 行为已存在, mac 上 minimize/close 走 hide 同路径, maximize 走 OS 全屏).
-  ipcMain.handle("window:minimize", () => {
+  safeHandle("window:minimize", () => {
     const w = getWindow();
     if (w && !w.isDestroyed()) w.minimize();
   });
-  ipcMain.handle("window:toggle-maximize", () => {
+  safeHandle("window:toggle-maximize", () => {
     const w = getWindow();
     if (!w || w.isDestroyed()) return { maximized: false };
     if (w.isMaximized()) w.unmaximize();
     else w.maximize();
     return { maximized: w.isMaximized() };
   });
-  ipcMain.handle("window:close", () => {
+  safeHandle("window:close", () => {
     // 走 window.close() 让 isQuitting 守卫在 window.js 接管:
     //   - quit 中 (Cmd+Q / tray quit) → 真退出
     //   - 否则 → hide (tray 模式)
@@ -241,7 +241,7 @@ export function registerCoreHandlers(ctx: any) {
     if (w && !w.isDestroyed()) w.close();
   });
 
-  ipcMain.handle("get-mutes", () => {
+  safeHandle("get-mutes", () => {
     try {
       return { mutes: stateStore.getMutes() };
     } catch (err: any) {
@@ -312,7 +312,7 @@ export function registerCoreHandlers(ctx: any) {
     },
   );
 
-  ipcMain.handle("get-last-opened", () => {
+  safeHandle("get-last-opened", () => {
     try {
       return { lastOpened: stateStore.loadLastOpened() };
     } catch (err: any) {
@@ -321,7 +321,7 @@ export function registerCoreHandlers(ctx: any) {
     }
   });
 
-  ipcMain.handle("refresh-last-opened", () => {
+  safeHandle("refresh-last-opened", () => {
     const apps = (getConfig() && getConfig().apps) || [];
     const refreshable = apps.filter((a: any) => a && a.name && a.bundle);
     if (refreshable.length === 0) {
@@ -356,7 +356,7 @@ export function registerCoreHandlers(ctx: any) {
     return { ok: true, count: refreshable.length };
   });
 
-  ipcMain.handle("get-active-category", () => {
+  safeHandle("get-active-category", () => {
     try {
       return { activeCategory: stateStore.loadActiveCategory() };
     } catch (err: any) {
@@ -391,7 +391,7 @@ export function registerCoreHandlers(ctx: any) {
   );
 
   // P-N: HomeGrid 落点
-  ipcMain.handle("get-last-active-nav", () => {
+  safeHandle("get-last-active-nav", () => {
     try {
       return { lastActiveNav: stateStore.loadLastActiveNav() };
     } catch (err: any) {

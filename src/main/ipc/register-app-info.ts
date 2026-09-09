@@ -9,7 +9,21 @@ export function registerAppInfoHandlers(ctx: any = {}) {
 
   if (!ipcMain || typeof ipcMain.handle !== "function") return;
 
-  ipcMain.handle("app:get-version", async () => {
+  const safeHandle =
+    typeof ctx.safeHandle === "function"
+      ? ctx.safeHandle
+      : (channel: string, fn: (...args: any[]) => any) => {
+          // 本地兜底必须走 ipcMain.handle，不能自引用 safeHandle
+          ipcMain.handle(channel, async (...args: any[]) => {
+            try {
+              return await fn(...args);
+            } catch {
+              return { ok: false, reason: "threw" };
+            }
+          });
+        };
+
+  safeHandle("app:get-version", async () => {
     try {
       return typeof app.getVersion === "function" ? app.getVersion() : "";
     } catch {

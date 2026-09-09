@@ -15,21 +15,21 @@ import * as reminders from "../reminders";
 import * as recentActivity from "../recent-activity";
 
 export function registerRemindersRecentHandlers(ctx: any) {
-  const { sendToRenderer } = ctx;
+  const { sendToRenderer, safeHandle } = ctx;
 
-  ipcMain.handle("reminders:list", () => {
+  safeHandle("reminders:list", () => {
     try {
       return { ok: true, reminders: reminders.list() };
     } catch (err: any) {
       return { ok: false, reason: "list_failed", msg: errMsg(err) };
     }
   });
-  ipcMain.handle(
+  safeHandle(
     "reminders:create",
     (_evt: IpcMainInvokeEvent, input: IpcChannelMap["reminders:create"]["args"][0]) =>
       reminders.create(input),
   );
-  ipcMain.handle(
+  safeHandle(
     "reminders:update",
     (
       _evt: IpcMainInvokeEvent,
@@ -40,30 +40,30 @@ export function registerRemindersRecentHandlers(ctx: any) {
     return reminders.update(payload.id, payload.patch);
     },
   );
-  ipcMain.handle(
+  safeHandle(
     "reminders:remove",
     (_evt: IpcMainInvokeEvent, id: IpcChannelMap["reminders:remove"]["args"][0]) =>
       reminders.remove(id),
   );
-  ipcMain.handle(
+  safeHandle(
     "reminders:mark-done",
     (_evt: IpcMainInvokeEvent, id: IpcChannelMap["reminders:mark-done"]["args"][0]) =>
       reminders.markDone(id),
   );
-  ipcMain.handle(
+  safeHandle(
     "reminders:mark-dismissed",
     (_evt: IpcMainInvokeEvent, id: IpcChannelMap["reminders:mark-dismissed"]["args"][0]) =>
       reminders.markDismissed(id),
   );
 
-  ipcMain.handle("recent:list", () => {
+  safeHandle("recent:list", () => {
     try {
       return { ok: true, entries: recentActivity.list() };
     } catch (err: any) {
       return { ok: false, reason: "list_failed", msg: errMsg(err) };
     }
   });
-  ipcMain.handle(
+  safeHandle(
     "recent:push",
     (
       _evt: IpcMainInvokeEvent,
