@@ -86,7 +86,13 @@ function injectCssPlugin() {
     name: "inject-css",
     setup(build) {
       build.onLoad({ filter: /\.css$/ }, (args) => {
-        const css = fs.readFileSync(args.path, "utf8");
+        // 压掉 CSS 空白：inject 进 JS 后 esbuild minify 不会再压 CSS 字符串内容；
+        // 不压会让 preload-contract 的「产物行数 < 200」护栏误判成未 minify。
+        const css = fs
+          .readFileSync(args.path, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/\s+/g, " ")
+          .trim();
         const key = path.relative(rootDir, args.path).split(path.sep).join("/");
         return {
           contents: `
