@@ -63,6 +63,11 @@ jobs:
         # 不该在进包依赖上留漏洞)。阻止有人 pnpm update 把漏洞拉回 prod 依赖树。
         run: pnpm audit --prod
 
+      # P0 质量门：5 个 tsconfig (preload/app/app.strict/renderer/tests) 全量 tsc。
+      # 此前只靠本地验证，CI 缺这一步 — 任何 PR 都能把类型回归合进 main。
+      - name: Typecheck
+        run: pnpm run typecheck
+
       - name: Run unit tests
         # pnpm test 的 pretest 会先生成 dist/main 与 dist/workers，供
         # worker-pool 的真实 worker_threads 集成测试加载。
