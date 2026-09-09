@@ -271,9 +271,3 @@ function _bestSource(a: any, b: any): string {
   return rb > ra ? b : a;
 }
 
-module.exports = {
-  BROWSER_UA,
-  fetchJson,
-  slugifyModel,
-  mergeModelSlices,
-};

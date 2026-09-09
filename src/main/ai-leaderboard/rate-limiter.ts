@@ -164,12 +164,3 @@ export function __reloadForTest() {
   _loadPersisted();
 }
 
-module.exports = {
-  AA_DAILY_LIMIT,
-  acquire,
-  remaining,
-  budget,
-
-  resetLimiter,
-  __reloadForTest,
-};

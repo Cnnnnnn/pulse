@@ -178,13 +178,6 @@ export function normalize(raw: any): any[] {
   return out;
 }
 
-module.exports = {
-  id: "models-dev",
-  label: "Models.dev",
-  requiresKey: false,
-  fetch,
-  normalize,
-};
 
 export const id = "models-dev";
 export const label = "Models.dev";

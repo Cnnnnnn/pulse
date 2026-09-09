@@ -104,4 +104,3 @@ export function registerLeaderboardScheduler(deps: any = {}): any {
   return { start, stop, triggerNow };
 }
 
-module.exports = { registerLeaderboardScheduler };

@@ -352,8 +352,3 @@ function _sanitizeAISessions(raw: any) {
   };
 }
 
-module.exports = {
-  validateConfig,
-  sanitizeConfig,
-  VALID_DETECTOR_TYPES,
-};

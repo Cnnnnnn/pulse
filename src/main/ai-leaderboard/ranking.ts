@@ -133,13 +133,4 @@ export function filterBySearch(items: any[], q: string): any[] {
 
 /** 重新导出（单一真源在 types.js）。 */
 export { normalizeVendor, SOURCE };
-module.exports = {
-  sortValue,
-  sortModels,
-  filterByVendor,
-  filterBySearch,
-  normalizeVendor,
-  SOURCE,
-  // 暴露给 hf_trending 测试
-  computeTrendingScore,
-};
+

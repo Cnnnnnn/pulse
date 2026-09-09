@@ -92,4 +92,3 @@ export function appendFcToolResults(
   return out;
 }
 
-module.exports = { appendFcToolResults };

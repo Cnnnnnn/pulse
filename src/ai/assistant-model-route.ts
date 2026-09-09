@@ -98,8 +98,3 @@ export function shouldUseFastAssistantPath(
   return false;
 }
 
-module.exports = {
-  pickFastModel,
-  lastUserText,
-  shouldUseFastAssistantPath,
-};

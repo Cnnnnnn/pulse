@@ -321,4 +321,3 @@ export async function chatWithTools(
   }
 }
 
-module.exports = { chatWithTools };

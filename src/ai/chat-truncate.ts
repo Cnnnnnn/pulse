@@ -108,14 +108,3 @@ export function trimMessagesForLlm<T extends { role: string; content: unknown }>
   return [note, ...recent];
 }
 
-module.exports = {
-  trimMessagesForLlm,
-  summarizeOmittedTurns,
-  buildOmittedHistoryNote,
-  computeTrimStart,
-  estimateTokens,
-  estimateMessagesTokens,
-  MAX_LLM_MESSAGES,
-  KEEP_RECENT_MESSAGES,
-  MAX_LLM_TOKENS,
-};

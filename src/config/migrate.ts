@@ -203,11 +203,3 @@ export function migrateConfigFile(opts: any) {
   return { migrated: true, configPath, backupPath, config: newConfig };
 }
 
-module.exports = {
-  migrateConfig,
-  migrateConfigFile,
-  isOldSchemaApp,
-  migrateApp,
-  MigrationError,
-  WEB_TYPE_MAP,
-};

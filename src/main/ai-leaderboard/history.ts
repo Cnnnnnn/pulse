@@ -148,4 +148,3 @@ export function pruneOldCache(keepDays: number = 30) {
   } catch { /* 目录不可读忽略 */ }
 }
 
-module.exports = { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap, pruneOldCache };

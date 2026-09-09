@@ -422,4 +422,3 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
   };
 }
 
-module.exports = { getLeaderboard, matchesCategory, __resetInflightForTest, onRawRefreshed };

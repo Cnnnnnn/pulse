@@ -421,11 +421,3 @@ export function runQueryConcerts(): ToolResult {
   };
 }
 
-module.exports = {
-  resolveStockIntentChip,
-  runInterpretFinance,
-  runSummarizeIthome,
-  runAdviseStocks,
-  runQueryMovies,
-  runQueryConcerts,
-};

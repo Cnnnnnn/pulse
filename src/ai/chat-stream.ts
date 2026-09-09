@@ -330,4 +330,3 @@ export async function chatCompletionStream(
   }
 }
 
-module.exports = { chatCompletionStream };
