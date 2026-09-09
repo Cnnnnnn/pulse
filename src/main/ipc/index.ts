@@ -102,4 +102,3 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   ); // 密钥库 (v2.83)：safeStorage 加密 token 管理 + 过期提醒 + 导入导出
 }
 
-module.exports = { registerIpcHandlers };

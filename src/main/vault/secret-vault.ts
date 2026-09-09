@@ -675,24 +675,3 @@ export function deleteEntryByName(name: unknown): boolean {
   return deleteEntry(target.id).ok;
 }
 
-module.exports = {
-  listEntries,
-  setEntry,
-  deleteEntry,
-  deleteEntryByName,
-  revealEntry,
-  readEntryFull,
-  copyEntry,
-  getSecretValue,
-  hasEntryNamed,
-  maskHint,
-  cleanExpiry,
-  listIndexEntries,
-  markExpiryReminded,
-  CLIPBOARD_CLEAR_AFTER_SEC,
-  __setSafeStorageForTest,
-  __setUserDataDirForTest,
-  __setClipboardForTest,
-  __setTimersForTest,
-  __resetForTest,
-};

@@ -68,4 +68,3 @@ export function markItemRead(title: string, statePath?: any): any {
     }
 }
 
-module.exports = { loadReadIds, markItemRead };

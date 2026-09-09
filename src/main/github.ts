@@ -364,6 +364,9 @@ export async function fetchGithubProject(input: string, token: string = ""): Pro
   }
 }
 
+
+// ponytail: Phase 7b — 保留 module.exports。tests 依赖 `__setHttpForTest`
+// 显式注入钩子（CJS require 下 vi.mock 不稳），需要可写对象属性。
 module.exports = {
   parseGithubUrl,
   fetchGithubProject,
@@ -373,12 +376,6 @@ module.exports = {
   getEnvGithubToken,
   authHeader,
   parseRateLimitHeaders,
-  /**
-   * 仅测试用：注入一个 stub 替换内部 http() 单例。
-   * 传 null/undefined 复位回真实 HttpClient。
-   * 生产代码不要调用。CJS require 下 vi.mock 不稳（见 github-auth.test.js 注释），
-   * 故用显式钩子而非模块替换。
-   */
   __setHttpForTest(stub: any) {
     _http = stub || null;
   },

@@ -69,4 +69,3 @@ export function registerAiFeedbackHandlers(ctx: any) {
   });
 }
 
-module.exports = { registerAiFeedbackHandlers };

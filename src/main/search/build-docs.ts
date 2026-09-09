@@ -161,11 +161,3 @@ export function buildDocsFromState(state: any): Doc[] {
   ];
 }
 
-module.exports = {
-  buildDocsFromState,
-  buildNewsDocs,
-  buildAiTaskDocs,
-  buildReminderDocs,
-  buildFundDocs,
-  buildAppDocs,
-};

@@ -78,4 +78,3 @@ export function suppressedByCooldown(
   return out;
 }
 
-module.exports = { parseHHMM, inQuietHours, suppressedByCooldown };

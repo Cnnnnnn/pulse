@@ -405,16 +405,3 @@ export function checkWatchlistMetalUpdates(deps: CheckDeps = {}): CheckResult {
   );
 }
 
-module.exports = {
-  FUND_NAV_CHANGE_PCT,
-  METAL_PRICE_CHANGE_PCT,
-  makeWatchlistSendNotification,
-  checkWatchlistUpdatesPure,
-  checkWatchlistFundUpdatesPure,
-  checkWatchlistKeywordUpdatesPure,
-  checkWatchlistMetalUpdatesPure,
-  checkWatchlistUpdates,
-  checkWatchlistFundUpdates,
-  checkWatchlistKeywordUpdates,
-  checkWatchlistMetalUpdates,
-};

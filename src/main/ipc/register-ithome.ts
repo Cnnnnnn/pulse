@@ -108,4 +108,3 @@ export function registerIthomeHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerIthomeHandlers };

@@ -148,4 +148,3 @@ export function registerStockDetailHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerStockDetailHandlers };

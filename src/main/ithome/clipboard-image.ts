@@ -16,4 +16,3 @@ export function writePngToClipboard(pngBuffer: any): void {
     clipboard.writeImage(img);
 }
 
-module.exports = { writePngToClipboard };

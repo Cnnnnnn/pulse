@@ -87,9 +87,3 @@ export function classifyOpenSessionTarget(
   return null;
 }
 
-module.exports = {
-  isSafeExternalUrl,
-  isAllowedJumpScheme,
-  isAllowedSessionPath,
-  classifyOpenSessionTarget,
-};

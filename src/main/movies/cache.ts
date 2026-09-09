@@ -205,4 +205,3 @@ export function createMoviesCache({
   return { load, refresh, getItem, setTmdbApiKey, ttlMs, cityId: () => currentCity };
 }
 
-module.exports = { createMoviesCache, createFilePersist, CACHE_TTL_MS };

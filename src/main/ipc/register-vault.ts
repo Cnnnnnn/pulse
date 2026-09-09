@@ -123,4 +123,3 @@ export function registerVaultHandlers(ctx: any, opts: any = {}) {
   );
 }
 
-module.exports = { registerVaultHandlers };

@@ -91,4 +91,3 @@ export function registerWechatHotHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerWechatHotHandlers, UPDATED_CHANNEL };

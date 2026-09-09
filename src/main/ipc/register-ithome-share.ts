@@ -64,4 +64,3 @@ export function registerIthomeShareHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerIthomeShareHandlers };

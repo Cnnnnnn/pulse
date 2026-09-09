@@ -247,4 +247,3 @@ export function registerFundsHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerFundsHandlers };

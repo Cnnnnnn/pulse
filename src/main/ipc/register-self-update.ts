@@ -66,4 +66,3 @@ export function registerSelfUpdateHandlers(ctx: any) {
   });
 }
 
-module.exports = { registerSelfUpdateHandlers };

@@ -61,4 +61,3 @@ export function makeSnippet(
   return prefix + html + suffix;
 }
 
-module.exports = { makeSnippet };

@@ -90,11 +90,3 @@ export function markBackfilled(atMs: number, statePath?: any): any {
   return next.lastBackfillAt;
 }
 
-module.exports = {
-  DEFAULT_CONFIG,
-  normalizeConfig,
-  load,
-  save,
-  saveHistoryMap,
-  markBackfilled,
-};

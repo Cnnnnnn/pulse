@@ -136,4 +136,3 @@ export function createIpcContext(deps: IpcContextDeps): IpcContext {
   };
 }
 
-module.exports = { createIpcContext };

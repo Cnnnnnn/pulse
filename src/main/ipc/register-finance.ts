@@ -290,8 +290,3 @@ export function registerFinanceHandlers(ctx: any) {
   );
 }
 
-module.exports = {
-  registerFinanceHandlers,
-  NEWS_UPDATED_CHANNEL,
-  QUOTES_UPDATED_CHANNEL,
-};

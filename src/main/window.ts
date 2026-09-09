@@ -244,4 +244,3 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
   return { createWindow, showWindow, getWindow, isOpen };
 }
 
-module.exports = { createWindowManager };

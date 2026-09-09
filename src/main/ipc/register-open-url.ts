@@ -49,4 +49,3 @@ export function registerOpenUrlHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerOpenUrlHandlers };

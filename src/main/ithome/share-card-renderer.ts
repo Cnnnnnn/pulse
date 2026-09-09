@@ -161,4 +161,3 @@ export async function createShareCardPng(payload: any, opts: any = {}): Promise<
     }
 }
 
-module.exports = { createShareCardPng };

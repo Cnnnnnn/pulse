@@ -262,4 +262,3 @@ export function registerAiUsageHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerAiUsageHandlers, _internals, KNOWN_PROVIDERS };

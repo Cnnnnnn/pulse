@@ -38,4 +38,3 @@ export function registerUpgradeAdviceHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerUpgradeAdviceHandlers };

@@ -70,9 +70,3 @@ export function save(news: IthomeNewsSnapshot, statePath?: string): void {
   stateStore.writeAtomic(filePath, next);
 }
 
-module.exports = {
-  normalizeNews,
-  readState,
-  load,
-  save,
-};

@@ -104,4 +104,3 @@ export function registerTrayConfigHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerTrayConfigHandlers };

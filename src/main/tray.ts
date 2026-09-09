@@ -665,9 +665,11 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
   };
 }
 
+
+// ponytail: Phase 7b — 保留 module.exports。tests 通过 `_internal.loadTrayIcon`
+// 等访问内部符号；纯 ESM 互操作没有 `_internal` 命名空间对象。
 module.exports = {
   createTrayManager,
-  // 暴露给测试 (assets 加载 + badge 变体选择 + menu template 纯函数)
   _internal: {
     loadTrayIcon,
     loadFallbackIcon,
