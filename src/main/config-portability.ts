@@ -103,10 +103,3 @@ export function computeDiff(currentState: any, incomingFields: any): DiffEntry[]
   });
 }
 
-module.exports = {
-  CONFIG_FIELDS,
-  SCHEMA_VERSION,
-  serializeConfig,
-  parseConfigFile,
-  computeDiff,
-};

@@ -125,7 +125,3 @@ export function buildAppPath(bundleName: string): string {
   return `${APP_DIR}/${bn}`;
 }
 
-module.exports = {
-  getActionForApp,
-  buildAppPath, // exported for tests
-};

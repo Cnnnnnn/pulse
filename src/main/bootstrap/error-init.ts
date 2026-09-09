@@ -81,4 +81,3 @@ export function __resetForTest() {
   _instance = null;
 }
 
-module.exports = { initErrorCapture, getInstance, __resetForTest };

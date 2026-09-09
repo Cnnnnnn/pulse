@@ -122,7 +122,3 @@ export function formatConcertDropNotification(drops: ConcertPriceDrop[]): {
   return { title, body: lines.join("\n") };
 }
 
-module.exports = {
-  detectConcertPriceDrops,
-  formatConcertDropNotification,
-};

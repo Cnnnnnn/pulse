@@ -59,4 +59,3 @@ export async function aggregateNews(opts: AggregateOpts = {}): Promise<Aggregate
 
 export const SOURCE_NAMES = SOURCE_LABELS;
 
-module.exports = { aggregateNews, SOURCE_NAMES };

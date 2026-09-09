@@ -117,11 +117,3 @@ export function save(patch: any, statePath?: any): FundState {
   return next;
 }
 
-module.exports = {
-  FUNDS_DELETED_GC_DAYS,
-  FUNDS_DELETED_GC_MS,
-  normalizeFunds,
-  load,
-  cleanExpiredDeleted,
-  save,
-};

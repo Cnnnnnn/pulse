@@ -335,11 +335,3 @@ async function execMas(trackId: number, fallbackUrl: string): Promise<any> {
   }
 }
 
-module.exports = {
-  runBulkUpgrade,
-  defaultExec, // exported for tests
-
-  execWinget, // exported for tests
-  // Testability hook (vitest only)
-
-};

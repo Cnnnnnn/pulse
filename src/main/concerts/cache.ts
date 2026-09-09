@@ -263,4 +263,3 @@ export function createConcertsCache({
   return { load, refresh, addAndFetch, syncWatches, ttl, emptySnapshot };
 }
 
-module.exports = { createConcertsCache, createFilePersist, CACHE_TTL_MS };

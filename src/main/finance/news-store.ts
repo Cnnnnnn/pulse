@@ -282,13 +282,3 @@ export function markRead(statePath: any, id: any): any {
   return { ok: true };
 }
 
-module.exports = {
-  loadAll,
-  refresh,
-  getFiltered,
-  getArticle,
-  getRelated,
-  getCategoryCounts,
-  toggleFavorite,
-  markRead,
-};

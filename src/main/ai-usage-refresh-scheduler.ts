@@ -156,4 +156,3 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
   return moduleObj;
 }
 
-module.exports = { createAiUsageRefreshScheduler };

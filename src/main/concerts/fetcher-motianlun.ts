@@ -443,9 +443,3 @@ export function normalizeMotianlunShow(
   };
 }
 
-module.exports = {
-  fetchMotianlunShow,
-  normalizeMotianlunShow,
-  normalizeMotianlunTiers,
-  aggregateTicketMins,
-};

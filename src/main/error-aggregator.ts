@@ -143,4 +143,3 @@ export function createAggregator(opts: any): any {
   return { append, query, cleanup, logsDir };
 }
 
-module.exports = { createAggregator };

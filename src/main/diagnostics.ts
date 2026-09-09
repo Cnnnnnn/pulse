@@ -200,18 +200,3 @@ export function _resetForTest(): void {
   stopMetricsSampler();
 }
 
-module.exports = {
-  // milestones
-  markBootstrapDone,
-  markRendererReady,
-  getStartup,
-  // metrics sampler
-  startMetricsSampler,
-  stopMetricsSampler,
-  getSamples,
-  getMetricsSummary,
-  SAMPLE_CAP,
-  _resetForTest,
-  _t0,         // 测试可断言 t0 已被读
-  _t0Perf,
-};

@@ -144,4 +144,3 @@ export function installErrorGuard(sendToRenderer?: (channel: string, payload: un
   });
 }
 
-module.exports = { installErrorGuard };

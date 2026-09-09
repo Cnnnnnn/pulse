@@ -113,4 +113,3 @@ export function createStockHttpClient(opts: ChromiumHttpClientOpts = {}): Chromi
   return new HttpClient({ timeout: 10000, maxRetries: 1, ...opts });
 }
 
-module.exports = { ChromiumHttpClient, createStockHttpClient };

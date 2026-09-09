@@ -264,14 +264,3 @@ export function tierPriceForQty(tier: any, qty = 1): string | undefined {
   return tier && tier.lowPrice != null ? String(tier.lowPrice) : undefined;
 }
 
-module.exports = {
-  fetchPiaoniuActivity,
-  fetchPiaoniuTiers,
-  fetchPiaoniuQtyPrices,
-  normalizePiaoniuActivity,
-  normalizePiaoniuEvents,
-  normalizePiaoniuTiers,
-  normalizePiaoniuQtyPrices,
-  normalizePiaoniuEventStatus,
-  tierPriceForQty,
-};

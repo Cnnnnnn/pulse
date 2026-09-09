@@ -179,4 +179,3 @@ function normalizeItem(parsed: ConcertWatchParsed, url: string, ts: number): Con
   }
 }
 
-module.exports = { createConcertWatchlist };

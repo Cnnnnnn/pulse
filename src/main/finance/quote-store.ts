@@ -67,4 +67,3 @@ export async function refreshQuotes(
   };
 }
 
-module.exports = { loadQuotes, refreshQuotes };

@@ -66,11 +66,3 @@ export function loadConfig() {
   return sanitizeConfig(v.config || parsed);
 }
 
-module.exports = {
-  ARCH,
-  PROJECT_ROOT,
-  CONFIG_PATH,
-  CATEGORIES_JSON_PATH,
-  APP_CATEGORY_JSON_PATH,
-  loadConfig,
-};
