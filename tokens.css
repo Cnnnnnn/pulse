@@ -1,0 +1,217 @@
+/* tokens.css — design tokens (light + dark). Load BEFORE styles.css. Extracted 2026-09-09 Phase CSS layering. */
+:root {
+  --titlebar-height: 28px;
+  --bg-primary: rgba(255, 255, 255, 0.82);
+  --bg-secondary: rgba(246, 246, 246, 0.9);
+  --bg-elevated: var(--gray-50);
+  --bg-tertiary: #ebebed;
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-modal: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.03);
+  --bg-section: rgba(0, 0, 0, 0.02);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-subtle: #e5e5e7;
+  --border-light: rgba(0, 0, 0, 0.04);
+  --border-soft: rgba(0, 0, 0, 0.08);
+  --text-soft: rgba(0, 0, 0, 0.55);
+  --surface: #ffffff;
+  --surface-soft: var(--gray-50);
+  --hover-soft: rgba(0, 0, 0, 0.04);
+  --accent-primary: oklch(60.28% 0.2178 257.4);   /* was #007aff */
+  --text-primary: var(--gray-800);
+  --text-secondary: var(--gray-500);
+  --text-tertiary: var(--gray-300);
+  --accent-orange: oklch(76.52% 0.1751 62.6);    /* was #ff9500 */
+  --accent-green: oklch(73.03% 0.1944 147.5);    /* was #34c759 */
+  --accent-blue: oklch(60.28% 0.2178 257.4);     /* was #007aff (alias of primary) */
+  --accent-red: oklch(65.42% 0.2321 28.7);      /* was #ff3b30 */
+  --accent-purple: oklch(58% 0.13 285);         /* Phase 9 收尾新增: section 3 色之一, system 用 */
+  --accent-gray: var(--gray-400);
+  /* 语义色别名 (UI Designer P0: 修复 games/全局潜在未定义引用) */
+  --color-success: var(--accent-green);
+  --color-warning: var(--accent-orange);
+  --color-danger: var(--accent-red);
+  --color-error: var(--accent-red);
+  --color-info: var(--accent-primary);
+  /* ponytail 2026-07-18 P6-audit-fix: metals 模块用 var(--metals-up/down) 画 K线/折线图涨跌色,
+     SVG stop-color fallback. 中国股市惯例: 红涨绿跌 (跟 stocks.css 同源).
+     之前 metals-up/down 变量未定义 → SVG 颜色 fallback 到默认 → 涨跌不分.
+     stocks.css 也已 fallback 到 var(--metals-up), 这里跟它对齐. */
+  --metals-up: var(--accent-red);
+  --metals-down: var(--accent-green);
+  /* 平台品牌色 (仅作装饰底色/圆点；文字均经 color-mix 提亮以达 AA) */
+  --brand-steam: oklch(78% 0.09 230);
+  --brand-epic: oklch(24% 0 0);
+  --brand-xbox: oklch(52% 0.15 145);
+  --brand-playstation: oklch(55% 0.17 255);
+  --brand-switch: oklch(55% 0.21 27);
+  /* 警示色阶 (P9) — Tailwind amber 4/5/7, 用于 warn/info 浅底文字.
+     与 --accent-orange(#ff9500) 是不同概念: orange=警告/注意; amber=提示/温和警示. */
+  --accent-amber-400: #fbbf24;
+  --accent-amber-500: #f59e0b;
+  --accent-amber-700: #b45309;
+  --accent-amber: var(--accent-amber-500);
+
+  /* AI 工具品牌色 (P7) — Cursor 紫 / Codex 翠绿 / MiniMax Code 琥珀.
+     非状态色, 走 brand 体系不进 --accent-*; dark 主题保持一致 (品牌跨主题). */
+  --app-cursor: #7C3AED;
+  --app-codex: #10A981;
+  --app-minimax-code: #F59E0B;
+
+  /* 中性阶梯 primitive (P3 · OKLCH 化基础)
+     值与 ui-design-system.md §2.1 一致, 现已迁 OKLCH, 真正的感知均匀阶梯
+     (L 97→23% 均匀降, chroma ≈ 0 保持中性, hue ≈ 285° 极浅冷蓝).
+     ponytail: hex → OKLCH 转换通过 sRGB→linear→XYZ-D65→OKLab→OKLCH 标准流程
+     (Björn Ottosson, 见 CSS Color 4), 由本地 Python 计算生成, 与原 hex 等色.
+     视觉差异 < 1%, 浏览器 (Chromium 111+ / Electron 39 内核 Chromium 142) 全支持.
+     --gray-200/600 为补缺: 之前散落在多处 (#d1d1d6 / #48484a), 现收口. */
+  --gray-50:  oklch(97.07% 0.0028 285.2);   /* was #f5f5f7 */
+  --gray-100: oklch(92.33% 0.0068 285.8);   /* was #e5e5ea */
+  --gray-200: oklch(86.22% 0.0069 285.9);   /* was #d1d1d6 (新) */
+  --gray-300: oklch(75.20% 0.0057 285.8);   /* was #aeaeb2 */
+  --gray-400: oklch(64.83% 0.0074 285.9);   /* was #8e8e93 */
+  --gray-500: oklch(53.99% 0.0078 285.9);   /* was #6e6e73 */
+  --gray-600: oklch(40.24% 0.0034 285.9);   /* was #48484a (新) */
+  --gray-700: oklch(29.39% 0.0036 285.9);   /* was #2c2c2e */
+  --gray-800: oklch(23.16% 0.0038 285.9);   /* was #1d1d1f */
+
+  /* 半基线 (5/7px 整编专用) — 4px 基线的 1/4 与 1/2 档 */
+  --space-1q: 4px;
+  --space-1n: 6px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  /* Windows / Linux 系统字体回退 (body.platform-win 覆盖 --font-system) */
+  --font-windows: "Segoe UI", "Segoe UI Variable", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --transition: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* 布局与语义色 — 统一中性底 + 系统蓝强调 */
+  --page-padding: var(--space-5);
+  /* ponytail: P2 令牌 — 新样式优先用这些, 旧魔数逐步迁移 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-1h: 6px;
+  --space-2h: 10px;
+  --space-3h: 14px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 14px;
+  --font-size-xl: 15px;
+  --font-size-title: 17px;
+  --font-size-subtitle: 18px;
+  --font-size-display-sm: 22px;
+  --font-size-2xl: 16px;
+  --font-size-3xl: 20px;
+  --font-size-4xl: 28px;
+  --font-size-10: 10px;
+  --space-6: 24px;
+  --z-index-drawer-ai-overlay: 4000;
+  --z-index-drawer-ai: 4010;
+  --z-index-drawer-overlay: 4050;
+  --z-index-drawer: 4100;
+  --z-index-wizard-overlay: 4000;
+  --z-index-modal: 5000;
+  --z-index-modal-card: 5001;
+  --z-index-modal-stack: 5500;
+  --z-index-confirm: 5600;
+  --z-index-search: 6000;
+  --z-index-toast: 9999;
+  --z-index-popover: 1000;
+  --chrome-bg: #ffffff;
+  --content-bg: #f5f5f7;
+  --accent-fund: var(--accent-primary);
+  --accent-versions: var(--accent-primary);
+  --color-up: oklch(58.58% 0.2220 17.6);        /* was #e11d48 (金融涨 A 股红) */
+  --color-down: oklch(59.60% 0.1274 163.3);      /* was #059669 (金融跌 A 股绿) */
+  --focus-ring: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 22%, transparent);
+  --ease-ui: 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* ── Funds redesign (2026-07-11): category + chart series ── */
+  --cat-stock:  oklch(58% 0.16 255);   /* 股票 蓝 */
+  --cat-bond:   oklch(56% 0.13 155);   /* 债券 绿 */
+  --cat-money:  oklch(72% 0.15 70);    /* 货币 橙 */
+  --cat-qdii:   oklch(56% 0.17 295);   /* QDII 紫 */
+  --cat-other:  oklch(62% 0.02 270);   /* 其他 灰 */
+  /* 财经模块分类色（基金 / 宏观；股市/债券/全球复用既有 cat 变量） */
+  --cat-fund:   oklch(58% 0.14 200);   /* 基金 青 */
+  --cat-macro:  oklch(64% 0.16 25);    /* 宏观 红橙 */
+  --fund-trend: var(--accent-primary);
+  --fund-trend-area: oklch(60% 0.16 255 / 0.16); /* 主色透明填充 */
+  --fund-grid-line: oklch(60% 0.02 270 / 0.12);
+
+  /* ── 基金蓝绿作用域 (2026-07-14, 计划 §4.1)
+     仅在 fund 模块作用域内使用, 不外溢全局.
+     深浅两套: dark 提亮 L 保持 hue. OKLCH, 零裸 hex. */
+  --fund-brand:       oklch(58% 0.085 195);   /* 主色 teal */
+  --fund-brand-2:     oklch(52% 0.100 210);   /* 渐变次色 偏蓝 */
+  --fund-accent:      oklch(55% 0.120 250);   /* 强调蓝 (链接/CTA) */
+  --fund-brand-soft:  oklch(95.5% 0.028 195); /* 浅底徽章/选中态 */
+  --fund-line:        oklch(86% 0.05 195);    /* 描边 */
+  --fund-ink:         oklch(45% 0.090 215);   /* 文字 */
+}
+
+:root[data-theme="dark"] {
+  /* ── Funds redesign (2026-07-11): category + chart series (dark overrides) ── */
+  --cat-stock:  oklch(68% 0.16 255);
+  --cat-bond:   oklch(66% 0.13 155);
+  --cat-money:  oklch(78% 0.15 70);
+  --cat-qdii:   oklch(68% 0.17 295);
+  --cat-other:  oklch(72% 0.02 270);
+  --fund-trend-area: oklch(70% 0.16 255 / 0.22);
+  --fund-grid-line: oklch(80% 0.02 270 / 0.16);
+
+  /* ── 基金蓝绿作用域 dark 覆盖 (2026-07-14, 计划 §4.1) */
+  --fund-brand:       oklch(72% 0.10 195);
+  --fund-brand-2:     oklch(68% 0.11 210);
+  --fund-accent:      oklch(70% 0.12 250);
+  --fund-brand-soft:  oklch(30% 0.045 195);
+  --fund-line:        oklch(40% 0.06 195);
+  --fund-ink:         oklch(64% 0.10 215);
+    --bg-primary: rgba(30, 30, 30, 0.88);
+    --bg-secondary: rgba(40, 40, 40, 0.9);
+    --bg-elevated: var(--gray-700);
+    --bg-tertiary: #3a3a3c;
+    --bg-card: rgba(44, 44, 46, 0.95);
+    --bg-modal: #1c1c1e;
+    --bg-hover: rgba(255, 255, 255, 0.05);
+    --bg-section: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.05);
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --text-soft: rgba(255, 255, 255, 0.55);
+    --surface: #1c1c1e;
+    --surface-soft: var(--gray-700);
+    --hover-soft: rgba(255, 255, 255, 0.06);
+    --accent-primary: oklch(62.43% 0.2057 255.5); /* was #0a84ff */
+    --text-primary: var(--gray-50);
+    --text-secondary: #a1a1a6;
+    --text-tertiary: #636366;
+    --accent-orange: oklch(78.24% 0.1710 67.2);  /* was #ff9f0a */
+    --accent-green: oklch(75.56% 0.2082 147.0);  /* was #30d158 */
+    --accent-blue: var(--accent-primary);   /* P9: was #0a84ff */
+    --accent-red: oklch(66.33% 0.2236 28.3);    /* was #ff453a */
+    --accent-gray: var(--gray-400);
+    /* 语义色别名 (UI Designer P0: 深浅主题同步补齐) */
+    --color-success: var(--accent-green);
+    --color-warning: var(--accent-orange);
+    --color-danger: var(--accent-red);
+    --color-error: var(--accent-red);
+    --color-info: var(--accent-primary);
+    /* 平台品牌色 (深色主题提亮以保可见度) */
+    --brand-steam: oklch(80% 0.09 230);
+    --brand-epic: oklch(80% 0 0);
+    --brand-xbox: oklch(64% 0.16 145);
+    --brand-playstation: oklch(68% 0.17 255);
+    --brand-switch: oklch(66% 0.21 27);
+    --chrome-bg: rgba(28, 28, 30, 0.94);
+    --content-bg: #141416;
+    --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
+}
