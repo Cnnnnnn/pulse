@@ -64,4 +64,3 @@ export function registerTokenBudgetHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerTokenBudgetHandlers };

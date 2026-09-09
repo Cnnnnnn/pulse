@@ -58,4 +58,3 @@ export function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; st
   });
 }
 
-module.exports = { registerSearchIpc };

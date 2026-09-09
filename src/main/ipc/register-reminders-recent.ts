@@ -78,4 +78,3 @@ export function registerRemindersRecentHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerRemindersRecentHandlers };

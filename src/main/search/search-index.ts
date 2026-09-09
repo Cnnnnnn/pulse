@@ -173,4 +173,3 @@ export function createSearchIndex(): SearchIndex {
   return { buildFromState, upsert, remove, query, size };
 }
 
-module.exports = { createSearchIndex };

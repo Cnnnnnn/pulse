@@ -61,4 +61,3 @@ export function decideSelfUpdateTick({
     : { action: "run" };
 }
 
-module.exports = { decideSelfUpdateTick };

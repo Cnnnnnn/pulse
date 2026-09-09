@@ -102,4 +102,3 @@ export function registerAiPromptsHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerAiPromptsHandlers };

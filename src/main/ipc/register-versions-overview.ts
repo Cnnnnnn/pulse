@@ -46,7 +46,3 @@ export function registerVersionsOverviewHandlers(ctx: any) {
   );
 }
 
-module.exports = {
-  registerVersionsOverviewHandlers,
-  commandSearch,
-};

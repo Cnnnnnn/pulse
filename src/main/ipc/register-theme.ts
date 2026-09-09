@@ -69,4 +69,3 @@ export function registerThemeHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerThemeHandlers };

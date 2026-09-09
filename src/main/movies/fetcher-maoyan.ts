@@ -365,16 +365,3 @@ export function normalizeMaoyanSlots(plist: any): any[] {
   return out;
 }
 
-module.exports = {
-  fetchMaoyanLists,
-  fetchMaoyanDetail,
-  fetchMaoyanCinemaFilters,
-  fetchMaoyanCinemas,
-  fetchMaoyanCinemaShows,
-  normalizeMaoyanList,
-  normalizeMaoyanDetail,
-  normalizeMaoyanCinemas,
-  normalizeMaoyanDistricts,
-  normalizeMaoyanShowDays,
-  normalizeMaoyanSlots,
-};

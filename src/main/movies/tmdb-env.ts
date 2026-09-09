@@ -178,10 +178,3 @@ export function resetTmdbApiKeyCache(): void {
   source = "";
 }
 
-module.exports = {
-  loadTmdbApiKey,
-  saveTmdbApiKey,
-  getTmdbApiKeySource,
-  moviesPrefsPath,
-  resetTmdbApiKeyCache,
-};

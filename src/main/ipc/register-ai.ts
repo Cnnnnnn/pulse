@@ -511,4 +511,3 @@ export function registerAiHandlers(ctx: any) {
   });
 }
 
-module.exports = { registerAiHandlers };

@@ -130,4 +130,3 @@ export function registerGithubHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerGithubHandlers };

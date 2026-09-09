@@ -159,4 +159,3 @@ export function registerConfigPortabilityHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerConfigPortabilityHandlers };

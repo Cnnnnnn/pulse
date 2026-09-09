@@ -18,4 +18,3 @@ export function registerAppInfoHandlers(ctx: any = {}) {
   });
 }
 
-module.exports = { registerAppInfoHandlers };

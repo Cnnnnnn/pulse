@@ -189,4 +189,3 @@ export function registerConcertsHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerConcertsHandlers, UPDATED_CHANNEL };

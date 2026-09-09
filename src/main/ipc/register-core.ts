@@ -830,4 +830,3 @@ export function registerCoreHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerCoreHandlers };

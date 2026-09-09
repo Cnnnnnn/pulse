@@ -366,13 +366,3 @@ export function auditTimers(
   return summary;
 }
 
-module.exports = {
-  setManagedInterval,
-  setManagedTimeout,
-  clearManaged,
-  clearAllManaged,
-  auditTimers,
-  getStats,
-  listManaged,
-  __resetForTest,
-};

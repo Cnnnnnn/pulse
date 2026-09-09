@@ -38,4 +38,3 @@ export function registerChangelogSummaryHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerChangelogSummaryHandlers };

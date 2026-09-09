@@ -60,4 +60,3 @@ function withReason(reason: string, msg: string): Error {
     return err;
 }
 
-module.exports = { parseWechatHotPayload };

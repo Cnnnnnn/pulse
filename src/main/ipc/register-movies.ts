@@ -226,4 +226,3 @@ function releaseReminderTime(releaseDate?: string): number | null {
   return Number.isNaN(date.getTime()) ? null : date.getTime();
 }
 
-module.exports = { registerMoviesHandlers, UPDATED_CHANNEL };

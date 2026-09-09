@@ -178,8 +178,3 @@ export function enrichSummaryEntry(entry: any): {
     return result;
 }
 
-module.exports = {
-    parseArticleSummary,
-    enrichSummaryEntry,
-    splitKeywords,
-};

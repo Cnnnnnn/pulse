@@ -187,11 +187,3 @@ export function normalizeTmdbDetail(raw: any): any {
   };
 }
 
-module.exports = {
-  fetchTmdbLists,
-  fetchTmdbDetail,
-  normalizeTmdb,
-  normalizeTmdbDetail,
-  formatComingDate,
-  pickYoutubeTrailer,
-};

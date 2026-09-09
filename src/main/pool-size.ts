@@ -48,8 +48,3 @@ export function computePoolSize(
   return Math.min(cap, Math.max(min, cpus - 1));
 }
 
-module.exports = {
-  computePoolSize,
-  DEFAULT_POOL_CAP,
-  MIN_POOL_SIZE,
-};

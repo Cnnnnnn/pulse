@@ -80,4 +80,3 @@ export function buildRunCheckDeps(ctx: BuildRunCheckDepsCtx = {}): RunCheckDeps 
   };
 }
 
-module.exports = { buildRunCheckDeps };

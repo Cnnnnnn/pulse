@@ -75,4 +75,3 @@ export function splitGenres(cat?: string): string[] | undefined {
   return parts.length ? parts : undefined;
 }
 
-module.exports = { SOURCE, normalizePoster, splitGenres, shouldFetchMaoyanDetail };

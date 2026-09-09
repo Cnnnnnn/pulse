@@ -92,10 +92,3 @@ export function checkVaultExpiry(
   return due;
 }
 
-module.exports = {
-  pickDueEntries,
-  formatExpiryNotice,
-  checkVaultExpiry,
-  EXPIRY_WINDOW_MS,
-  REMIND_DEDUPE_MS,
-};

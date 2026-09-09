@@ -353,4 +353,3 @@ export function registerStocksHandlers(ctx: any) {
   );
 }
 
-module.exports = { registerStocksHandlers, enrichSearchResults };

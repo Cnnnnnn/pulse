@@ -265,11 +265,3 @@ export function registerLeaderboardHandlers(ctx: any) {
   );
 }
 
-module.exports = {
-  registerLeaderboardHandlers,
-  boardCacheKey,
-  cacheGet,
-  cacheSet,
-  resetLeaderboardCache,
-  sanitize,
-};

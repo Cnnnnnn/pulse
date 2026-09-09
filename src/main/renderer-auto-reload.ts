@@ -53,4 +53,3 @@ export function installRendererAutoReload({
   };
 }
 
-module.exports = { installRendererAutoReload };
