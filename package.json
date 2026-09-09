@@ -109,6 +109,7 @@
       "versions/**",
       "index.html",
       "fouc.js",
+      "tokens.css",
       "styles.css",
       "share-card.html",
       "renderer-dist/index.js",
