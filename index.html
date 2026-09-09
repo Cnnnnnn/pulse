@@ -3,22 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- P0 安全：只允许本地资源。远程图片/媒体显式放开（新闻封面、电影海报）。
+       connect-src 'none'：网络一律走主进程 IPC。script 不允许 inline/eval。 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' https:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'; worker-src 'self' blob:;">
   <title>Pulse</title>
-  <script>
-    /* 防闪烁 (FOUC): 在 CSS 加载前同步写入 data-theme, 避免深浅色切换闪白/闪黑 */
-    (function () {
-      try {
-        var key = 'app-theme-preference';
-        var mode = localStorage.getItem(key) || 'system';
-        var dark = mode === 'dark' ||
-          (mode === 'system' && window.matchMedia &&
-            window.matchMedia('(prefers-color-scheme: dark)').matches);
-        var root = document.documentElement;
-        root.setAttribute('data-theme', dark ? 'dark' : 'light');
-        root.setAttribute('data-theme-source', mode);
-      } catch (e) {}
-    })();
-  </script>
+  <script src="fouc.js"></script>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="renderer-dist/index.css">
 </head>

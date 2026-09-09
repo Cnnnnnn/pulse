@@ -107,6 +107,7 @@
       "config.json",
       "versions/**",
       "index.html",
+      "fouc.js",
       "styles.css",
       "share-card.html",
       "renderer-dist/index.js",

@@ -14,6 +14,7 @@ import { HttpClient } from "../http-client";
 import { resolveSharedAiConfig } from "../../ai/shared-llm";
 import { createMiniMaxDeltaFilter } from "../../ai/minimax-tool-markup";
 import { sanitizePersistedThreads } from "../../ai/assistant-threads-migrate";
+import { classifyOpenSessionTarget } from "../security/open-targets";
 import type { IpcMainInvokeEvent } from "electron";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
@@ -109,19 +110,24 @@ export function registerAiHandlers(ctx: any) {
       _event: unknown,
       target: IpcChannelMap["ai-sessions:open-session"]["args"][0],
     ) => {
-      if (typeof target !== "string" || target.length === 0) {
-        return { ok: false, reason: "invalid_target" };
+      // 白名单：codex:// / minimax:// → openExternal；会话 transcript 绝对路径
+      // (~/.codex|~/.cursor|~/.minimax) → openPath。其余拒绝，防 renderer 注入
+      // 后 shell.openPath 任意本地路径 / openExternal 任意 scheme。
+      const classified = classifyOpenSessionTarget(target);
+      if (!classified) {
+        mainLog.warn("[ipc] ai-sessions:open-session rejected target", {
+          target:
+            typeof target === "string" ? target.slice(0, 200) : typeof target,
+        });
+        return { ok: false, reason: "target_not_allowed" };
       }
-      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) {
-        await shell.openExternal(target);
+      if (classified.mode === "external") {
+        await shell.openExternal(classified.url);
         return { ok: true, mode: "external" };
       }
-      if (target.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(target)) {
-        const err = await shell.openPath(target);
-        if (err) return { ok: false, reason: "openPath_failed", error: err };
-        return { ok: true, mode: "openPath" };
-      }
-      return { ok: false, reason: "unrecognized_target" };
+      const err = await shell.openPath(classified.path);
+      if (err) return { ok: false, reason: "openPath_failed", error: err };
+      return { ok: true, mode: "openPath" };
     },
     { logMeta: (_evt: unknown, target: IpcChannelMap["ai-sessions:open-session"]["args"][0]) => ({ target }) },
   );

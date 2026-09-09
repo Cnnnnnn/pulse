@@ -169,6 +169,32 @@ describe("ithome news-store", () => {
     expect(Object.keys(pruned).length).toBe(6 * 200);
   });
 
+  it("_pruneArticles applies global cap of 1200 (keeps newest)", () => {
+    const now = new Date("2026-06-20T12:00:00+08:00");
+    const articles = {};
+    // 8 天 × 300 条 = 2400，超过全局 1200
+    for (let d = 13; d <= 20; d += 1) {
+      const dateKey = `2026-06-${String(d).padStart(2, "0")}`;
+      for (let i = 0; i < 300; i += 1) {
+        const id = `${dateKey}-${i}`;
+        articles[id] = {
+          id,
+          dateKey,
+          pubDate: `${dateKey}T${String(i % 24).padStart(2, "0")}:00:00+08:00`,
+        };
+      }
+    }
+    const pruned = newsStore._pruneArticles(articles, now);
+    expect(Object.keys(pruned).length).toBe(1200);
+    // 最新两天应完整保留（每天 300，两天 600 < 1200）
+    const countFor = (dateKey) =>
+      Object.values(pruned).filter((a) => a.dateKey === dateKey).length;
+    expect(countFor("2026-06-20")).toBe(300);
+    expect(countFor("2026-06-19")).toBe(300);
+    // 最老一天被挤掉
+    expect(countFor("2026-06-13")).toBe(0);
+  });
+
   it("loadAll returns persisted dayStats", () => {
     writeFileSync(
       p,

@@ -21,6 +21,8 @@ const RSS_URL = "https://www.ithome.com/rss/";
 const FETCH_TIMEOUT_MS = 20000;
 /** 按自然日独立保留，避免全局上限挤掉已拉取日期的文章 */
 const MAX_ARTICLES_PER_DAY = 400;
+/** 全局上限：镜像 finance FIN_ARTICLES_TOTAL_CAP，防止当月逐日累积撑爆 state.json */
+const MAX_ARTICLES_TOTAL = 1200;
 
 let _http: any = null;
 
@@ -114,6 +116,20 @@ function _pruneArticles(articles: any, now: Date = new Date()): any {
         for (const a of items.slice(0, MAX_ARTICLES_PER_DAY)) {
             out[a.id] = a;
         }
+    }
+    // 全局截断：按 pubDate 倒序保留最近 MAX_ARTICLES_TOTAL 条（与 finance 同策略）
+    const kept = Object.values(out) as any[];
+    if (kept.length > MAX_ARTICLES_TOTAL) {
+        kept.sort((a: any, b: any) => {
+            const ta = Date.parse(a.pubDate || "") || a.fetchedAt || 0;
+            const tb = Date.parse(b.pubDate || "") || b.fetchedAt || 0;
+            return tb - ta;
+        });
+        const capped: any = {};
+        for (const a of kept.slice(0, MAX_ARTICLES_TOTAL)) {
+            capped[a.id] = a;
+        }
+        return capped;
     }
     return out;
 }
@@ -440,4 +456,5 @@ module.exports = {
     _pruneArticles,
     _mergeArticles,
     MAX_ARTICLES_PER_DAY,
+    MAX_ARTICLES_TOTAL,
 };

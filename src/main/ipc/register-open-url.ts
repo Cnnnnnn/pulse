@@ -22,17 +22,8 @@ function errMsg(err: unknown): string {
 
 const { shell }: { shell: Shell } = require("electron");
 import { mainLog } from "../log";
+import { isSafeExternalUrl } from "../security/open-targets";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
-
-function isSafeUrl(url: any) {
-  if (typeof url !== "string" || url.length === 0) return false;
-  try {
-    const u = new URL(url);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 export function registerOpenUrlHandlers(ctx: any) {
   const { safeHandle } = ctx;
@@ -43,7 +34,7 @@ export function registerOpenUrlHandlers(ctx: any) {
       _evt: unknown,
       url: IpcChannelMap["open-url:open"]["args"][0],
     ) => {
-    if (!isSafeUrl(url)) {
+    if (!isSafeExternalUrl(url)) {
       mainLog.warn(`[ipc] open-url:open rejected unsafe url: ${url}`);
       return { ok: false, reason: "unsafe_url" };
     }
