@@ -56,33 +56,50 @@ const readIfExists = (abs) =>
  * Handles both single-line (`module.exports = { HttpClient };`) and
  * multi-line (`module.exports = {\n  foo,\n};`) literals.
  */
+/**
+ * Collect public export names from a main-process module source.
+ *
+ * Phase 7b: dual-export (`module.exports = { … }`) is being stripped in favor
+ * of pure `export`. Parse both shapes so this contract test keeps working
+ * either way. Intentionally dumb-strings-on-disk (no AST dep).
+ */
 function topLevelExports(moduleSource) {
-  // Match: module.exports = { ... body ... };  (single greedy braces pair)
-  const m = moduleSource.match(/module\.exports\s*=\s*\{([\s\S]*?)\}\s*;?/);
-  if (!m) return [];
   const out = [];
-  for (const rawLine of m[1].split("\n")) {
-    const trimmed = rawLine.trim();
-    if (!trimmed || trimmed.startsWith("//")) continue;
-    // Strip leading `//` from inline annotations:
-    //   e.g. "_t0,         // 测试可断言 t0 已被读"
-    // The split-by-newline above already drops pure-comment lines, but a
-    // suffix comment after a symbol needs stripping before key matching.
-    const code = trimmed.replace(/\/\/.*$/, "").trim();
-    if (!code) continue;
-    // capture: `key`, `key,`, `key:`, `key: type`, `key as alias`,
-    // or a bare trailing identifier inside `{ Key }` (single-export form
-    // e.g. `module.exports = { HttpClient };`).
-    // ignore `kind: "object"` (preset strings), etc. — only top-level
-    // `[A-Za-z_$]` followed by comma/colon/`as` counts.
-    let match = code.match(/^([A-Za-z_$][\w$]*)\s*(?:[:,]|as\s+)/);
-    if (match) {
-      out.push(match[1]);
-    } else if (/^([A-Za-z_$][\w$]*)$/.test(code)) {
-      // Bare identifier (the whole body) — treat as the single exported key.
-      out.push(code);
+
+  // ESM: export function|const|let|var|class Name
+  for (const m of moduleSource.matchAll(
+    /^export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm,
+  )) {
+    out.push(m[1]);
+  }
+  // ESM: export { a, b as c }
+  for (const m of moduleSource.matchAll(/^export\s*\{([^}]+)\}/gm)) {
+    for (const part of m[1].split(",")) {
+      const t = part.trim().replace(/\/\/.*$/, "").trim();
+      if (!t) continue;
+      const as = t.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+      if (as) out.push(as[2]);
+      else if (/^[A-Za-z_$][\w$]*$/.test(t)) out.push(t);
     }
   }
+
+  // CJS legacy: module.exports = { … }
+  const m = moduleSource.match(/module\.exports\s*=\s*\{([\s\S]*?)\}\s*;?/);
+  if (m) {
+    for (const rawLine of m[1].split("\n")) {
+      const trimmed = rawLine.trim();
+      if (!trimmed || trimmed.startsWith("//")) continue;
+      const code = trimmed.replace(/\/\/.*$/, "").trim();
+      if (!code) continue;
+      let match = code.match(/^([A-Za-z_$][\w$]*)\s*(?:[:,]|as\s+)/);
+      if (match) {
+        out.push(match[1]);
+      } else if (/^([A-Za-z_$][\w$]*)$/.test(code)) {
+        out.push(code);
+      }
+    }
+  }
+
   return [...new Set(out)];
 }
 

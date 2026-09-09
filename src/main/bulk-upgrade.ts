@@ -335,3 +335,11 @@ async function execMas(trackId: number, fallbackUrl: string): Promise<any> {
   }
 }
 
+
+// ponytail: Phase 7b — 保留 module.exports。tests/platform/macos.test.ts 用
+// `bu.defaultExec = spy` monkey-patch。
+module.exports = {
+  runBulkUpgrade,
+  defaultExec,
+  execWinget,
+};
