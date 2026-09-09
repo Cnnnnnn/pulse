@@ -417,16 +417,3 @@ export function toAiModel(raw: any): any {
   };
 }
 
-module.exports = {
-  SOURCE,
-  CATEGORY_META,
-  DIMENSION_META,
-  VENDOR_META,
-  VENDOR_ALIASES,
-  ATTRIBUTION,
-  normalizeVendor,
-  slugifyVendor,
-  makeId,
-  slugifyModel,
-  toAiModel,
-};

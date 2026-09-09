@@ -171,14 +171,3 @@ export function __seedForTest(key: string, data: any, fetchedAt: number) {
   _memCache.set(key, { data, fetchedAt });
 }
 
-module.exports = {
-  cacheKey,
-  readCache,
-  readLatestCache,
-  writeCache,
-  isStale,
-  getCacheDir,
-  __resetForTest,
-  __setCacheDirForTest,
-  __seedForTest,
-};

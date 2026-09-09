@@ -11,4 +11,3 @@ export function logFetchError(source: string, err: any): void {
   console.warn(`[ai-leaderboard] fetch failed: ${source} — ${msg}`);
 }
 
-module.exports = { logFetchError };

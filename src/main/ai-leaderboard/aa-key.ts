@@ -89,7 +89,3 @@ export function loadAaApiKey(opts: { envFile?: string } = {}): string {
   return "";
 }
 
-module.exports = {
-  AA_VAULT_NAME,
-  loadAaApiKey,
-};

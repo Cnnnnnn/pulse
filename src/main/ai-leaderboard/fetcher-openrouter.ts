@@ -109,13 +109,6 @@ export function normalize(raw: any): any[] {
   return out;
 }
 
-module.exports = {
-  id: "openrouter",
-  label: "OpenRouter",
-  requiresKey: false,
-  fetch,
-  normalize,
-};
 
 export const id = "openrouter";
 export const label = "OpenRouter";

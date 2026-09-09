@@ -285,13 +285,3 @@ export function normalize(raw: any): any[] {
     });
 }
 
-module.exports = {
-  id: "livebench",
-  source: SOURCE.LIVE,
-  attribution: ATTRIBUTION.livebench,
-  fetch,
-  normalize,
-  parseMainJsPath,
-  parseReleaseDates,
-
-};

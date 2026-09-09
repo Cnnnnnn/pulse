@@ -44,4 +44,3 @@ export function getSampleModels(): any[] {
   return _cache;
 }
 
-module.exports = { getSampleModels, SAMPLE_PATH };

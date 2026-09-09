@@ -568,4 +568,3 @@ export async function runAssistantAgent(
   };
 }
 
-module.exports = { runAssistantAgent, MAX_ROUNDS };

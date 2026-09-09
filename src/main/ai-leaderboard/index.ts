@@ -42,9 +42,3 @@ async function triggerLeaderboardSync(): Promise<void> {
 export { getLeaderboard, matchesCategory, onRawRefreshed };
 export { registerLeaderboardSchedulerWrapped as registerLeaderboardScheduler };
 
-module.exports = {
-  getLeaderboard,
-  matchesCategory,
-  onRawRefreshed,
-  registerLeaderboardScheduler: registerLeaderboardSchedulerWrapped,
-};

@@ -41,8 +41,3 @@ export function endChatSession(sessionId: number) {
   }
 }
 
-module.exports = {
-  beginChatSession,
-  cancelChatSession,
-  endChatSession,
-};

@@ -85,7 +85,3 @@ export function loadHfToken(opts: { envFile?: string } = {}): string {
   return "";
 }
 
-module.exports = {
-  HF_VAULT_NAME,
-  loadHfToken,
-};
