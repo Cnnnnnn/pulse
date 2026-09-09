@@ -43,6 +43,30 @@ module.exports = defineConfig({
     optimizeDeps: {
       include: ["preact", "preact/hooks", "preact/compat", "react-virtuoso"],
     },
+    // P1: coverage 度量 — 本地 `pnpm run test:coverage`；CI 默认不开（全量跑偏慢）。
+    // 主进程单测走 dist-test/*.cjs（requireMain），故 include 同时收 src 与 dist-test，
+    // 否则 v8 只看到「从未 require」的 src → 全 0%。renderer 测直接吃 src。
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      include: [
+        "src/main/**/*.ts",
+        "src/renderer/**/*.{ts,tsx}",
+        "src/shared/**/*.ts",
+        "src/ai/**/*.ts",
+        "src/workers/**/*.ts",
+        "dist-test/main/per-file/**/*.cjs",
+      ],
+      exclude: [
+        "src/main/index.ts",
+        "**/*.d.ts",
+        "tests/**",
+        "dist/**",
+        "renderer-dist/**",
+        "node_modules/**",
+      ],
+    },
   },
   esbuild: {
     jsx: "automatic",
