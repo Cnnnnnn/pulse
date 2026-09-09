@@ -2,6 +2,23 @@
 
 ---
 
+## v2.83.0 (🛡️ 安全护栏 + state 瘦身) — 2026-09-09
+
+**🛡️ P0 安全护栏** (主进程导航/弹窗/open 路径全面收紧):
+- **主窗 `sandbox: true`** — preload 只用 contextBridge/ipcRenderer，可全沙箱；限制 renderer 扩权面
+- **`will-navigate` 锁** — 只放行本地 `index.html`（含 hash/query 重载），其余一律 `preventDefault` + warn
+- **`setWindowOpenHandler` 一律 deny** — `window.open` / `target=_blank` 不再开新窗；http(s) 改走系统浏览器，其它 scheme 直接拦
+- **CSP** — `index.html` 加 `default-src 'self'` / `script-src 'self'` / `connect-src 'none'`；FOUC 内联脚本外置为 `fouc.js`（打包已带上）
+- **`ai-sessions:open-session` 白名单** — 与 `open-url:open` 统一走 `src/main/security/open-targets.ts`：仅放行 `codex://` / `minimax://` 与 `~/.codex|~/.cursor|~/.minimax` 会话 transcript 路径；拒绝任意绝对路径 / 任意 scheme，堵住 renderer 注入后 `shell.openPath` 扩权面
+
+**📦 state.json 瘦身** (每次 mute/nav/收藏 都 read-modify-write 的热路径):
+- **compact 写入** — `writeAtomic` 去掉 `JSON.stringify(..., null, 2)`，整文件写少 30%+ 空白体积；人类可读导出（config 导出 / 检测结果导出）仍 pretty-print
+- **changelog 截断 20_000 字符** — 防整页 HTML/RSS 把 `apps` 撑到百 KB 级；history 推入时同样截断
+- **ithome 全局上限 1200 条** — 镜像 finance `FIN_ARTICLES_TOTAL_CAP`，按 pubDate 倒序保留最近条目，防当月逐日累积撑爆 state.json
+
+**🔧 CI 质量门**:
+- **typecheck 硬门禁** — 5 个 tsconfig（preload/app/app.strict/renderer/tests）全量 `tsc` 进 CI，类型回归不能再悄悄合进 main
+
 ## v2.82.8 (🔧 自更新退出安装) — 2026-09-08
 
 **🔧 macOS「退出并安装」进程退不干净**:
