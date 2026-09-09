@@ -235,7 +235,7 @@ describe("TypeScript foundation", () => {
     // the script starts with clean-renderer-css-chunks which tolerates an
     // absent renderer-dist/.)
 
-    it("npm run build:renderer produces renderer-dist/{index.js,index.css,news-share-card.bundle.js}", () => {
+    it("npm run build:renderer produces renderer-dist/{index.js,news-share-card.bundle.js}", () => {
       const distDir = path.join(root, "renderer-dist");
       // Run the script; tolerating "already exists" so this is idempotent.
       // NODE_ENV=production 固定走生产分支（minify + charset:utf8），避免开发机
@@ -248,21 +248,15 @@ describe("TypeScript foundation", () => {
       });
       expect(proc.status).toBe(0);
 
-      const expected = ["index.js", "index.css", "news-share-card.bundle.js"];
+      // inject-css 模式：业务 CSS 内联进 JS chunk，不再产出 index.css。
+      // index.html 只 link tokens.css + styles.css；懒路由 CSS 跟 dynamic import 走。
+      const expected = ["index.js", "news-share-card.bundle.js"];
       const writtenPaths = expected.map((f) => path.join(distDir, f));
-      // These three artifact paths are the contract: writing them here means
-      // future readers see exactly which files must exist after a renderer
-      // build. If any of them disappears, the renderer runtime will break
-      // (index.html only links index.css + index.js; share-card.html only
-      // links news-share-card.bundle.js).
       for (const p of writtenPaths) {
         expect(fs.existsSync(p)).toBe(true);
       }
-      // Also drop them into the assertion message so a failure prints which
-      // file went missing.
       expect(writtenPaths).toEqual([
         path.join(distDir, "index.js"),
-        path.join(distDir, "index.css"),
         path.join(distDir, "news-share-card.bundle.js"),
       ]);
 
