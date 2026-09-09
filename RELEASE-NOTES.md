@@ -2,6 +2,12 @@
 
 ---
 
+## v2.83.1 (🔒 js-yaml 安全修复) — 2026-09-09
+
+**🔒 js-yaml 4.3.2** (GHSA-2883-xcg3-v3hh, high):
+- `maxTotalMergeKeys` 对空 merge 源不限制 CPU — 直依 + pnpm override 双保险，覆盖 electron-updater 嵌套依赖
+- `pnpm audit --prod` CI 硬门禁重新变绿
+
 ## v2.83.0 (🛡️ 安全护栏 + state 瘦身) — 2026-09-09
 
 **🛡️ P0 安全护栏** (主进程导航/弹窗/open 路径全面收紧):
