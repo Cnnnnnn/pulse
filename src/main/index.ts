@@ -712,6 +712,16 @@ function startSchedulers() {
   });
   // AI 榜单每日同步（启动延迟预暖 + 每日拉取；graceful）
   startLeaderboardScheduler({});
+
+  // P1: userData 缓存统一 GC（Chromium Cache / 死目录 / leaderboard 兜底）
+  // 延迟 30s，避开冷启动关键路径；unref 不挡退出。
+  try {
+    const { scheduleCacheGc } = require("./cache-gc.ts");
+    const userData = app.getPath("userData");
+    scheduleCacheGc({ userData, delayMs: 30_000, logger: mainLog });
+  } catch (err: any) {
+    mainLog.warn(`[cache-gc] schedule failed: ${errMsg(err)}`);
+  }
 }
 
 async function bootstrap() {
