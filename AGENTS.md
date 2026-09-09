@@ -5,22 +5,22 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/visual.spec` 等非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge；**Phase 7 完成** — 150 个 `src/**/*.ts` 内部 `require()/module.exports` 改 ESM `import/export` (7a 全批 + 5 例外 dual-export)，随后 **126 个 `src/**/*.js` shim 全删** (7b)，vitest `resolve.extensions` 加 `.ts`，仅 Phase 3 五例外 (`http-client`/`state-store`/`token-budget`/`log`/`platform/index`) 保留为 CJS shim 供 main/src/.ts `require("./foo.js")` 直引；**Phase 8 完成** — `tsconfig.app.strict.json` 86 → 0 errors（之前 Phase 3.5 strict 跳过的 ai-sessions/ai-usage/共享模块补齐），5 tsconfigs 全 0。`find src -name "*.js" | grep -v "^src/main/.*$\|^src/platform/index\.js$"` = 0。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具，包含多模态、多数据源 Electron 能力。当前主进程、渲染进程和测试代码以 TypeScript/ESM 为主；仅少量 main 进程 CJS bridge 文件保留，具体以当前源码目录和构建脚本为准。
 
 ## 仓库布局
 
- - `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。**Phase 7 收尾**：仅 `http-client`/`state-store`/`token-budget`/`log` 4 个例外 shim 保留 (CJS `module.exports` only，main/release-notes.ts `require("./foo.js")` 直接吃);`platform/index.js` 也已删,改成 ESM dual-export (named + default export + module.exports)。其余 Phase 5 的 126 个 shim (utils/detectors/metals/funds/stocks/ai/ai-sessions/ai-usage/workers/release-notes) 全删—— caller 走 `import` ESM 或 `requireAi("foo")`/`requireWorkers("foo")` 等 helper 加载 dist-test .cjs 产物）
+ - `src/main/` — 主进程；测试通过 `dist-test` 构建产物加载。仅 `http-client`、`state-store`、`token-budget`、`log` 保留 CJS bridge，其余模块按当前 TypeScript/ESM 实现处理。
   - `src/main/ai-leaderboard/` — AI 榜单核心（fetcher 6 个 + aggregator + ranking + scheduler + types + normalize + cache）
   - `src/main/ipc/` — IPC handler（注册到 `ipcMain`）
- - `src/main/funds/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域 (v2.80 删 `src/main/worldcup/`)
- - `src/renderer/` — 渲染进程（Preact + esbuild；**Phase 4 已完成**：全部 `.ts`/`.tsx`）
+ - `src/main/funds/`, `src/main/ithome/`, `src/main/wechat-hot/` — 业务域目录，以当前源码树为准
+ - `src/renderer/` — 渲染进程（Preact + esbuild；源码以 `.ts`/`.tsx` 为主）
   - `src/renderer/ai-leaderboard/` — 榜单 UI（4 个视角 tab：Arena / AA / LiveBench / HuggingFace）
- - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` / `src/workers/` / `src/release-notes/` — **Phase 7**：真相在 `.ts`，已 ESM-ify (named `export` + 必要的 `import { ... }`/`import * as`)，`.js` shim 已删。tests 走 `requireUtils("foo")` 等 helper 加载 dist-test .cjs 产物；main/worker 内部用 `require("./foo.js")` (esbuild plugin backfill .js → .ts)。metal-config/metal-calc 与 fundCalc/fund-history/fund-nav-merge/format/fund-category/concentration/pnlCsv 与 diagnosis-scorer/strategies/stock-constants/stock-filter 与 default-models/ai-errors 与 anomaly-detect/history-series/format-glm 为 renderer 共享（纯 named `export`）。**prod worker** 走 `scripts/build-main.cjs` 打出的自包含 `dist/workers/detect-worker.js`（不进 main bundle；asar 用 `dist/workers/**`，不再打包 `src/workers/**`）
+ - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` / `src/workers/` / `src/release-notes/` — 业务模块以 TypeScript/ESM 为准；测试按当前构建脚本加载 `dist-test` 产物。生产 worker 由 `scripts/build-main.cjs` 生成到 `dist/workers/`。
 - `tests/` — vitest 单元测试（main 测走 `dist-test/main/per-file/*.cjs`，renderer 测走 happy-dom）
 - `scripts/` — 构建脚本（`build-main.cjs` 产线：main + workers bundle / `build-main-ts.cjs` dev-test）
 - `docs/` — 架构文档
 - `deliverables/` — 交付报告（v2.7+ 阶段交付物）
-- `RELEASE-NOTES.md` — 版本变更日志（顶部 v2.50，最新 v2.9.8 + 本地 v2.79.x）
+- `RELEASE-NOTES.md` — 版本变更日志；以文件顶部最新条目为准，不在本入口文件中硬编码版本号
 
 ## 关键约定
 
@@ -28,10 +28,10 @@
 2. **双 build 链**：
    - **dev/test**：`tests/_setup/build-main-ts.cjs` 走 `esbuild` 把每个 .ts 编到 `dist-test/main/per-file/*.cjs`，native cjs require 工作
    - **prod**：`scripts/build-main.cjs` esbuild bundle `dist/main/index.js`，走 .ts
-   - 业务 .js 是 5 行 shim 指向 .ts
+   - 仅 `src/main/http-client.js`、`state-store.js`、`token-budget.js`、`log.js` 保留为 CJS bridge；其余业务源码以 `.ts`/ESM 为准
 3. **Fetcher 架构**（AI 榜单）：每个数据源一个 fetcher（`fetcher-X.ts`），有 `fetch()` + `normalize()` 导出，由 `aggregator.ts` 调度。详细步骤看 agent memory 的"Pulse 加新数据源 fetcher 黄金 4 步"。
-4. **测试要求**：每个 fetcher 至少 1 个独立 `fetcher-X.test.js` + `aggregator`/`ranking`/`normalize` 集成测试在 `tests/ai-leaderboard/`。`tests/ai-leaderboard/renderer.test.js` 测 store 行为（41 个 case）。
-5. **数据源 opt-in**：每个新 fetcher 在 `aggregator.ts` 默认 `sources: { ... }` **不开**，由 `aiLeaderboardStore.js` 切 view 时拼 `sources.X = view === "X"`。`IPC sanitize` 默认也是按 view 决定拉哪些。
+4. **测试要求**：每个 fetcher 至少有独立测试，并在 `tests/ai-leaderboard/` 覆盖 `aggregator`、`ranking`、`normalize` 等集成行为；测试文件以当前 `.ts`/`.tsx` 结构为准。
+5. **数据源 opt-in**：每个新 fetcher 在 `aggregator.ts` 默认 `sources: { ... }` **不开**，由 `aiLeaderboardStore.ts` 切 view 时拼 `sources.X = view === "X"`。`IPC sanitize` 默认也是按 view 决定拉哪些。
 6. **.env** 是 dev-only 凭据，`.env.example` 是模板（已 gitignore .env）。HF 接入**没**用 key，匿名限频 ~1000/h。
 
 ## 踩坑指针（agent memory 已沉淀）
