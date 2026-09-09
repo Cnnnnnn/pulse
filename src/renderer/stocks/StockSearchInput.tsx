@@ -14,13 +14,13 @@ import { openDiagnosis } from "./diagnosisStore.ts";
 const DEBOUNCE_MS = 250;
 const MIN_QUERY_LEN = 1;
 
-export function StockSearchInput({ api }) {
+export function StockSearchInput({ api }: { api: any }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const timerRef = useRef(null);
+  const timerRef = useRef<any>(null);
   const reqIdRef = useRef(0);
 
   // debounce 搜索: 输入变化 250ms 后调 api.stocksSearch.
@@ -51,7 +51,7 @@ export function StockSearchInput({ api }) {
           setResults(Array.isArray(resp.results) ? resp.results : []);
           setError(null);
         }
-      } catch (e) {
+      } catch (e: any) {
         if (myReqId !== reqIdRef.current) return;
         setResults([]);
         setError(e && e.message ? e.message : "search_failed");
@@ -64,7 +64,7 @@ export function StockSearchInput({ api }) {
     };
   }, [query, api]);
 
-  const handleSelect = (item) => {
+  const handleSelect = (item: any) => {
     openDiagnosis(api, item);
     setQuery("");
     setResults([]);
@@ -76,7 +76,7 @@ export function StockSearchInput({ api }) {
     setTimeout(() => setOpen(false), 150);
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: any) => {
     if (e.key === "Escape") {
       setOpen(false);
     }

@@ -4,7 +4,7 @@
  * IT 新闻 AI 摘要 — 布局对齐会话总结 (summary-result-grid)
  */
 
-export function splitKeywords(raw) {
+export function splitKeywords(raw: any) {
   if (Array.isArray(raw)) return raw.filter(Boolean);
   return String(raw || "")
     .split(/[,，、;；|/]\s*/)
@@ -13,7 +13,7 @@ export function splitKeywords(raw) {
     .slice(0, 8);
 }
 
-function splitAnalysisList(raw) {
+function splitAnalysisList(raw: any) {
   if (Array.isArray(raw)) return raw.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
   return String(raw || "")
     .split(/[；;|\n]/)
@@ -21,7 +21,7 @@ function splitAnalysisList(raw) {
     .filter(Boolean);
 }
 
-export function normalizeArticleSummary(summary) {
+export function normalizeArticleSummary(summary: any) {
   if (!summary || typeof summary !== "object") {
     return {
       abstract: "", keywords: [], domain: "", impact: "",
@@ -64,7 +64,7 @@ export function normalizeArticleSummary(summary) {
   };
 }
 
-export function NewsArticleSummary({ summary, compact = false }) {
+export function NewsArticleSummary({ summary, compact = false }: { summary: any; compact?: boolean }) {
   const fields = normalizeArticleSummary(summary);
   const hasStructure =
     fields.domain || fields.impact || fields.keywords.length > 0;

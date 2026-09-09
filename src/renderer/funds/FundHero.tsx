@@ -31,7 +31,7 @@ import { FundPortfolioTrend } from './FundPortfolioTrend.tsx';
 import { fmtCurrency, fmtPct } from '../../funds/format.ts';
 import { getTradingStatus } from '../../funds/trading-hours.ts';
 
-function fmtAgo(ts) {
+function fmtAgo(ts: any) {
   const s = Math.floor((Date.now() - ts) / 1000);
   if (s < 60) return '刚刚';
   const m = Math.floor(s / 60);
@@ -41,7 +41,7 @@ function fmtAgo(ts) {
   return Math.floor(h / 24) + ' 天前';
 }
 
-function arrow(n) {
+function arrow(n: number) {
   return n > 0 ? '↑' : n < 0 ? '↓' : '·';
 }
 
@@ -65,7 +65,7 @@ export function FundHero() {
   // 收益率 = 总盈亏 / 总成本 (等于 totalProfitPct)
   const returnRate = Number(m.totalProfitPct) || 0;
 
-  const signClass = (n) => (n >= 0 ? 'positive' : 'negative');
+  const signClass = (n: number) => (n >= 0 ? 'positive' : 'negative');
 
   return (
     <div class="fund-hero">

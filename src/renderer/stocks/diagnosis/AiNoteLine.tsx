@@ -13,7 +13,7 @@
  */
 import { IconSparkles, IconRefresh } from "../../components/icons.tsx";
 
-export function AiNoteLine({ note, refreshing, onRefresh, failed }) {
+export function AiNoteLine({ note, refreshing, onRefresh, failed }: { note?: any; refreshing?: boolean; onRefresh?: () => void; failed?: boolean }) {
   if (!note && !failed) return null;
   const cls = `ai-note-line${failed ? " ai-note-line-failed" : ""}`;
   return (

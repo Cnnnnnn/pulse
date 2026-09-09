@@ -1,5 +1,6 @@
 import { CardFreshness } from "./CardFreshness.tsx";
 import { DataHealthPill } from "./DataHealthPill.tsx";
+import type { ComponentChildren } from "preact";
 
 /**
  * ModuleCard — 诊断卡外壳 (9 张 stock diagnosis 卡统一抽).
@@ -41,15 +42,27 @@ export function ModuleCard({
   titleExtra = null,
   body = null,
   empty = null,
+}: {
+  variant: string;
+  title: string;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+  fetchedAt?: number | null;
+  titleExtra?: ComponentChildren;
+  body?: ComponentChildren;
+  empty?: ComponentChildren;
 }) {
   const showBody = body != null && body !== false;
+  // `angle && ...` renders boolean false when angle absent; guard to ComponentChildren.
+  const pill = angle ? <DataHealthPill angle={angle} onRefresh={onRefresh ?? undefined} /> : null;
+  const freshness = fetchedAt ? <CardFreshness fetchedAt={fetchedAt} /> : null;
   return (
     <div class={`module-card module-card--${variant}`}>
       <div class="module-card-title">
         <span>{title}{titleExtra}</span>
         <span class="module-card-title-extras">
-          {angle ? <DataHealthPill angle={angle} onRefresh={onRefresh} /> : null}
-          {fetchedAt ? <CardFreshness fetchedAt={fetchedAt} /> : null}
+          {pill}
+          {freshness}
         </span>
       </div>
       {showBody ? body : <div class="module-card-empty">{empty}</div>}

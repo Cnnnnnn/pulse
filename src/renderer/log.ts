@@ -18,13 +18,13 @@ type LogFn = (msg: any, ...rest: any[]) => void;
 type LogBackend = { info: LogFn; warn: LogFn; error: LogFn };
 
 function consoleBackend(prefix?: string): LogBackend {
-  // ponytail: log 库的核心就是薄包装 console[level], 这里集中调用无法避免
+  // ponytail: log 库的核心就是薄包装 (console as any)[level], 这里集中调用无法避免
   /* eslint-disable no-console */
-  const fmt = (level: any) => (msg, ...rest) => {
-    if (typeof console === "undefined" || !console[level]) return;
+  const fmt = (level: any) => (msg: any, ...rest: any[]) => {
+    if (typeof console === "undefined" || !(console as any)[level]) return;
     const tag = prefix ? `${prefix} ` : "";
-    if (rest.length > 0) console[level](`${tag}${msg}`, ...rest);
-    else console[level](`${tag}${msg}`);
+    if (rest.length > 0) (console as any)[level](`${tag}${msg}`, ...rest);
+    else (console as any)[level](`${tag}${msg}`);
   };
   return { info: fmt("log"), warn: fmt("warn"), error: fmt("error") };
   /* eslint-enable no-console */

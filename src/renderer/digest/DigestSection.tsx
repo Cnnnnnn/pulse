@@ -13,7 +13,41 @@ const LABELS = {
   ai_usage: { title: 'AI 用量预警' },
 };
 
-export function DigestSection({ section }) {
+type DigestKind = keyof typeof LABELS;
+
+interface DigestUpdateItem {
+  name: string;
+  installed_version?: string;
+  latest_version: string;
+}
+interface DigestHotItem {
+  title: string;
+}
+interface DigestNewsItem {
+  title: string;
+}
+interface DigestFundsItem {
+  name: string;
+  today_change_pct: number;
+}
+interface DigestAiUsageItem {
+  provider: string;
+  percent: number;
+}
+
+type DigestItem =
+  | DigestUpdateItem
+  | DigestHotItem
+  | DigestNewsItem
+  | DigestFundsItem
+  | DigestAiUsageItem;
+
+interface DigestSectionData {
+  kind: DigestKind;
+  items: DigestItem[];
+}
+
+export function DigestSection({ section }: { section: DigestSectionData }) {
   const meta = LABELS[section.kind] || { title: section.kind };
   return (
     <div class={`digest-section digest-section--${section.kind}`}>
@@ -30,22 +64,31 @@ export function DigestSection({ section }) {
   );
 }
 
-function renderItem(kind, it) {
+function renderItem(kind: DigestKind, it: DigestItem): string {
   switch (kind) {
-    case 'updates':
-      return it.installed_version
-        ? `${it.name} ${it.installed_version} → ${it.latest_version}`
-        : `${it.name} ${it.latest_version}`;
-    case 'hot':
-      return it.title || '';
-    case 'news':
-      return it.title || '';
-    case 'funds': {
-      const sign = it.today_change_pct >= 0 ? '+' : '';
-      return `${it.name} ${sign}${it.today_change_pct.toFixed(1)}%`;
+    case 'updates': {
+      const u = it as DigestUpdateItem;
+      return u.installed_version
+        ? `${u.name} ${u.installed_version} → ${u.latest_version}`
+        : `${u.name} ${u.latest_version}`;
     }
-    case 'ai_usage':
-      return `${it.provider} ${it.percent}%`;
+    case 'hot': {
+      const h = it as DigestHotItem;
+      return h.title || '';
+    }
+    case 'news': {
+      const n = it as DigestNewsItem;
+      return n.title || '';
+    }
+    case 'funds': {
+      const f = it as DigestFundsItem;
+      const sign = f.today_change_pct >= 0 ? '+' : '';
+      return `${f.name} ${sign}${f.today_change_pct.toFixed(1)}%`;
+    }
+    case 'ai_usage': {
+      const a = it as DigestAiUsageItem;
+      return `${a.provider} ${a.percent}%`;
+    }
     default:
       return JSON.stringify(it);
   }

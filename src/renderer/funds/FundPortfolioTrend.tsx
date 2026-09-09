@@ -2,15 +2,15 @@ import { useEffect } from "preact/hooks";
 import { dailySnapshots, benchmarkEnabled, indexHistoryCache, benchmarkError, loadIndexHistory, DEFAULT_BENCHMARK } from "./fundStore.ts";
 import { api } from "../api.ts";
 
-export function recentTotals(snaps, days = 30) {
+export function recentTotals(snaps: any, days = 30) {
   const arr = Array.isArray(snaps) ? snaps : [];
   const sorted = [...arr].sort((a, b) => (a.date < b.date ? -1 : 1));
   return sorted.slice(-days).map((s) => ({ date: s.date, value: s.totalMarketValue || 0 }));
 }
-export function buildLinePath(pts) {
+export function buildLinePath(pts: any[]) {
   return pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
 }
-export function buildAreaPath(pts, h) {
+export function buildAreaPath(pts: any[], h: number) {
   if (!pts.length) return "";
   const first = pts[0], last = pts[pts.length - 1];
   return `${buildLinePath(pts)} L ${last.x} ${h} L ${first.x} ${h} Z`;
@@ -19,7 +19,7 @@ export function buildAreaPath(pts, h) {
 // ── T-C1c: 基准指数对齐 + 归一化 helper (纯函数, 可测) ──
 
 /** 把基准 series 拍成 date → value 的 Map */
-export function buildDateMap(series) {
+export function buildDateMap(series: any) {
   const m = new Map();
   if (!Array.isArray(series)) return m;
   for (const p of series) {
@@ -34,7 +34,7 @@ export function buildDateMap(series) {
  * 以组合日期集合为轴, 从基准 map 取数, 缺失日前向填充 (leading 用首个有效值补全).
  * 返回与 dates 等长的值数组; 基准无任何数据 → null.
  */
-export function alignBenchmark(dates, benchMap) {
+export function alignBenchmark(dates: any[], benchMap: Map<any, any>) {
   if (!benchMap || benchMap.size === 0) return null;
   let last = null;
   const out = [];
@@ -50,7 +50,7 @@ export function alignBenchmark(dates, benchMap) {
 }
 
 /** 把一组数值独立归一化到 viewBox (与组合线共用 x 轴) */
-export function toPoints(values, W, H, PAD) {
+export function toPoints(values: any[], W: number, H: number, PAD: number) {
   if (!values || values.length === 0) return [];
   const vals = values.map((v) => (Number.isFinite(v) ? v : 0));
   const min = Math.min(...vals);

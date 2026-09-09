@@ -24,7 +24,27 @@
 import { signal, computed } from "@preact/signals";
 
 export const MAX_COMPARE = 4;
-export const comparePool = signal([]);
+
+export interface CompareScores {
+  overall: number | null;
+  dimensions: Record<string, any>;
+}
+export interface CompareEntry {
+  code: string;
+  name: string;
+  kind: string;
+  price: any;
+  changePct: any;
+  industry: any;
+  pe: any;
+  pb: any;
+  roe: any;
+  marketCap: any;
+  scores: CompareScores | null;
+  addedAt: number;
+}
+
+export const comparePool = signal<CompareEntry[]>([]);
 export const compareDrawerOpen = signal(false);
 
 export const comparePoolCount = computed(() => comparePool.value.length);

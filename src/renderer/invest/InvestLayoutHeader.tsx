@@ -48,14 +48,14 @@ export const STOCK_VIEW_TABS = [
 // ponytail 2026-07-13: 主级 sub-tab 接 ←/→ 键盘导航 (WAI-ARIA tablist pattern).
 //   header 容器 onKeyDown 捕获, 根据当前 primary 找下/上一个 tab 写 investPrimary.
 //   SubtabList 内部 button 自带 focus, 切完 primary 后用 querySelector 找到新 active button 并 focus.
-function onHeaderKeyDown(e) {
-  const target = e.currentTarget;
+function onHeaderKeyDown(e: KeyboardEvent) {
+  const target = e.currentTarget as HTMLElement;
   const isInTablist =
-    e.target && e.target.closest && e.target.closest('[role="tablist"]');
+    e.target && (e.target as Element).closest && (e.target as Element).closest('[role="tablist"]');
   if (!isInTablist) return;
   // 只在主级 (前缀 invest, 非 invest-sub) 上响应 — 二级 sub-tab 由它自己的 button onKeyDown 处理.
   const primaryList = target.querySelector('.invest-subtabs');
-  if (!primaryList || !primaryList.contains(e.target)) return;
+  if (!primaryList || !primaryList.contains(e.target as Node)) return;
   const tabs = Array.from(primaryList.querySelectorAll('[role="tab"]'));
   const currentIdx = tabs.findIndex((b) => b === e.target);
   if (currentIdx === -1) return;
@@ -89,6 +89,11 @@ export function InvestLayoutHeader({
   onFundPageChange,
   onRefresh,
   refreshing,
+}: {
+  fundPage: any;
+  onFundPageChange: (k: any) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
 }) {
   const primary = investPrimary.value;
   return (

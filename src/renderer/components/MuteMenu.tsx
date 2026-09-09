@@ -45,7 +45,7 @@ const BASE_OPTIONS = [
   { label: '永远',     seconds: 0 },
 ];
 
-const RECOMMENDED = {
+const RECOMMENDED: Record<string, number> = {
   hot: 1 * 86400,
   warm: 7 * 86400,
   cold: 30 * 86400,
@@ -118,15 +118,15 @@ export function MuteMenu({
 
   // Esc 关闭 + 点击外部关闭
   useEffect(() => {
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose && onClose();
       }
     }
-    function onClick(e) {
+    function onClick(e: MouseEvent) {
       // 点菜单内部不关
-      if (ref.current && ref.current.contains(e.target)) return;
+      if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return;
       onClose && onClose();
     }
     window.addEventListener('keydown', onKey);
@@ -177,7 +177,7 @@ export function MuteMenu({
       <div class="mute-menu-header">
         <span class="mute-menu-icon">{isMuted ? <IconVolumeOff size={14} /> : <IconBell size={14} />}</span>
         <span class="mute-menu-app">{appName}</span>
-        {isMuted && <span class="mute-menu-status">已静音至 {formatUntil(muteUntil)}</span>}
+        {isMuted && <span class="mute-menu-status">已静音至 {formatUntil(muteUntil ?? 0)}</span>}
       </div>
       <div class="mute-menu-divider" />
       {isMuted ? (

@@ -16,10 +16,12 @@ import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtCostPerTask, fmtLiveben
  * @returns {string} Markdown 表格
  */
 export function tableToMarkdown({ rows, view, board }: any) {
-  const vendorLabel = (m: any) => (VENDOR_META[m.vendor] || {}).label || m.vendor;
+  const vendorLabel = (m: any) =>
+    (VENDOR_META[m.vendor as keyof typeof VENDOR_META] || {}).label || m.vendor;
 
   if (view === "arena") {
-    const boardMeta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
+    const boardMeta =
+      ARENA_BOARDS[board as keyof typeof ARENA_BOARDS] || ARENA_BOARDS.text;
     const boardName = boardMeta.key; // Arena board 名（text / vision / code / text-to-image / text-to-video）
     const header = "| # | 模型 | 厂商 | 许可 | ELO | 置信区间 | 票数 |";
     const sep = "|---|------|------|------|-----|----------|------|";
@@ -84,7 +86,7 @@ export function detailToMarkdown(model: any) {
     `# ${model.name}`,
     "",
     `- ID: \`${model.id}\``,
-    `- 厂商: ${(VENDOR_META[model.vendor] || {}).label || model.vendor || "—"}`,
+    `- 厂商: ${(VENDOR_META[model.vendor as keyof typeof VENDOR_META] || {}).label || model.vendor || "—"}`,
     `- 分类: ${model.category || "—"}`,
   ];
   if (model.isSample) lines.push("- 备注: 示例数据");

@@ -33,10 +33,20 @@ const SOURCE_LABELS = {
 /**
  * @param {{total:number, items?: object[], compact?: boolean}} props
  */
-export function BoardHealthCard({ total, items, compact = false }) {
-  const cov = sourceCoverage.value || {};
-  const src = sources.value || {};
-  const hidden = hiddenHealthSources.value || new Set();
+type HealthError = { source?: string; message?: string; ts?: number };
+
+export function BoardHealthCard({
+  total,
+  items,
+  compact = false,
+}: {
+  total: number;
+  items?: Array<Record<string, unknown>>;
+  compact?: boolean;
+}) {
+  const cov = sourceCoverage.value as Record<string, number | undefined> | undefined || {};
+  const src = (sources.value || {}) as Record<string, string | undefined>;
+  const hidden = hiddenHealthSources.value || new Set<string>();
   const totalN = Number.isFinite(total) ? total : 0;
   const visibleItems = Array.isArray(items) ? items : null;
   const staleValue = stale.value;
@@ -44,7 +54,9 @@ export function BoardHealthCard({ total, items, compact = false }) {
     ? Date.parse(fetchedAt.value)
     : null;
   const isSampleValue = isSample.value;
-  const errors = Array.isArray(lastFetchErrors.value) ? lastFetchErrors.value : [];
+  const errors = Array.isArray(lastFetchErrors.value)
+    ? (lastFetchErrors.value as HealthError[])
+    : ([] as HealthError[]);
   // AA 401 = 未配 key（非网络故障）→ 给出可操作的配置引导，而不是笼统的"请求失败"
   const aaMissingKey = errors.some((e) => e && e.source === "aa" && /401/.test(String(e.message || "")));
   // ponytail: rateBudget 信号默认 {}，消费端 cast 出 AA 预算字段
@@ -69,7 +81,7 @@ export function BoardHealthCard({ total, items, compact = false }) {
         <div class="ai-lb-health__stale" role="status" aria-label="数据陈旧">
           <span class="ai-lb-health__stale-dot" aria-hidden="true" />
           <span>
-            数据陈旧 · 最后拉取 {fmtRelative(staleSinceMs)}
+            数据陈旧 · 最后拉取 {fmtRelative(staleSinceMs ?? 0)}
           </span>
         </div>
       )}
@@ -135,7 +147,7 @@ export function BoardHealthCard({ total, items, compact = false }) {
           <strong>部分请求失败</strong>
           {errors.slice(0, 4).map((e) => (
             <span key={`${e.source}-${e.ts}`} title={e.message}>
-              {SOURCE_LABELS[e.source] || e.source}: {e.message}
+              {(SOURCE_LABELS as Record<string, string>)[e.source!] || e.source}: {e.message}
             </span>
           ))}
           {aaMissingKey && (

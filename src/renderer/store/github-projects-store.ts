@@ -27,16 +27,16 @@ import { createGithubBackupService } from "../github/github-backup-service.ts";
 import { collectGithubTags as collectGithubTagsSelector } from "../github/github-library-selectors.ts";
 
 /** 全部已收录项目 (按添加时间倒序)。 */
-export const githubProjects = signal([]);
+export const githubProjects = signal<any[]>([]);
 /** 全局忙碌态 (添加 / 解析中) — 控制顶部按钮 loading。 */
 export const githubBusy = signal(false);
 /** 当前正在操作的项目 id — 控制行的 loading 态。 */
-export const githubBusyId = signal(null);
+export const githubBusyId = signal<string | null>(null);
 /** 最近一次错误 reason — 用于顶部提示。 */
-export const githubError = signal(null);
+export const githubError = signal<string | null>(null);
 /** 最近一次「检查更新」失败（瞬时，非 permanent）的项目 id 列表。
  *  供工具栏「重试失败项(N)」按钮消费，不依赖会消失的 toast。 */
-export const lastFailedIds = signal([]);
+export const lastFailedIds = signal<string[]>([]);
 export const githubCheckDataState = signal<DataState<GithubCheckSummary>>(
   createDataState({
     ok: true,

@@ -5,7 +5,11 @@
  */
 import { useEffect, useState } from "preact/hooks";
 
-export function NewsShareToast({ message, kind = "success", onDone }) {
+export function NewsShareToast({ message, kind = "success", onDone }: {
+  message: string;
+  kind?: string;
+  onDone?: () => void;
+}) {
   const [visible, setVisible] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => {

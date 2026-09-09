@@ -138,7 +138,7 @@ export function FundPnlHistory({ layout = 'sidebar' }) {
               </tr>
             </thead>
             <tbody>
-              {days.map((row) => (
+              {days.map((row: any) => (
                 <tr key={row.date}>
                   <td>{fmtDateLabel(row.date)}</td>
                   <td class={row.todayProfit >= 0 ? 'positive' : 'negative'}>

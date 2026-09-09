@@ -11,7 +11,7 @@ import { schedulerState, refreshNow } from "./metalStore.ts";
 import { IconMedal, IconRefresh } from "../components/icons.tsx";
 import { showToast } from "../store.ts";
 
-function formatTime(ts) {
+function formatTime(ts: number) {
   if (!ts) return null;
   return new Date(ts).toLocaleTimeString("zh-CN", {
     hour: "2-digit", minute: "2-digit",

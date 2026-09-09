@@ -85,6 +85,6 @@ export const LEVEL_LABELS = {
  */
 export function levelLabel(level: any) {
   if (typeof level !== "string" || level.length === 0) return null;
-  return LEVEL_LABELS[level] || level;
+  return (LEVEL_LABELS as Record<string, string>)[level] || level;
 }
 

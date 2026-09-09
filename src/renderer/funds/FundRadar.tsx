@@ -16,7 +16,7 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const R = SIZE / 2 - 34;
 
-function resolveColor(name, fallback) {
+function resolveColor(name: string, fallback: string) {
   if (typeof document === "undefined") return fallback;
   try {
     const v = getComputedStyle(document.documentElement)
@@ -31,6 +31,9 @@ function resolveColor(name, fallback) {
 export function FundRadar({
   metrics,
   ariaLabel = "风险雷达",
+}: {
+  metrics?: any[] | null;
+  ariaLabel?: string;
 }) {
   const data = Array.isArray(metrics) ? metrics.filter((m) => m && m.label) : [];
   const brand = "var(--fund-brand)";
@@ -97,7 +100,7 @@ export function FundRadar({
   return (
     <div class="fund-radar-wrap" role="img" aria-label={ariaLabel}>
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true">
-        {rings.map((r, i) => (
+        {rings!.map((r, i) => (
           <polygon
             key={`r-${i}`}
             points={r.pts}
@@ -106,7 +109,7 @@ export function FundRadar({
             stroke-width="1"
           />
         ))}
-        {axes.map((a, i) => (
+        {axes!.map((a, i) => (
           <g key={`a-${i}`}>
             <line
               x1={CX}
@@ -128,7 +131,7 @@ export function FundRadar({
           </g>
         ))}
         <polygon
-          points={poly}
+          points={poly!}
           fill={brandStop}
           fill-opacity="0.18"
           stroke={brand}

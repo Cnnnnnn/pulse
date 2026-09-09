@@ -24,11 +24,11 @@ const STATUS_CLASS = {
   failed: "data-health-pill-failed",
 };
 
-export function DataHealthPill({ angle, onRefresh, now = Date.now() }) {
+export function DataHealthPill({ angle, onRefresh, now = Date.now() }: { angle?: any; onRefresh?: () => void; now?: number }) {
   if (!angle) return null;
   const status = deriveAngleStatus(angle, now);
-  const label = STATUS_LABEL[status];
-  const cls = STATUS_CLASS[status];
+  const label = STATUS_LABEL[status as keyof typeof STATUS_LABEL];
+  const cls = STATUS_CLASS[status as keyof typeof STATUS_CLASS];
   const tooltip = status === "failed"
     ? failureReasonText(angle)
     : status === "stale"

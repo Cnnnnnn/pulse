@@ -61,7 +61,7 @@ export function AppShell({ onCheck }: { onCheck?: () => void }) {
   // Cmd+Shift+F: 跳到基金管理栏目
   // Cmd+Shift+M: 跳到贵金属栏目
   useEffect(() => {
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       // ⌘⇧R: 打开 RemindersModal (走新建态)
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'r' || e.key === 'R')) {
         e.preventDefault();

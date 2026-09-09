@@ -46,9 +46,10 @@ export function fmtSpeed(v: any) {
 }
 
 /** 厂商展示名。 */
-export function fmtVendor(vendor: any) {
+export function fmtVendor(vendor: string) {
   if (!vendor) return "—";
-  return (VENDOR_META[vendor] && VENDOR_META[vendor].label) || vendor;
+  const meta = (VENDOR_META as Record<string, { key: string; label: string }>)[vendor];
+  return (meta && meta.label) || vendor;
 }
 
 /** 更新时间（HH:mm）。 */
@@ -160,15 +161,16 @@ export function licenseShort(kind: any) {
  */
 export function primaryValue(model: any, dimension: any, category: any) {
   if (dimension === "elo") {
-    const board = CATEGORY_BOARD[category] || "text";
+    const board = (CATEGORY_BOARD as Record<string, string>)[category] || "text";
     const slice = model && model.arena && model.arena[board];
-    return slice && typeof slice.score === "number" ? slice.score : null;
+    if (!slice || typeof slice.score !== "number") return null;
+    return slice.score;
   }
   // lb_* 维度走 livebench 切片, sortKey 支持 dot path (e.g. "byCategory.Coding")
   if (typeof dimension === "string" && dimension.startsWith("lb_")) {
     const lb = model && model.livebench;
     if (!lb) return null;
-    const meta = DIMENSION_META && DIMENSION_META[dimension];
+    const meta = DIMENSION_META && (DIMENSION_META as Record<string, { label: string; field: string; sortKey: string }>)[dimension];
     const key = meta && meta.sortKey;
     if (!key) return null;
     const v = key.includes(".")
@@ -194,7 +196,7 @@ export function primaryValue(model: any, dimension: any, category: any) {
   if (typeof dimension === "string" && dimension.startsWith("hf_")) {
     const hf = model && model.huggingface;
     if (!hf) return null;
-    const meta = DIMENSION_META && DIMENSION_META[dimension];
+    const meta = DIMENSION_META && (DIMENSION_META as Record<string, { label: string; field: string; sortKey: string }>)[dimension];
     const key = meta && meta.sortKey;
     if (!key) return null;
     const v = hf[key];
@@ -304,7 +306,12 @@ export function normalizeToUnit(v: any, min: any, max: any) {
 export function aggregateVendorProfiles(items: any) {
   const map = new Map();
   if (!Array.isArray(items)) return map;
-  const push = (vendor, axis, val, mode = "max") => {
+  const push = (
+    vendor: string,
+    axis: "arena" | "aa" | "livebench" | "priceOut",
+    val: number | null,
+    mode: "min" | "max" = "max"
+  ) => {
     if (val == null || !Number.isFinite(val)) return;
     if (!map.has(vendor)) map.set(vendor, { arena: null, aa: null, livebench: null, priceOut: null });
     const cur = map.get(vendor);

@@ -29,6 +29,7 @@ import {
 } from '../store.ts';
 import { showToast } from '../store/toast-store.ts';
 import { api } from '../api.ts';
+import type { VaultEntryMeta } from '../../shared/ipc-contracts';
 import { IconCheck, IconX } from './icons.tsx';
 import {
   formatModelPresetsText,
@@ -53,11 +54,13 @@ export const DEFAULT_BASE_URL = {
  glm: 'https://api.z.ai/api/paas/v4',
 };
 
-function findProvider(id) {
+const BASE_URL = DEFAULT_BASE_URL as Record<string, string>;
+
+function findProvider(id: string) {
  return PROVIDERS.find((p) => p.id === id) || PROVIDERS[0];
 }
 
-function buildConfigPayload(providerId, model, baseUrl) {
+function buildConfigPayload(providerId: string, model: string | undefined, baseUrl: string | undefined) {
  const prov = findProvider(providerId);
  return {
  provider: providerId,
@@ -69,7 +72,19 @@ function buildConfigPayload(providerId, model, baseUrl) {
  };
 }
 
-function getSaveStatusMeta(saveStatus) {
+type SaveStatus =
+  | null
+  | "saving-key"
+  | "key-saved"
+  | "clearing-key"
+  | "key-cleared"
+  | "testing"
+  | "test-ok"
+  | "saving"
+  | "saved"
+  | { error: string };
+
+function getSaveStatusMeta(saveStatus: SaveStatus) {
  if (typeof saveStatus === 'object' && saveStatus && saveStatus.error) {
  return { text: saveStatus.error, tone: 'error', icon: 'x' };
  }
@@ -103,7 +118,7 @@ function getSaveStatusMeta(saveStatus) {
  * - onCancel?: () => void取消回调 (drawer 用: 关 config mode 回列表 view)
  * - compact?: boolean true 时去掉 backfill按钮 /简化文案 (drawer 用)
  */
-export function AIConfigForm({ onSaved, onCancel, compact = false }) {
+export function AIConfigForm({ onSaved, onCancel, compact = false }: { onSaved?: (config: unknown) => void; onCancel?: () => void; compact?: boolean }) {
  const cfg = aiSessionsConfig.value;
 
  const initialProviderId =
@@ -115,7 +130,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  (cfg && cfg.cloud && cfg.cloud.model) || findProvider(initialProviderId).defaultModel,
  );
  const [cloudBaseUrl, setCloudBaseUrl] = useState(
- (cfg && cfg.cloud && cfg.cloud.baseUrl) || DEFAULT_BASE_URL[initialProviderId] || '',
+ (cfg && cfg.cloud && cfg.cloud.baseUrl) || BASE_URL[initialProviderId] || '',
  );
  const [assistantFastModel, setAssistantFastModel] = useState(
  (cfg && typeof cfg.assistantFastModel === 'string' && cfg.assistantFastModel) || '',
@@ -127,13 +142,13 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  formatModelPresetsText(cfg?.assistantModelPresets),
  );
  const [keyInput, setKeyInput] = useState('');
- const [saveStatus, setSaveStatus] = useState(null);
+ const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
  // v2.83: 密钥库引用 — 下拉选一条已存的 key, 主进程解密直写 Keychain, 明文不经过界面
- const [vaultOptions, setVaultOptions] = useState([]);
+ const [vaultOptions, setVaultOptions] = useState<VaultEntryMeta[]>([]);
  const [vaultPick, setVaultPick] = useState('');
  const [vaultBusy, setVaultBusy] = useState(false);
  // 长期记忆管理 (assistant-threads 同源的 state.json 持久层)
- const [memoryItems, setMemoryItems] = useState([]);
+ const [memoryItems, setMemoryItems] = useState<Array<{ id: string; text: string; createdAt: number }>>([]);
  const [memoryBusy, setMemoryBusy] = useState(false);
 
  // mount 时拉一次 keyStatus (modal复用也会调; drawer 用也安全 — 已 cached)
@@ -182,7 +197,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  if (pid && PROVIDERS.some(p => p.id === pid)) {
  setCloudProviderId(pid);
  setCloudModel(cfg.cloud.model || findProvider(pid).defaultModel);
- setCloudBaseUrl(cfg.cloud.baseUrl || DEFAULT_BASE_URL[pid] || '');
+ setCloudBaseUrl(cfg.cloud.baseUrl || BASE_URL[pid] || '');
  }
  if (typeof cfg.assistantFastModel === 'string') {
  setAssistantFastModel(cfg.assistantFastModel);
@@ -208,7 +223,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const presets = parseModelPresetsText(assistantModelPresetsText);
  if (presets.length > 0) next.assistantModelPresets = presets;
  else delete next.assistantModelPresets;
- return saveAISessionsConfig(next as any);
+ return saveAISessionsConfig(next as Parameters<typeof saveAISessionsConfig>[0]);
  }
 
  async function handleSaveKey() {
@@ -259,7 +274,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  providerId: cloudProviderId,
  model: cloudModel || findProvider(cloudProviderId).defaultModel,
  apiKey: keyInput || undefined,
- baseUrl: cloudBaseUrl || DEFAULT_BASE_URL[cloudProviderId],
+ baseUrl: cloudBaseUrl || BASE_URL[cloudProviderId],
  };
  const r = await runAIHealthcheck(opts);
  setSaveStatus(r.ok ? 'test-ok' : { error: r.error || 'threw' });
@@ -331,7 +346,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  onClick={() => {
  setCloudProviderId(p.id);
  setCloudModel(p.defaultModel);
- setCloudBaseUrl(DEFAULT_BASE_URL[p.id] || '');
+ setCloudBaseUrl(BASE_URL[p.id] || '');
  }}
  >
  <span class="settings-list__row-main">
@@ -381,7 +396,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  type="text"
  value={cloudBaseUrl}
  onInput={(e) => setCloudBaseUrl(e.currentTarget.value)}
- placeholder={DEFAULT_BASE_URL[cloudProviderId] || 'https://...'}
+ placeholder={BASE_URL[cloudProviderId] || 'https://...'}
  />
  </div>
  <div class="settings-row">

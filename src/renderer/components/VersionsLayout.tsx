@@ -18,7 +18,7 @@ import { DiagnosticsPage } from "./DiagnosticsPage.tsx";
 import { SettingsPage } from "./SettingsPage.tsx";
 import { AITasksDrawer } from "./AITasksDrawer.tsx";
 
-export function VersionsLayout({ onCheck }) {
+export function VersionsLayout({ onCheck }: { onCheck?: () => void }) {
   const route = currentRoute.value;
   return (
     <div class="versions-layout">

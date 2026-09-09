@@ -24,7 +24,7 @@ const PROMPT_LABELS = {
 };
 
 export function promptLabel(key: any) {
-  return PROMPT_LABELS[key] || key;
+  return PROMPT_LABELS[key as keyof typeof PROMPT_LABELS] || key;
 }
 
 export async function loadAiPrompts() {

@@ -82,7 +82,7 @@ export function ChangelogPanel({ result }: { result: ResultWithChangelog }) {
 
   // 当前选中显示的内容 (在 hook 之前计算, 避免 rules-of-hooks 违规)
   const isCurrent = view === 'current';
-  const activeSrc = isCurrent ? src : (history[view] && history[view].changelog) || '';
+  const activeSrc = isCurrent ? (src || '') : (history[view] && history[view].changelog) || '';
   const activeUrl = isCurrent ? url : (typeof view === "number" && history[view] && history[view].changelog_url) || '';
   // 渲染好的 HTML 提前 memo (useMemo 必须在所有 early-return 之前调用)
   const html = useMemo(

@@ -23,7 +23,10 @@ function median(nums: any) {
  * @param {Array<{date:string, percent:number}>} days
  * @param {object} [opts]
  */
-export function detectUsageAnomaly(days, opts: any = {}) {
+export function detectUsageAnomaly(
+  days: Array<{ date: string; percent: number }>,
+  opts: any = {},
+) {
   const spikeRatio =
     Number.isFinite(opts.spikeRatio) && opts.spikeRatio > 0
       ? opts.spikeRatio
@@ -45,7 +48,7 @@ export function detectUsageAnomaly(days, opts: any = {}) {
   };
   if (opts.enabled === false) return empty;
 
-  const { series } = buildSeries(days || [], 7);
+  const { series } = buildSeries(days ?? [], 7);
   if (series.length < 2) return empty;
 
   const today = todayKey();

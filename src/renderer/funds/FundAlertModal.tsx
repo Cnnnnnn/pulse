@@ -18,7 +18,7 @@ export function FundAlertModal() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     const profit = Number(profitPct);
     const loss = Number(lossPct);

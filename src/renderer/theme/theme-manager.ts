@@ -45,7 +45,7 @@ function writePreference(mode: any) {
    macOS Auto / Win 高对比度模式下比 renderer 的 matchMedia 准.
    没拿到 IPC 时才退到 matchMedia. 同步返回 boolean,
    调用方在异步初始化后会再 refresh 一次. */
-let systemDarkOverride = null; // null = 未初始化, true/false = 解析后
+let systemDarkOverride: boolean | null = null; // null = 未初始化, true/false = 解析后
 function getSystemDark() {
   if (systemDarkOverride !== null) return systemDarkOverride;
   if (typeof window === "undefined" || !window.matchMedia) return false;

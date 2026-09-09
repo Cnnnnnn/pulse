@@ -44,18 +44,49 @@ import { IconCheck } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
 import type { SelfUpdateState } from "../../shared/ipc-contracts";
 
-function fmtTs(ts) {
+function fmtTs(ts: number | string | undefined) {
   if (!ts) return "";
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-function fmtBytes(n) {
+function fmtBytes(n: number | undefined) {
   if (typeof n !== "number" || !isFinite(n)) return "—";
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+/** 诊断行信号 (store 侧为 loose signal, 此处给出消费字段)。 */
+interface DiagnosticsEntry {
+  id?: string;
+  ts?: number;
+  level?: string;
+  message?: string;
+  source?: string;
+  count?: number;
+}
+interface DiagnosticsExportState {
+  path?: string;
+  sizeBytes?: number;
+  fileCount?: number;
+  error?: string;
+  ts?: number;
+}
+interface MountMetrics {
+  heapUsed?: number;
+  rss?: number;
+  cpuUser?: number;
+}
+
+/** 从 unknown catch 值提取人类可读消息。 */
+function messageOf(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return String(err);
 }
 
 const LEVEL_FILTERS = [
@@ -66,16 +97,21 @@ const LEVEL_FILTERS = [
 ];
 
 export function DiagnosticsPage() {
-  const entries = errorEntries.value;
+  const entries = errorEntries.value as DiagnosticsEntry[];
   const stats = errorStats.value;
   const loading = errorLoading.value;
-  const startup = diagnosticsStartup.value;
-  const metrics = diagnosticsMetrics.value;
-  const topFailures = diagnosticsTopFailures.value;
-  const samples = diagnosticsSamples.value;
+  const startup = diagnosticsStartup.value as ({ bootstrapMs?: number; readyMs?: number } | null);
+  const metrics = diagnosticsMetrics.value as {
+    count: number;
+    latest: MountMetrics | null;
+    peak: MountMetrics | null;
+  };
+  const topFailures = (diagnosticsTopFailures.value as DiagnosticsEntry[]) || [];
+  const samples = (diagnosticsSamples.value as Array<{ heapUsed?: number }>) || [];
   const diagLoading = diagnosticsDiagnosticsLoading.value;
   const exporting = diagnosticsExporting.value;
-  const lastExport = diagnosticsLastExport.value;
+  const lastExportSignal = diagnosticsLastExport as unknown as { value: DiagnosticsExportState | null };
+  const lastExport = lastExportSignal.value;
   const errorState = errorDataState.value;
   const diagnosticsState = diagnosticsDataState.value;
 
@@ -209,21 +245,21 @@ export function DiagnosticsPage() {
     try {
       const r = await (api.errorExportZip ? api.errorExportZip({}) : null);
       if (r && r.ok) {
-        diagnosticsLastExport.value = {
+        lastExportSignal.value = {
           path: r.path,
           sizeBytes: r.sizeBytes,
           fileCount: r.fileCount,
           ts: Date.now(),
         };
       } else {
-        diagnosticsLastExport.value = {
+        lastExportSignal.value = {
           error: (r && (r.reason || r.error)) || "export_failed",
           ts: Date.now(),
         };
       }
     } catch (err) {
-      diagnosticsLastExport.value = {
-        error: (err && err.message) || "export_failed",
+      lastExportSignal.value = {
+        error: messageOf(err),
         ts: Date.now(),
       };
     } finally {
@@ -232,7 +268,7 @@ export function DiagnosticsPage() {
   }
 
   const [importOpen, setImportOpen] = useState(false);
-  const [configExportState, setConfigExportState] = useState(null);
+  const [configExportState, setConfigExportState] = useState<{ path?: string; error?: string; ts: number } | null>(null);
   const [configExporting, setConfigExporting] = useState(false);
 
   async function exportConfig() {
@@ -247,7 +283,7 @@ export function DiagnosticsPage() {
         setConfigExportState({ error: (r && (r.reason || r.error)) || "export_failed", ts: Date.now() });
       }
     } catch (err) {
-      setConfigExportState({ error: (err && err.message) || "export_failed", ts: Date.now() });
+      setConfigExportState({ error: messageOf(err), ts: Date.now() });
     } finally {
       setConfigExporting(false);
     }

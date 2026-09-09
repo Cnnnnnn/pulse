@@ -9,8 +9,9 @@ import {
 } from './searchStore.ts';
 import { SearchResultRow } from './SearchResultRow.tsx';
 import { DrawerEmpty } from '../components/EmptyState.tsx';
+import type { SearchResult } from '../../shared/ipc-contracts';
 
-export function SearchResultList({ onSelect }) {
+export function SearchResultList({ onSelect }: { onSelect: (r: SearchResult) => void }) {
   const results = searchResults.value;
   const state = searchDataState.value;
   const emptyMessage =

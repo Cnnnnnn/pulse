@@ -21,8 +21,17 @@ import { CrossSourceRadar } from "./CrossSourceRadar.tsx";
 import { EloPerDollar } from "./EloPerDollar.tsx";
 import { IconSparkles, IconX } from "../components/icons.tsx";
 
+const VENDOR_META_ANY = VENDOR_META as Record<string, { label?: string }>;
+
 // 跨源加载/错误态门：雷达与性价比两个标签共用同一套三源拉取状态。
-function CrossSourceGate({ loading, error, onRetry, empty, children }) {
+interface CrossSourceGateProps {
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  empty: string | null;
+  children: import("preact").ComponentChildren;
+}
+function CrossSourceGate({ loading, error, onRetry, empty, children }: CrossSourceGateProps) {
   if (loading) {
     return <p class="ai-lb-drawer__hint">正在加载跨源数据（Arena + AA + LiveBench）…</p>;
   }
@@ -46,6 +55,31 @@ function CrossSourceGate({ loading, error, onRetry, empty, children }) {
   return children;
 }
 
+interface CompareModel {
+  id: string;
+  name: string;
+  vendor?: string;
+  arena?: {
+    text?: { score?: number };
+    vision?: { score?: number };
+    code?: { score?: number };
+  };
+  aa?: {
+    intelligenceIndex?: number;
+    codingIndex?: number;
+    agenticIndex?: number;
+    outputTokensPerSec?: number;
+    priceOutputPer1M?: number;
+    costPerTask?: number;
+  };
+}
+type CompareRow = {
+  label: string;
+  get: (m: CompareModel) => string | undefined;
+  raw?: (m: CompareModel) => number | null | undefined;
+  better: "high" | "low" | null;
+};
+
 export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -55,7 +89,7 @@ export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
 
   useEffect(() => {
     if (!open) return undefined;
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
     window.addEventListener("keydown", onKey);
@@ -71,9 +105,9 @@ export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
 
   if (ids.length === 0) return null;
 
-  const models = ids
-    .map((id) => items.value.find((m) => m.id === id))
-    .filter(Boolean);
+  const models: CompareModel[] = ids
+    .map((id) => (items.value as CompareModel[]).find((m) => m.id === id))
+    .filter((m): m is CompareModel => !!m);
 
   // 跨源雷达（厂商聚合版）：从三源合并结果按厂商聚合最佳切片。
   // focus = 选中模型所属厂商（高亮）；context = 按 Arena ELO 取 Top-N 作为基准对比。
@@ -96,20 +130,20 @@ export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
   const epdRows = [...epdFocus, ...epdOthers];
 
   // 点击性价比榜某厂商行 → 关抽屉并把主榜单搜索设为该厂商，跳转到其模型详情
-  function handleEpdJump(vendor) {
+  function handleEpdJump(vendor: string) {
     setSearchQuery(vendor);
     setOpen(false);
   }
 
-  const rows = view === "arena"
+  const rows: CompareRow[] = view === "arena"
     ? [
-        { label: "厂商", get: (m) => (VENDOR_META[m.vendor] || {}).label || m.vendor, better: null },
+        { label: "厂商", get: (m) => (VENDOR_META_ANY[m.vendor ?? ""] || {}).label || m.vendor, better: null },
         { label: "ELO (text)", get: (m) => fmtScore(m.arena && m.arena.text && m.arena.text.score), raw: (m) => m.arena && m.arena.text && m.arena.text.score, better: "high" },
         { label: "ELO (vision)", get: (m) => fmtScore(m.arena && m.arena.vision && m.arena.vision.score), raw: (m) => m.arena && m.arena.vision && m.arena.vision.score, better: "high" },
         { label: "ELO (code)", get: (m) => fmtScore(m.arena && m.arena.code && m.arena.code.score), raw: (m) => m.arena && m.arena.code && m.arena.code.score, better: "high" },
       ]
     : [
-        { label: "厂商", get: (m) => (VENDOR_META[m.vendor] || {}).label || m.vendor, better: null },
+        { label: "厂商", get: (m) => (VENDOR_META_ANY[m.vendor ?? ""] || {}).label || m.vendor, better: null },
         { label: "智能指数", get: (m) => fmtIndex(m.aa && m.aa.intelligenceIndex), raw: (m) => m.aa && m.aa.intelligenceIndex, better: "high" },
         { label: "代码指数", get: (m) => fmtIndex(m.aa && m.aa.codingIndex), raw: (m) => m.aa && m.aa.codingIndex, better: "high" },
         { label: "Agent", get: (m) => fmtIndex(m.aa && m.aa.agenticIndex), raw: (m) => m.aa && m.aa.agenticIndex, better: "high" },
@@ -118,7 +152,7 @@ export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
         { label: "Cost/Task", get: (m) => fmtCostPerTask(m.aa && m.aa.costPerTask), raw: (m) => (m.aa && typeof m.aa.costPerTask === "number" && m.aa.costPerTask > 0) ? m.aa.costPerTask : null, better: "low" },
       ];
 
-  function bestId(row) {
+  function bestId(row: CompareRow) {
     if (!row.better || !row.raw || models.length < 2) return null;
     let best = null;
     let bestVal = null;
@@ -258,7 +292,7 @@ export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
                 onRetry={() => loadCrossSource(true)}
                 empty={epdRows.length === 0 ? "所选厂商暂无「ELO + 输出价」数据，可切换其他模型或稍后重试。" : null}
               >
-                <EloPerDollar rows={epdRows} focusSet={focusSet} onJump={handleEpdJump} />
+                <EloPerDollar rows={epdRows as never[]} focusSet={focusSet} onJump={handleEpdJump as unknown as null | undefined} />
               </CrossSourceGate>
               <p class="ai-lb-drawer__hint ai-lb-drawer__hint--sub">
                 ELO per $ = 厂商最佳 Arena ELO ÷ 最低 AA 输出价；<b>已选</b>厂商高亮，其余为 Top 15 基准对比。
@@ -272,7 +306,7 @@ export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
                 onRetry={() => loadCrossSource(true)}
                 empty={radarProfiles.length === 0 ? "所选厂商暂无跨源数据，可切换其他模型或稍后重试。" : null}
               >
-                <CrossSourceRadar profiles={radarProfiles} />
+                <CrossSourceRadar profiles={radarProfiles as never[]} />
               </CrossSourceGate>
               <p class="ai-lb-drawer__hint ai-lb-drawer__hint--sub">
                 每个厂商取其模型最佳切片；<b>已选</b>厂商高亮，其余为按 Arena ELO 的基准对比（Top 10）。

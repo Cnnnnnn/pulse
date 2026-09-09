@@ -5,14 +5,18 @@ import { ModuleCard } from "./ModuleCard.tsx";
 //
 // ponytail: 优先显示 2 个高价值信号: 分红预案 + 距解禁天数. 配股/增发次要, 空间不够折叠.
 
-function fmtDays(days) {
+function fmtDays(days: any) {
   if (days == null) return "—";
   if (days >= 0) return `距今 ${days} 天`;
   return `${Math.abs(days)} 天前已解禁`;
 }
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard (2 个早 return 也要带).
-export function CorporateEventsCard({ data, angle = null, onRefresh = null }) {
+export function CorporateEventsCard({ data, angle = null, onRefresh = null }: {
+  data: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   if (!d) {
     return <ModuleCard variant="events" title="📅 股本事件" angle={angle} onRefresh={onRefresh} empty="数据不足" />;

@@ -48,6 +48,52 @@ import { GithubProjectCard as CuratedGithubProjectCard } from "./GithubProjectCa
 
 const PAGE_SIZE = 8;
 
+/** 收录项目的最小结构（store 侧为 loose `any[]`，此处给出所用字段的精确类型）。 */
+export interface GithubProject {
+  id: string;
+  name: string;
+  description?: string;
+  language?: string;
+  stars?: number;
+  license?: string;
+  homepage?: string;
+  url?: string;
+  topics?: string[];
+  pinned?: boolean;
+  addedAt?: number;
+  latestVersion?: string;
+  latestVersionPublishedAt?: number;
+  releaseFetchedAt?: number;
+  aiParse?: {
+    summary?: string;
+    tags?: string[];
+  } | null;
+}
+
+interface GithubProjectListProps {
+  onView: (id: string, tab?: string) => void;
+  onParse: (id: string) => void;
+  onCheckUpdates: (progress: (done: number, total: number) => void) => Promise<void>;
+  onRetryFailed: (progress: (done: number, total: number) => void) => Promise<void>;
+  onMarkAllSeen: () => void;
+}
+
+interface GithubUpdateBadgeProps {
+  project: GithubProject;
+  onView?: (id: string, tab?: string) => void;
+}
+
+interface GithubActionsProps {
+  project: GithubProject;
+  onView: (id: string, tab?: string) => void;
+  onParse: (id: string) => void;
+  onRemove?: (project: GithubProject) => void;
+  onTogglePin?: (project: GithubProject) => void;
+}
+
+interface GithubProjectRowProps extends GithubActionsProps {}
+interface GithubProjectCardLegacyProps extends GithubActionsProps {}
+
 /**
  * 语言 → 圆点示意色（示意配色，非官方 GitHub 语言色）。
  * 全部引用设计令牌，不写裸 hex；未知语言回退中性灰 --accent-gray。
@@ -79,8 +125,8 @@ const LANGUAGE_DOT_COLORS = {
   "Jupyter Notebook": "var(--app-cursor)",
 };
 
-function langDotColor(lang) {
-  return LANGUAGE_DOT_COLORS[lang] || "var(--accent-gray)";
+function langDotColor(lang: string) {
+  return LANGUAGE_DOT_COLORS[lang as keyof typeof LANGUAGE_DOT_COLORS] || "var(--accent-gray)";
 }
 
 /**
@@ -89,7 +135,7 @@ function langDotColor(lang) {
  * - 已最新：低调静态「vX」。
  * - 无 release：不渲染。
  */
-function GithubUpdateBadge({ project, onView }) {
+function GithubUpdateBadge({ project, onView }: GithubUpdateBadgeProps) {
   if (!project.latestVersion) return null;
   if (hasGithubUpdate(project)) {
     return (
@@ -109,7 +155,7 @@ function GithubUpdateBadge({ project, onView }) {
   );
 }
 
-export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFailed, onMarkAllSeen }) {
+export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFailed, onMarkAllSeen }: GithubProjectListProps) {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
@@ -119,7 +165,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFail
   const [checking, setChecking] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
 
-  const projects = githubProjects.value;
+  const projects = githubProjects.value as GithubProject[];
   const density = githubDensity.value;
   const unseen = projects.filter(hasGithubUpdate).length;
 
@@ -177,23 +223,23 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFail
   const safePage = Math.min(Math.max(1, page), pageCount);
   const slice = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  function handleQuery(e) {
+  function handleQuery(e: { currentTarget: { value: string } }) {
     setQuery(e.currentTarget.value);
     setPage(1);
   }
-  function handleSort(e) {
+  function handleSort(e: { currentTarget: { value: string } }) {
     setSort(e.currentTarget.value);
     setPage(1);
   }
-  function handleLang(next) {
+  function handleLang(next: string) {
     setLang(next);
     setPage(1);
   }
-  function handleTopic(next) {
+  function handleTopic(next: string) {
     setTopic(next);
     setPage(1);
   }
-  async function handleRemove(project) {
+  async function handleRemove(project: GithubProject) {
     const ok = await openConfirm({
       title: "取消收录该项目？",
       message: `将从你的 GitHub 收录库中移除「${project.name}」，此操作不可撤销。`,
@@ -202,7 +248,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFail
     });
     if (ok) removeGithubProject(project.id);
   }
-  function handleTogglePin(project) {
+  function handleTogglePin(project: GithubProject) {
     togglePinGithubProject(project.id);
   }
   async function handleCheckUpdates() {
@@ -489,7 +535,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFail
   );
 }
 
-export function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
+export function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }: GithubProjectRowProps) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -547,7 +593,7 @@ export function GithubProjectRow({ project, onView, onParse, onRemove, onToggleP
               title={project.homepage}
               onClick={(e) => {
                 e.preventDefault();
-                api.openUrl(project.homepage);
+                api.openUrl(project.homepage!);
               }}
             >
               {hostnameOf(project.homepage)}
@@ -582,7 +628,7 @@ export function GithubProjectRow({ project, onView, onParse, onRemove, onToggleP
 }
 
 /* 行 / 卡片共用的操作区：桌面内联按钮 + 窄屏「⋯」溢出菜单 */
-function GithubActions({ project, onView, onParse, onRemove, onTogglePin }) {
+function GithubActions({ project, onView, onParse, onRemove, onTogglePin }: GithubActionsProps) {
   const busy = githubBusyId.value === project.id;
   const pinned = !!project.pinned;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -712,7 +758,7 @@ function GithubActions({ project, onView, onParse, onRemove, onTogglePin }) {
   );
 }
 
-function GithubProjectCardLegacy({ project, onView, onParse, onRemove, onTogglePin }) {
+function GithubProjectCardLegacy({ project, onView, onParse, onRemove, onTogglePin }: GithubProjectCardLegacyProps) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -770,7 +816,7 @@ function GithubProjectCardLegacy({ project, onView, onParse, onRemove, onToggleP
               title={project.homepage}
               onClick={(e) => {
                 e.preventDefault();
-                api.openUrl(project.homepage);
+                api.openUrl(project.homepage!);
               }}
             >
               {hostnameOf(project.homepage)}

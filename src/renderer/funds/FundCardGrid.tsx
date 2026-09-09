@@ -55,7 +55,7 @@ export function FundCardGrid() {
   }
   return (
     <div class="fund-card-grid">
-      {rows.map((row) => (
+      {rows.map((row: any) => (
         <FundCard key={row.holding.id} row={row} />
       ))}
     </div>

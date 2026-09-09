@@ -67,8 +67,8 @@ const warnedMissing = new Set();
 
 function pick(overrides: Record<string, any> | null | undefined, name: string): any {
   if (overrides && name in overrides) return overrides[name];
-  if (typeof window !== "undefined" && window.api && window.api[name]) {
-    return window.api[name];
+  if (typeof window !== "undefined" && window.api && (window.api as any)[name]) {
+    return (window.api as any)[name];
   }
   if (IS_DEV && !warnedMissing.has(name)) {
     warnedMissing.add(name);

@@ -20,14 +20,14 @@ import {
   fmtLbCost,
 } from "./format.ts";
 
-function primaryKeyFor(view) {
+function primaryKeyFor(view: string) {
   if (sortKey.value) return sortKey.value;
   if (view === "arena") return "elo";
   if (view === "livebench") return activeLB.value;
   return activeDim.value;
 }
 
-function formatMetric(view, key, model) {
+function formatMetric(view: string, key: string, model: any) {
   const val = columnValue(model, view, key);
   if (val == null || !Number.isFinite(Number(val))) return "—";
   if (key === "elo") return fmtScore(val);
@@ -40,13 +40,20 @@ function formatMetric(view, key, model) {
   return fmtIndex(val);
 }
 
-export function TopPodium({ rows, view: viewProp }) {
+export function TopPodium({
+  rows,
+  view: viewProp,
+}: {
+  rows: any[];
+  view?: string;
+}) {
   const view = viewProp || activeView.value;
   const list = Array.isArray(rows) ? rows : [];
   if (list.length === 0) return null;
 
   const pKey = primaryKeyFor(view);
-  const metricLabel = SORT_COLUMN_LABELS[pKey] || pKey;
+  const metricLabel =
+    (SORT_COLUMN_LABELS as Record<string, string>)[pKey] || pKey;
   const top3 = list.slice(0, 3);
   const slots =
     top3.length >= 3
@@ -66,9 +73,11 @@ export function TopPodium({ rows, view: viewProp }) {
       <div class="ai-lb-podium__row">
         {slots.map(({ rank, model, place }) => {
           const m = model || {};
-          const vendor =
-            (VENDOR_META[m.vendor] && VENDOR_META[m.vendor].label) || m.vendor || "—";
-          const boardMeta = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
+          const vendorMeta = (VENDOR_META as Record<string, { key: string; label: string }>)[m.vendor];
+          const vendor = (vendorMeta && vendorMeta.label) || m.vendor || "—";
+          const boardMeta =
+            (ARENA_BOARDS as Record<string, { key: string; label: string; category: string }>)[activeBoard.value] ||
+            ARENA_BOARDS.text;
           const boardHint = view === "arena" ? boardMeta.label : null;
           return (
             <article

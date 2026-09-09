@@ -23,6 +23,16 @@ import {
   IconStar, IconSettings, IconCalendar, IconNote,
 } from "./icons.tsx";
 
+/** 从 catch 的值里安全提取 message 字符串（无则空串）。 */
+function errMsg(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return "";
+}
+
 export function PageActionsBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement | null>(null);
@@ -49,12 +59,12 @@ export function PageActionsBar() {
 
   useEffect(() => {
     if (!menuOpen) return undefined;
-    function onDocClick(e) {
-      if (overflowRef.current && !overflowRef.current.contains(e.target)) {
+    function onDocClick(e: MouseEvent) {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     }
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setMenuOpen(false);
     }
     document.addEventListener("mousedown", onDocClick);
@@ -79,7 +89,7 @@ export function PageActionsBar() {
         showToast(`导出失败: ${(r && (r.reason || r.error)) || "未知错误"}`, "error", 3000);
       }
     } catch (err) {
-      showToast(`导出异常: ${(err && err.message) || "未知错误"}`, "error", 3000);
+      showToast(`导出异常: ${errMsg(err) || "未知错误"}`, "error", 3000);
     } finally {
       setMenuOpen(false);
     }
@@ -112,7 +122,7 @@ export function PageActionsBar() {
         showToast("已发起 Pulse 新版本检查", "info", 1800);
       }
     } catch (err) {
-      showToast(`检查 Pulse 新版本异常: ${(err && err.message) || "未知错误"}`, "error", 3000);
+      showToast(`检查 Pulse 新版本异常: ${errMsg(err) || "未知错误"}`, "error", 3000);
     } finally {
       setMenuOpen(false);
     }
@@ -136,7 +146,7 @@ export function PageActionsBar() {
       setMenuOpen(false);
       openReleaseNotes("manual", payload);
     } catch (err) {
-      showToast(`Release Notes 加载失败: ${err && err.message}`, "error", 2500);
+      showToast(`Release Notes 加载失败: ${errMsg(err)}`, "error", 2500);
       setMenuOpen(false);
     }
   }

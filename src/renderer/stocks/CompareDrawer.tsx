@@ -27,7 +27,7 @@ import {
 } from "./comparePool.ts";
 
 // P5: 返回 CSS 变量字符串 (而非 hex), 让三主题下颜色随 --accent-* 走.
-const COLOR = (s) =>
+const COLOR = (s: any) =>
   s == null
     ? "var(--gray-200)"
     : s >= 7
@@ -39,7 +39,7 @@ const COLOR = (s) =>
           : "var(--accent-red)";
 
 // ponytail 2026-07-08 D-5: 市值 (元) 紧凑展示 — 大额 → 亿元, 小额 → 千万.
-function formatMarketCap(yuan) {
+function formatMarketCap(yuan: any) {
   if (yuan == null || !Number.isFinite(yuan)) return null;
   if (yuan >= 1e11) return `${(yuan / 1e8).toFixed(0)}亿`; // 100 亿起, 取整
   if (yuan >= 1e9) return `${(yuan / 1e8).toFixed(1)}亿`; // 1-100 亿, 1 位小数
@@ -49,16 +49,16 @@ function formatMarketCap(yuan) {
 
 // ponytail 2026-07-13 投资 nav 合并: 抽屉行渲染来源 badge (股票/基金/金属).
 //   旧 entry 无 kind → 视作 stock (向后兼容).
-const KIND_BADGE = { fund: "基金", metal: "金属", stock: "股票" };
-const KIND_CLS = { fund: "kind-fund", metal: "kind-metal", stock: "kind-stock" };
+const KIND_BADGE: Record<string, string> = { fund: "基金", metal: "金属", stock: "股票" };
+const KIND_CLS: Record<string, string> = { fund: "kind-fund", metal: "kind-metal", stock: "kind-stock" };
 
 // 复用 PE/PB/ROE 数字 render — null → "—", 否则 to 1 位小数.
-function fmtNum(v) {
+function fmtNum(v: any) {
   if (v == null || !Number.isFinite(v)) return null;
   return Number(v).toFixed(1);
 }
 
-function MiniDim({ value }) {
+function MiniDim({ value }: { value: any }) {
   if (value == null) return <span class="cmp-dim-missing">—</span>;
   const h = Math.max(6, value * 10);
   return (
@@ -80,7 +80,7 @@ function FinCell({ value, format }: { value: any; format?: (v: any) => any }) {
   );
 }
 
-function PoolRow({ entry }) {
+function PoolRow({ entry }: { entry: any }) {
   const s = entry.scores;
   const kind = entry.kind || "stock"; // 旧 entry 向后兼容
   return (
@@ -146,7 +146,7 @@ function PoolRow({ entry }) {
  * ponytail 2026-07-08 D-5: 同时补 4 个财务字段 (PE/PB/ROE/市值). stocksSearch 结果带全字段,
  *   一并 merge 进 pool. 比单独再发一次 IPC 省一次 round-trip.
  */
-function useEnrichMissingPrices(api, pool) {
+function useEnrichMissingPrices(api: any, pool: any[]) {
   const inflight = useRef(new Set());
   useEffect(() => {
     if (!api || !api.stocksSearch) return;
@@ -161,7 +161,7 @@ function useEnrichMissingPrices(api, pool) {
         missing.map(async (code) => {
           try {
             const resp = await api.stocksSearch(code);
-            const r = resp && resp.results ? resp.results.find((x) => x && x.code === code) : null;
+            const r = resp && resp.results ? resp.results.find((x: any) => x && x.code === code) : null;
             if (!r) return;
             // ponytail: 价/涨跌幅走 updateComparePrice, 4 财务走 updateCompareFields.
             //   各自判定: 没拿到 (= null) 不写, 让原有数据保留.
@@ -182,7 +182,7 @@ function useEnrichMissingPrices(api, pool) {
   }, [api, pool]);
 }
 
-export function CompareDrawer({ api }) {
+export function CompareDrawer({ api }: { api: any }) {
   const open = compareDrawerOpen.value;
   const pool = comparePool.value;
   useEnrichMissingPrices(api, open ? pool : []);
@@ -210,7 +210,7 @@ export function CompareDrawer({ api }) {
             <span class="cmp-cell cmp-cell-overall">综合</span>
             <span class="cmp-cell cmp-cell-dims">
               {DIM_KEYS.map((k) => (
-                <span class="cmp-dim-label" key={k}>{DIM_LABELS[k]}</span>
+                <span class="cmp-dim-label" key={k}>{(DIM_LABELS as Record<string, any>)[k]}</span>
               ))}
             </span>
             <span class="cmp-cell cmp-cell-actions" />

@@ -16,7 +16,7 @@ const EMPTY_TEXT = {
 };
 
 /** 根据 rank 返回 CSS 修饰类: 1-3 用醒目色, 11+ 用浅色 tail, 其他无修饰 */
-function rankClass(rank) {
+function rankClass(rank: number) {
   if (rank === 1) return "rank-1";
   if (rank === 2) return "rank-2";
   if (rank === 3) return "rank-3";
@@ -48,7 +48,7 @@ export function WechatHotList({
     } else if (reason === "no-match") {
       text = EMPTY_TEXT.empty;
     } else {
-      text = EMPTY_TEXT[reason] || EMPTY_TEXT.empty;
+      text = (EMPTY_TEXT as Record<string, string>)[reason] || EMPTY_TEXT.empty;
     }
     return <div class="wechat-hot-list-empty">{text}</div>;
   }

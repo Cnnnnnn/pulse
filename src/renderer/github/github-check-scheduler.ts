@@ -25,8 +25,8 @@ import {
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰
 
 export function createGithubCheckScheduler() {
-  let intervalHandle = null;
-  let initialTimer = null;
+  let intervalHandle: ReturnType<typeof setInterval> | null = null;
+  let initialTimer: ReturnType<typeof setTimeout> | null = null;
   let started = false;
 
   async function checkOnce() {

@@ -52,9 +52,9 @@ export function UpgradeAdvice({ appName, hasUpdate }: { appName: string; hasUpda
       await api.feedbackRecord({
         feature: "advice",
         appName,
-        version: advice && advice.latestVersion,
-        rec: advice && advice.recommendation,
-        confidence: advice && advice.confidence,
+        version: advice?.latestVersion,
+        rec: advice?.recommendation,
+        confidence: advice?.confidence,
         vote: v,
         ts: Date.now(),
       });
@@ -74,7 +74,8 @@ export function UpgradeAdvice({ appName, hasUpdate }: { appName: string; hasUpda
           version: advice.latestVersion,
           rec: advice.recommendation,
           confidence: advice.confidence,
-          vote: null,
+          // vote 保留 null 语义（非 as any）——force 重生成是无显式 vote 的隐式反馈
+          vote: null as unknown as "up" | "down",
           implicit: "refreshed",
           ts: Date.now(),
         });
@@ -89,10 +90,10 @@ export function UpgradeAdvice({ appName, hasUpdate }: { appName: string; hasUpda
       if (r && r.ok) {
         setAdvice(r);
       } else {
-        const { label, raw } = humanizeAiError(r && r.reason, r && r.error);
+        const { label, raw } = humanizeAiError((r && r.reason) || "", r && r.error);
         setError({ label, raw });
       }
-    } catch (err) {
+    } catch (err: any) {
       setError({ label: "获取失败", raw: (err && err.message) || "" });
     } finally {
       setLoading(false);
@@ -135,6 +136,7 @@ export function UpgradeAdvice({ appName, hasUpdate }: { appName: string; hasUpda
     );
   }
 
+  if (!advice) return null;
   const rec = advice.recommendation || "wait";
   const conf = advice.confidence || "medium";
   const cachedAt = ageLabel(advice.generatedAt);

@@ -33,6 +33,7 @@ import {
 } from '../store.ts';
 import { aiTasksDrawerOpen } from '../digest/digest-store.ts';
 import { api } from '../api.ts';
+import type { AiTask, AiTaskSummary } from '../../shared/ipc-contracts';
 import { setActiveNav } from '../nav/navStore.ts';
 import { navigateTo } from '../store/route-store.ts';
 import { taggedLog } from '../log.ts';
@@ -55,15 +56,22 @@ const APP_COLOR = {
   'minimax-code': 'var(--app-minimax-code)',
 };
 
-function pad(n) { return String(n).padStart(2, '0'); }
+interface AiTaskGroup {
+  appName: string;
+  label: string;
+  color: string;
+  tasks: AiTask[];
+}
 
-function formatHm(ms) {
+function pad(n: number) { return String(n).padStart(2, '0'); }
+
+function formatHm(ms: number | undefined) {
   if (typeof ms !== 'number' || ms <= 0) return '--:--';
   const d = new Date(ms);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function formatHmRange(start, end) {
+function formatHmRange(start: number | undefined, end: number | undefined) {
   if (typeof start !== 'number' || start <= 0) return '--:--';
   const s = formatHm(start);
   if (typeof end !== 'number' || end <= 0 || end < start) return s;
@@ -71,7 +79,7 @@ function formatHmRange(start, end) {
   return e === s ? s : `${s} – ${e}`;
 }
 
-function formatDateLabel(dateKey) {
+function formatDateLabel(dateKey: string) {
   if (typeof dateKey !== 'string') return '';
   if (dateKey === localDateKey(0)) return '今天';
   if (dateKey === localDateKey(1)) return '昨天';
@@ -85,13 +93,12 @@ function formatDateLabel(dateKey) {
  * 任务按 appName 分组, 固定顺序 Cursor / Codex / MiniMax Code, 其余 app 排后.
  * @returns {Array<{appName, label, color, tasks}>}
  */
-function groupTasksByApp(tasks) {
-  const byApp = new Map();
+function groupTasksByApp(tasks: AiTask[]): AiTaskGroup[] {
+  const byApp = new Map<string, AiTask[]>();
   for (const t of Array.isArray(tasks) ? tasks : []) {
     if (!t) continue;
     const app = t.appName || 'unknown';
-    if (!byApp.has(app)) byApp.set(app, []);
-    byApp.get(app).push(t);
+    byApp.set(app, [...(byApp.get(app) || []), t]);
   }
   const order = [...APP_ORDER, ...[...byApp.keys()].filter((a) => !APP_ORDER.includes(a))];
   const groups = [];
@@ -100,15 +107,15 @@ function groupTasksByApp(tasks) {
     if (!list || list.length === 0) continue;
     groups.push({
       appName: app,
-      label: APP_LABEL[app] || app,
-      color: APP_COLOR[app] || 'var(--gray-500)',
+      label: (APP_LABEL as Record<string, string>)[app] || app,
+      color: (APP_COLOR as Record<string, string>)[app] || 'var(--gray-500)',
       tasks: list,
     });
   }
   return groups;
 }
 
-function taskStatus(task, generating) {
+function taskStatus(task: AiTask, generating: boolean) {
   if (generating) return { id: 'generating', label: '生成中' };
   if (!task.summary) return { id: 'draft', label: '未总结' };
   if (task.summary.stale) return { id: 'stale', label: '内容已更新' };
@@ -155,7 +162,7 @@ export function AITasksDrawer() {
   const generatingSet = summarizingTaskKeys.value;
   const busy = aiSummarizeBusy.value;
 
-  const [selectedKeys, setSelectedKeys] = useState([]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
   function closeDrawer() {
     openDigestDrawer(false);
@@ -192,19 +199,19 @@ export function AITasksDrawer() {
     return { key, label: formatDateLabel(key) };
   });
 
-  function switchDate(key) {
+  function switchDate(key: string) {
     if (loading) return; // 已在加载中, 忽略重复点击 (避免重复扫描)
     setSelectedKeys([]);
     loadAiTasks(key);
   }
 
-  function toggleTask(taskKey) {
+  function toggleTask(taskKey: string) {
     setSelectedKeys((prev) => (
       prev.includes(taskKey) ? prev.filter((k) => k !== taskKey) : [...prev, taskKey]
     ));
   }
 
-  function toggleGroup(group) {
+  function toggleGroup(group: AiTaskGroup) {
     const keys = group.tasks.map((t) => t.taskKey);
     const allSelected = keys.every((k) => selectedSet.has(k));
     setSelectedKeys((prev) => {
@@ -225,7 +232,7 @@ export function AITasksDrawer() {
     }
     const r = await summarizeAiTasks(target);
     if (r && r.ok) {
-      showToast(`已生成 ${r.results.length} 个任务总结`, 'success', 2500);
+      showToast(`已生成 ${(r.results || []).length} 个任务总结`, 'success', 2500);
       setSelectedKeys((prev) => prev.filter((k) => !target.includes(k)));
     } else if (r && Array.isArray(r.failures) && r.failures.length > 0) {
       const okCount = Array.isArray(r.results) ? r.results.length : 0;
@@ -410,17 +417,17 @@ export function AITasksDrawer() {
 }
 
 // ── TaskCard (单任务卡) ────────────────────────────────────────────────
-function TaskCard({ task, selected, generating, onToggle, onGenerateSingle }) {
+function TaskCard({ task, selected, generating, onToggle, onGenerateSingle }: { task: AiTask; selected: boolean; generating: boolean; onToggle: () => void; onGenerateSingle: () => void }) {
   const status = taskStatus(task, generating);
   const summary = task.summary;
   const title = (summary && summary.title) || task.title || `${formatHm(task.startedAt)} 开始的任务`;
   const hasJump = typeof task.jumpTarget === 'string' && task.jumpTarget.length > 0;
 
-  async function handleJump(e) {
+  async function handleJump(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     if (!hasJump) return;
-    const r = await api.openSession(task.jumpTarget);
+    const r = await api.openSession(task.jumpTarget as string);
     if (!r || !r.ok) {
       log.warn('openSession failed:', task.jumpTarget, r);
     }
@@ -469,7 +476,7 @@ function TaskCard({ task, selected, generating, onToggle, onGenerateSingle }) {
         )}
         <div class="ai-task-card-actions">
           {hasJump && (
-            <a href={task.jumpTarget} class="session-selection-jump" onClick={handleJump} title="在源 app 打开">
+            <a href={task.jumpTarget as string} class="session-selection-jump" onClick={handleJump} title="在源 app 打开">
               查看原始 →
             </a>
           )}

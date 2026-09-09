@@ -29,7 +29,7 @@ import {
   IconRefresh,
 } from "../components/icons.tsx";
 
-function mapAiError(reason) {
+function mapAiError(reason: any) {
   if (
     reason === "api_key_missing" ||
     reason === "config_missing" ||
@@ -43,7 +43,7 @@ function mapAiError(reason) {
 /** 与后端 article-page-fetcher MIN_USEFUL_BODY_CHARS 保持一致 */
 const MIN_USEFUL_BODY_CHARS = 200;
 
-function needsBodyFetch(article) {
+function needsBodyFetch(article: any) {
   if (!article) return false;
   const body = (article.body || "").trim();
   if (body.length >= MIN_USEFUL_BODY_CHARS) return false;
@@ -53,7 +53,7 @@ function needsBodyFetch(article) {
 }
 
 /** 右侧缩略图 — 抄 GameCard.GameThumb 范式：loading=lazy + onError 兜底 */
-function ArticleCover({ src, alt }) {
+function ArticleCover({ src, alt }: { src: string; alt?: string }) {
   const [imgError, setImgError] = useState(false);
   useEffect(() => {
     setImgError(false);
@@ -71,15 +71,15 @@ function ArticleCover({ src, alt }) {
 }
 
 /** 行内 ⋯ 菜单 — 抄 RemindersModal.RowOverflowMenu 范式 */
-function ArticleRowMenu({ items, testid }) {
+function ArticleRowMenu({ items, testid }: { items: any[]; testid?: string }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
+  const wrapRef = useRef<HTMLSpanElement | null>(null);
   useEffect(() => {
     if (!open) return undefined;
-    function onDoc(e) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    function onDoc(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("mousedown", onDoc);
@@ -108,7 +108,7 @@ function ArticleRowMenu({ items, testid }) {
       </button>
       {open && (
         <ul class="ithome-row-overflow-menu" role="menu">
-          {items.map((it) => (
+          {items.map((it: any) => (
             <li key={it.key}>
               <button
                 type="button"
@@ -132,26 +132,30 @@ function ArticleRowMenu({ items, testid }) {
   );
 }
 
-export function NewsArticleRow({ article, isSelected = false, onSelect }) {
+export function NewsArticleRow({ article, isSelected = false, onSelect }: {
+  article: any;
+  isSelected?: boolean;
+  onSelect?: (article: any) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [fetchingBody, setFetchingBody] = useState(false);
   const [favBusy, setFavBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [error, setError] = useState<any>(null);
+  const [toast, setToast] = useState<any>(null);
 
   if (!article) return null;
 
-  const summary = ithomeSummaries.value[article.id];
+  const summary = (ithomeSummaries.value as Record<string, any>)[article.id];
   const hasSummary = !!(summary && summary.text);
-  const favorited = !!ithomeFavorites.value[article.id];
-  const isRead = !!ithomeReadIds.value[article.id];
-  const isNew = !!ithomeNewIds.value[article.id];
-  const sharing = !!ithomeSharingIds.value[article.id];
+  const favorited = !!(ithomeFavorites.value as Record<string, any>)[article.id];
+  const isRead = !!(ithomeReadIds.value as Record<string, any>)[article.id];
+  const isNew = !!(ithomeNewIds.value as Record<string, any>)[article.id];
+  const sharing = !!(ithomeSharingIds.value as Record<string, any>)[article.id];
   const timeLabel = formatArticleTime(article.pubDate);
   const excerptPreview = formatExcerptPreview(article.excerpt);
   const cover = article.cover || "";
 
-  async function openLink(e) {
+  async function openLink(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     if (onSelect) {
@@ -166,7 +170,7 @@ export function NewsArticleRow({ article, isSelected = false, onSelect }) {
     }
   }
 
-  async function handleToggleFavorite(e?) {
+  async function handleToggleFavorite(e?: MouseEvent) {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -206,7 +210,7 @@ export function NewsArticleRow({ article, isSelected = false, onSelect }) {
     }
   }
 
-  async function handleShare(e?) {
+  async function handleShare(e?: MouseEvent) {
     if (e) {
       e.preventDefault();
       e.stopPropagation();

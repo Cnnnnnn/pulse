@@ -14,15 +14,19 @@ import {
 import { showToast } from "../store.ts";
 import { api } from "../api.ts";
 import { PromptSectionIcon } from "./icons.tsx";
+import type { TokenBudgetConfig, TokenBudgetMode } from "../../shared/ipc-contracts";
+
+type PromptDraft = Record<string, { system: string; rules: string; fewShot: string }>;
+type BudgetPatch = Partial<TokenBudgetConfig>;
 
 export function PromptSettings() {
   const prompts = aiPrompts.value;
-  const [draft, setDraft] = useState(null);
-  const debounceRef = useRef(null);
+  const [draft, setDraft] = useState<PromptDraft | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A8: 反馈样本数
-  const [feedbackCount, setFeedbackCount] = useState(null);
+  const [feedbackCount, setFeedbackCount] = useState<number | null>(null);
   // P71: token 预算
-  const [budget, setBudget] = useState({ dailyLimit: 0, mode: "warn" });
+  const [budget, setBudget] = useState<TokenBudgetConfig>({ dailyLimit: 0, mode: "warn" });
   const [todaySpend, setTodaySpend] = useState(0);
   const [budgetLoaded, setBudgetLoaded] = useState(false);
 
@@ -78,7 +82,7 @@ export function PromptSettings() {
     }
   }
 
-  async function saveBudget(patch) {
+  async function saveBudget(patch: BudgetPatch) {
     const next = { ...budget, ...patch };
     setBudget(next);
     if (!api.tokenBudgetSet) return;
@@ -96,7 +100,7 @@ export function PromptSettings() {
 
   useEffect(() => {
     if (prompts && !draft) {
-      const d = {};
+      const d: PromptDraft = {};
       for (const key of Object.keys(prompts)) {
         d[key] = {
           system: prompts[key].system,
@@ -108,7 +112,7 @@ export function PromptSettings() {
     }
   }, [prompts, draft]);
 
-  function scheduleSave(next) {
+  function scheduleSave(next: PromptDraft) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       const r = await saveAiPrompts(next);
@@ -120,14 +124,14 @@ export function PromptSettings() {
     }, 500);
   }
 
-  function updateField(key, field, value) {
+  function updateField(key: string, field: keyof PromptDraft[string], value: string) {
     if (!draft) return;
     const next = { ...draft, [key]: { ...draft[key], [field]: value } };
     setDraft(next);
     scheduleSave(next);
   }
 
-  async function handleReset(key) {
+  async function handleReset(key: string) {
     const r = await resetAiPrompt(key);
     if (r && r.ok) {
       setDraft(null);
@@ -204,7 +208,7 @@ export function PromptSettings() {
               class="settings-input"
               value={budget.mode}
               disabled={!budgetLoaded}
-              onChange={(e) => saveBudget({ mode: (e.currentTarget as HTMLSelectElement).value })}
+              onChange={(e) => saveBudget({ mode: (e.currentTarget as HTMLSelectElement).value as TokenBudgetMode })}
               title="超限处理策略"
             >
               <option value="warn">超限仅警告</option>

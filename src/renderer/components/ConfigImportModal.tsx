@@ -7,21 +7,28 @@ import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.ts";
 import { showToast } from "../store.ts";
 import { ModalShell } from "./ModalShell.tsx";
+import type {
+  ConfigDiffEntry,
+  ConfigField,
+  ConfigImportFields,
+} from "../../shared/ipc-contracts";
 
-const FIELD_LABELS = {
+const FIELD_LABELS: Record<ConfigField, string> = {
   watchlist: "关注列表",
   reminders: "提醒",
   funds: "基金持仓",
   ai_prompts: "AI Prompt",
 };
 
-export function ConfigImportModal({ onClose }) {
+export function ConfigImportModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
-  const [diff, setDiff] = useState(null);
-  const [fields, setFields] = useState(null);
-  const [selected, setSelected] = useState({});
+  const [diff, setDiff] = useState<ConfigDiffEntry[] | null>(null);
+  const [fields, setFields] = useState<ConfigImportFields | null>(null);
+  const [selected, setSelected] = useState<
+    Partial<Record<ConfigField, boolean>>
+  >({});
   const [applying, setApplying] = useState(false);
-  const [filePath, setFilePath] = useState(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!api.configImportLoad) {
@@ -40,7 +47,7 @@ export function ConfigImportModal({ onClose }) {
         setDiff(r.diff || []);
         setFields(r.fields || {});
         setFilePath(r.filePath);
-        const sel = {};
+        const sel: Partial<Record<ConfigField, boolean>> = {};
         for (const d of r.diff || []) {
           sel[d.field] = d.status !== "same" && d.status !== "removed";
         }
@@ -50,14 +57,15 @@ export function ConfigImportModal({ onClose }) {
       .finally(() => setLoading(false));
   }, [onClose]);
 
-  function toggle(field) {
+  function toggle(field: ConfigField) {
     setSelected((s) => ({ ...s, [field]: !s[field] }));
   }
 
   async function doApply() {
-    const chosenFields = {};
-    for (const f of Object.keys(selected)) {
-      if (selected[f] && fields[f] != null) chosenFields[f] = fields[f];
+    const chosenFields: ConfigImportFields = {};
+    for (const f of Object.keys(selected) as ConfigField[]) {
+      const v = fields ? fields[f] : undefined;
+      if (selected[f] && v != null) chosenFields[f] = v;
     }
     if (Object.keys(chosenFields).length === 0) {
       showToast("未选择任何字段", "error", 1500);

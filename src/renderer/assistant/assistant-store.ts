@@ -915,7 +915,7 @@ export async function sendChatMessage(
   }
   // P3-15: 工具结果即时展示 (渐进式, 不等综合回复)
   if (typeof api.onAiChatToolResults === "function") {
-    unsubToolResults = api.onAiChatToolResults((payload) => {
+    unsubToolResults = api.onAiChatToolResults((payload: any) => {
       const results = (payload && (payload as { toolResults?: unknown }).toolResults) || [];
       if (!Array.isArray(results) || results.length === 0) return;
       const cards = results

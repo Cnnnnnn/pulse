@@ -46,7 +46,7 @@ export function AppCard({ name }: { name: string }) {
 
   return (
     <div class="app-card" data-name={result.name}>
-      <AppAvatar bundle={result.bundle} name={result.name} />
+      <AppAvatar bundle={result.bundle ?? ""} name={result.name} />
       <div class="app-card-name">{result.name}</div>
       <div class="app-card-versions">
         {installedVersion} → {latestVersion}

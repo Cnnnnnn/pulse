@@ -38,7 +38,7 @@ const COLUMNS = [
 //   不加, content-visibility 自身解析开销不值. 5000+ 行才显著.
 const VIRTUALIZE_THRESHOLD = 200;
 
-export function ResultTable({ api }) {
+export function ResultTable({ api }: { api: any }) {
   const rows = results.value || [];
   const sk = sortKey.value;
   const sd = sortDir.value;
@@ -142,7 +142,7 @@ export function ResultTable({ api }) {
           </span>
           <span
             class={`stock-td stock-td-right ${
-              r.changePct >= 0 ? "up" : "down"
+              (r.changePct ?? 0) >= 0 ? "up" : "down"
             }`}
           >
             {r.changePct != null

@@ -19,7 +19,7 @@ import type { ReminderListResponse } from "../../shared/ipc-contracts.ts";
 import { getApi, requireApiMethod } from "../store/store-utils.ts";
 import { trackReminderUpdate } from "../recent/track.ts";
 
-export const reminders = signal([]); // Reminder[]
+export const reminders = signal<any[]>([]); // Reminder[]
 export const remindersLoaded = signal(false);
 export const remindersOpen = signal(false);
 export const remindersDataState = signal<DataState<ReminderListResponse>>(

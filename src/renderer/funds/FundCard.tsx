@@ -27,17 +27,51 @@ const CATEGORY_LABEL = {
   other: { label: '其他' },
 };
 
-export function FundCard({ row }) {
+interface FundHolding {
+  id: string;
+  code: string;
+  name: string;
+  category?: string;
+  shares?: number;
+  costNav?: number;
+  note?: string;
+  addedAt?: number | string;
+}
+interface FundMetrics {
+  nav?: number;
+  dailyReturnPct?: number;
+  todayProfit: number;
+  profitPct: number;
+  profit: number;
+  marketValue: number;
+  costValue: number;
+  holdingDays?: number;
+  cumulativeProfit: number;
+  annualizedPct?: number | null;
+  usingEstimate?: boolean;
+}
+interface FundNavSnap {
+  nav: number;
+  estimatedNav: number;
+}
+interface FundRow {
+  holding: FundHolding;
+  metrics: FundMetrics;
+  navSnap?: FundNavSnap;
+  rawNavSnap?: { altAvailable?: boolean };
+}
+
+export function FundCard({ row }: { row: FundRow }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
-    function onDocPointer(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    function onDocPointer(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setMenuOpen(false);
     }
     document.addEventListener('mousedown', onDocPointer);
@@ -68,14 +102,15 @@ export function FundCard({ row }) {
     if (hd != null) {
       return hd < 1 ? '今日建仓' : `${hd} 天`;
     }
-    const t = Date.parse(holding.addedAt);
+    const t = Date.parse(String(holding.addedAt));
     if (!Number.isFinite(t)) return '--';
     const d = Math.floor((Date.now() - t) / 86400000);
     return d < 1 ? '今日建仓' : `${d} 天`;
   })();
   const rawNavSnap = row.rawNavSnap;
-  const cat = CATEGORY_LABEL[holding.category] || CATEGORY_LABEL.other;
-  const errors = (navCache.value && navCache.value.errors) || {};
+  const cat = CATEGORY_LABEL[holding.category as keyof typeof CATEGORY_LABEL] || CATEGORY_LABEL.other;
+  const errors: Record<string, any> =
+    (navCache.value && navCache.value.errors) || {};
   const errMsg = errors[holding.code];
   const pendingNav = !holding.costNav || holding.costNav === 0;
   const source = navSource.value;
@@ -83,7 +118,7 @@ export function FundCard({ row }) {
   const sourceUnavailable =
     source === 'sina' && rawNavSnap && rawNavSnap.altAvailable === false;
   const pinned = isFundPinned(holding.code);
-  const togglePin = (e) => {
+  const togglePin = (e: Event) => {
     e.stopPropagation();
     if (pinned) removeWatchlistItem({ type: 'fund', ref: holding.code });
     else addWatchlistItem({ type: 'fund', ref: holding.code });
@@ -114,7 +149,7 @@ export function FundCard({ row }) {
     }
   }
 
-  async function confirmRemove(e) {
+  async function confirmRemove(e: Event) {
     e.stopPropagation();
     const ok = await openConfirm({
       title: '删除持仓',

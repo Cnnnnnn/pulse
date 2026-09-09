@@ -402,12 +402,13 @@ export function GlobalChatDrawer() {
   useEffect(() => {
     const el = listRef.current;
     if (!el || !open) return;
+    const listEl = el;
     function onScroll() {
       const nearBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-      const nearTop = el.scrollTop < 48;
+        listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 48;
+      const nearTop = listEl.scrollTop < 48;
       setShowScrollDown(!nearBottom);
-      setShowScrollUp(!nearTop && el.scrollHeight > el.clientHeight + 48);
+      setShowScrollUp(!nearTop && listEl.scrollHeight > listEl.clientHeight + 48);
     }
     el.addEventListener("scroll", onScroll);
     onScroll();

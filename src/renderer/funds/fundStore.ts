@@ -55,8 +55,8 @@ type FundNavSnapshot = {
 
 // ── signals ──
 
-export const holdings = signal([]);
-export const navCache = signal({ fetchedAt: null, data: {}, errors: {} });
+export const holdings = signal<any[]>([]);
+export const navCache = signal<{ fetchedAt: number | null; data: Record<string, any>; errors: Record<string, any> }>({ fetchedAt: null, data: {}, errors: {} });
 export const fundsHoldingsState = signal<DataState<any[]>>(createDataState([]));
 export const fundsNavDataState = signal<DataState<FundNavSnapshot>>(
   createDataState({ fetchedAt: null, data: {}, errors: {} }),
@@ -73,8 +73,8 @@ export const searchQuery = signal("");
 // 默认 'all' — 跟用户老习惯一致, 自选是增强入口.
 export const fundView = signal("all");
 export const addModalOpen = signal(false);
-export const editingHolding = signal(null);
-export const dailySnapshots = signal([]);
+export const editingHolding = signal<any>(null);
+export const dailySnapshots = signal<any[]>([]);
 export const selectedHistoryMonth = signal(ymShanghai(new Date()));
 export const navSource = signal(DEFAULT_NAV_SOURCE);
 export const alertPrefs = signal({
@@ -334,12 +334,12 @@ export async function updateFund(api: any, id: any, patch: any) {
 }
 
 export async function removeFund(api: any, id: any) {
-  const removed = (holdings.value || []).find((h: any) => h && h.id === id) || {};
+  const removed = (holdings.value || []).find((h: any) => h && h.id === id);
   const r = await api.fundsRemove(id);
   if (r && r.ok) {
     setHoldings(r.all ? r.all.holdings : []);
     import("../recent/track.ts").then((m: any) =>
-      m.trackFundRemove(removed.code || id, removed.name),
+      m.trackFundRemove(removed?.code || id, removed?.name),
     );
     return { ok: true };
   }
@@ -552,14 +552,14 @@ export function subscribeNavUpdates(api: any) {
 }
 
 // ── NAV history cache (新接口 funds:nav:history) ──
-export const navHistoryCache = signal({}); // { [code]: { series, loadedAt } }
+export const navHistoryCache = signal<Record<string, any>>({}); // { [code]: { series, loadedAt } }
 // 2026-07-15: per-code 加载状态 — 给 FundDetail 完整度指示用
 //   ponytail: 不用全局 loading (会误报别的基金在拉), 用 Map[code] = bool
-export const navHistoryLoading = signal({}); // { [code]: true }
+export const navHistoryLoading = signal<Record<string, boolean>>({}); // { [code]: true }
 
 export const categoryAllocation = computed(() => {
   const rows = rowsWithMetrics.value || [];
-  const acc = { stock: 0, bond: 0, money: 0, qdii: 0, other: 0 };
+  const acc: Record<string, number> = { stock: 0, bond: 0, money: 0, qdii: 0, other: 0 };
   let total = 0;
   for (const r of rows) {
     const cat = (r.holding && r.holding.category) || "other";
@@ -573,7 +573,7 @@ export const categoryAllocation = computed(() => {
 //   ponytail: 行 tint 需要"这只基金占整个组合多少 %", total=0 时 map 为空
 export const holdingWeights = computed(() => {
   const rows = rowsWithMetrics.value || [];
-  const m = {};
+  const m: Record<string, number> = {};
   let total = 0;
   for (const r of rows) {
     const mv = (r.metrics && r.metrics.marketValue) || 0;
@@ -594,8 +594,8 @@ export const holdingWeights = computed(() => {
 // ── T-C1c: 基准指数叠加 (沪深300 默认) ──
 export const DEFAULT_BENCHMARK = "000300";
 export const benchmarkEnabled = signal(true);
-export const indexHistoryCache = signal({}); // { [symbol]: [{ date, value }] }
-export const benchmarkError = signal(null);
+export const indexHistoryCache = signal<Record<string, any>>({}); // { [symbol]: [{ date, value }] }
+export const benchmarkError = signal<string | null>(null);
 
 let indexHistoryLoading = false; // 并发保护
 
@@ -698,7 +698,7 @@ export async function loadFundNavHistory(api: any, code: string, opts: { days?: 
 const NAV_PREFETCH_CONCURRENCY = 3;
 let navPrefetchRunning = false;
 
-export async function prefetchAllNavHistory(api, { concurrency = NAV_PREFETCH_CONCURRENCY } = {}) {
+export async function prefetchAllNavHistory(api: any, { concurrency = NAV_PREFETCH_CONCURRENCY } = {}) {
   if (navPrefetchRunning) return;
   const codes = (holdings.value || [])
     .map((h: any) => h && h.code)

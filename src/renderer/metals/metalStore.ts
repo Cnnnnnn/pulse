@@ -243,6 +243,6 @@ export function resetMetalStore() {
   metalsRefreshing.value = false;
   selectedMetalId.value = 'XAU';
   if (typeof window !== 'undefined' && window.metalsApi) {
-    delete window.metalsApi;
+    delete (window as any).metalsApi;
   }
 }

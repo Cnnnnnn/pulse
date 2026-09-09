@@ -10,8 +10,13 @@ import { ModalShell } from "./ModalShell.tsx";
 
 export function ConfirmDialog() {
   const visible = confirmVisible.value;
-  const state = confirmDialog.value;
-  const confirmBtnRef = useRef(null);
+  const state = confirmDialog.value as {
+    title: string;
+    message: string;
+    confirmText: string;
+    cancelText: string;
+  } | null;
+  const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!visible) return;

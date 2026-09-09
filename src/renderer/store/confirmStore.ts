@@ -11,12 +11,17 @@
 import { signal } from "@preact/signals";
 
 /** @type {import("@preact/signals").Signal<null | { title?: string, message: string, confirmText: string, cancelText: string }>} */
-export const confirmDialog = signal(null);
+export const confirmDialog = signal<null | {
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+}>(null);
 
 /** @type {import("@preact/signals").Signal<boolean>} */
 export const confirmVisible = signal(false);
 
-let _resolver = null;
+let _resolver: ((value: boolean) => void) | null = null;
 
 /**
  * 弹一个 confirm 弹窗, 返回 Promise<boolean>.

@@ -20,8 +20,18 @@
 import { useMemo, useState } from "preact/hooks";
 import { modelColorIndex } from "./modelColor.ts";
 
+/** 每日聚合行形状. */
+type UsageRow = {
+  date: string;
+  total: number;
+  input: number | null;
+  output: number | null;
+  cacheHit: number | null;
+  topModel: any;
+};
+
 /** 列定义. numeric 控制右对齐与排序语义. */
-const COLUMNS = [
+const COLUMNS: Array<{ key: keyof UsageRow; label: string; numeric: boolean }> = [
   { key: "date", label: "日期", numeric: false },
   { key: "total", label: "总 token", numeric: true },
   { key: "input", label: "输入", numeric: true },
@@ -31,13 +41,13 @@ const COLUMNS = [
 ];
 
 /** 大数 → 千分位整数. 例: 12345678 → "12,345,678". */
-function formatFull(n) {
+function formatFull(n: any) {
   if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
   return Math.round(n).toLocaleString("en-US");
 }
 
 /** CSV 单元格转义 (含逗号/引号/换行时加引号). */
-function csvCell(v) {
+function csvCell(v: any) {
   const s = v == null ? "" : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
@@ -45,8 +55,8 @@ function csvCell(v) {
 /**
  * @param {Array<{date:string, models?:Array, totals?:object}>|null|undefined} dateModelUsage
  */
-export function UsageDetailList({ dateModelUsage }) {
-  const [sortKey, setSortKey] = useState("date");
+export function UsageDetailList({ dateModelUsage }: { dateModelUsage?: any[] | null }) {
+  const [sortKey, setSortKey] = useState<keyof UsageRow>("date");
   const [sortDir, setSortDir] = useState("desc"); // date desc = 新→旧
   const [query, setQuery] = useState("");
   const [range, setRange] = useState("all"); // all | "30" | "7"
@@ -91,8 +101,8 @@ export function UsageDetailList({ dateModelUsage }) {
 
     const dir = sortDir === "asc" ? 1 : -1;
     out = [...out].sort((a, b) => {
-      let av = a[sortKey];
-      let bv = b[sortKey];
+      let av: any = a[sortKey];
+      let bv: any = b[sortKey];
       if (av == null) av = sortKey === "date" ? "" : -Infinity;
       if (bv == null) bv = sortKey === "date" ? "" : -Infinity;
       if (typeof av === "string") return av.localeCompare(bv) * dir;
@@ -114,7 +124,7 @@ export function UsageDetailList({ dateModelUsage }) {
     );
   }
 
-  const toggleSort = (key) => {
+  const toggleSort = (key: keyof UsageRow) => {
     if (key === sortKey) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -153,7 +163,7 @@ export function UsageDetailList({ dateModelUsage }) {
     URL.revokeObjectURL(url);
   };
 
-  const sortIndicator = (key) =>
+  const sortIndicator = (key: keyof UsageRow) =>
     key === sortKey ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
   return (

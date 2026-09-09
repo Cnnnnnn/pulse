@@ -22,10 +22,10 @@ import {
   type DataState,
 } from "../../shared/data-state.ts";
 
-export const ithomeArticles = signal({});
-export const ithomeDayStats = signal({});
-export const ithomeSummaries = signal({});
-export const ithomeFavorites = signal({});
+export const ithomeArticles = signal<Record<string, any>>({});
+export const ithomeDayStats = signal<Record<string, any>>({});
+export const ithomeSummaries = signal<Record<string, any>>({});
+export const ithomeFavorites = signal<Record<string, any>>({});
 export const ithomeNewsTs = signal(0);
 export const ithomeNewsLoaded = signal(false);
 export const ithomeNewsLoading = signal(false);
@@ -36,8 +36,8 @@ export const ithomeNewsState = signal<DataState<Record<string, any>>>(
 export const ithomeSelectedDate = signal(todayShanghaiDateKey());
 export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
-export const ithomeReadIds = signal({});
-export const ithomeNewIds = signal({});
+export const ithomeReadIds = signal<Record<string, any>>({});
+export const ithomeNewIds = signal<Record<string, any>>({});
 /** 助手 / 外部入口要选中的文章 id */
 export const ithomeSelectedArticleId = signal<string | null>(null);
 /**
@@ -48,7 +48,7 @@ export const ithomeSelectedArticleId = signal<string | null>(null);
 export const ithomeUnreadBadge = computed(
   () => Object.keys(ithomeNewIds.value).length
 );
-export const ithomeSharingIds = signal({});
+export const ithomeSharingIds = signal<Record<string, any>>({});
 
 function _applyPayload(data: any, trackNew = false) {
   if (!data) return;
@@ -65,7 +65,7 @@ function _applyPayload(data: any, trackNew = false) {
     fetchedAt: data.ts || Date.now(),
   });
   // 派生 readIds (从 articles 的 readAt 字段)
-  const readIds = {};
+  const readIds: Record<string, any> = {};
   for (const a of Object.values(articles) as any[]) {
     if (a && a.id && a.readAt) readIds[a.id] = a.readAt;
   }
@@ -73,7 +73,7 @@ function _applyPayload(data: any, trackNew = false) {
   // 刷新时只标记相对于上一次 payload 新增且未读的文章。
   // 普通 load（启动/收藏后同步）不应把旧文章重新标成 NEW，
   // 但要清掉已经不在当前缓存或已读的旧标记。
-  const nextNewIds = {};
+  const nextNewIds: Record<string, any> = {};
   if (trackNew) {
     for (const id of Object.keys(articles)) {
       if (!previousArticleIds.has(id) && !readIds[id]) {
@@ -153,7 +153,7 @@ export async function fetchDayNews(dateKey: string) {
         busy: "正在加载中，请稍候",
         ipc_unavailable: "系统通信异常，请重启应用",
       };
-      ithomeNewsError.value = map[reason] || reason;
+      ithomeNewsError.value = map[reason as keyof typeof map] || reason;
       ithomeNewsState.value = rejectData(ithomeNewsState.value, ithomeNewsError.value);
       return r || { ok: false, reason: "fetch_failed" };
     }

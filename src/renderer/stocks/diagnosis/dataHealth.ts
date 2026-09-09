@@ -54,7 +54,7 @@ export function deriveAngleStatus(angle: any, now: any = 0) {
  */
 export function failureReasonText(angle: any) {
   const r = (angle && angle.reason) || "unknown";
-  const base = HEALTH_REASON_TEXT[r] || r;
+  const base = (HEALTH_REASON_TEXT as Record<string, string>)[r] || r;
   if (angle && angle.error) {
     return `${base}: ${angle.error}`;
   }

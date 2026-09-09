@@ -53,7 +53,7 @@ import { BoardHealthCard } from "./BoardHealthCard.tsx";
  * 当前视图导出 CSV 的列定义（顺序匹配 LeaderboardTable 的列头）。
  * 2026-07-22 P0：与表格同构，不重写取值逻辑 —— 由 handleExportCsv 用 columnValue() 取数。
  */
-function csvColumnsForView(view) {
+function csvColumnsForView(view: string) {
   if (view === "arena") {
     return [
       { key: "elo", header: "ELO" },
@@ -90,10 +90,22 @@ function csvColumnsForView(view) {
  * 按许可筛选却无结果时的空状态提示。
  * 说明当前榜单无该类模型，并列出具该类模型的其它 Arena board（含数量），避免误以为是故障。
  */
-function LicenseEmptyHint({ kind, counts, boardLabel, arenaView, onClear }) {
+function LicenseEmptyHint({
+  kind,
+  counts,
+  boardLabel,
+  arenaView,
+  onClear,
+}: {
+  kind: string;
+  counts: Record<string, number>;
+  boardLabel: string;
+  arenaView: boolean;
+  onClear: () => void;
+}) {
   const label = kind === "open" ? "开源权重" : "闭源";
   const boards = ARENA_BOARD_KEYS
-    .map((bk) => ({ meta: ARENA_BOARDS[bk], n: counts[bk] || 0 }))
+    .map((bk) => ({ meta: ARENA_BOARDS[bk as keyof typeof ARENA_BOARDS], n: counts[bk] || 0 }))
     .filter((x) => x.n > 0);
   const boardText = boards.length
     ? boards.map((x) => `${x.meta.label}(${x.n})`).join("、")
@@ -147,10 +159,12 @@ export function AiLeaderboardPage() {
     try {
       const cols = csvColumnsForView(view);
       const dataRows = rows.map((m, i) => {
-        const o = {
+        const o: Record<string, unknown> = {
           rank: i + 1,
           model: m.name,
-          vendor: (VENDOR_META[m.vendor] || {}).label || m.vendor,
+          vendor:
+            (VENDOR_META[m.vendor as keyof typeof VENDOR_META] || {}).label ||
+            m.vendor,
         };
         for (const c of cols) {
           o[c.key] = columnValue(m, view, c.key);
@@ -186,8 +200,11 @@ export function AiLeaderboardPage() {
   const sortLabel = sortKey.value && SORT_COLUMN_LABELS[sortKey.value];
   let crumb;
   if (view === "arena") {
-    const boardMeta = ARENA_BOARDS[activeBoard.value] || {};
-    const catKey = uiCategoryOfBoard(activeBoard.value);
+    const boardMeta =
+      ARENA_BOARDS[activeBoard.value as keyof typeof ARENA_BOARDS] || {};
+    const catKey = uiCategoryOfBoard(
+      activeBoard.value as keyof typeof ARENA_BOARDS,
+    );
     const catMeta = ARENA_CATEGORIES.find((c) => c.key === catKey);
     const catLabel = catMeta ? catMeta.label : "";
     const boardLabel = boardMeta.label || "综合";
@@ -197,15 +214,18 @@ export function AiLeaderboardPage() {
       ? `${catLabel} · Agent · ${activeAgentDim.value}`
       : `${two} 榜`;
   } else if (view === "livebench") {
-    const lbMeta = LIVE_DIMENSIONS[activeLB.value] || {};
+    const lbMeta =
+      LIVE_DIMENSIONS[activeLB.value as keyof typeof LIVE_DIMENSIONS] || {};
     const sub = sortLabel || lbMeta.label || "Overall";
     crumb = `LiveBench · ${sub}`;
   } else if (view === "huggingface") {
-    const hfMeta = HF_DIMENSIONS[activeDim.value] || {};
+    const hfMeta =
+      HF_DIMENSIONS[activeDim.value as keyof typeof HF_DIMENSIONS] || {};
     const sub = sortLabel || hfMeta.label || "Downloads";
     crumb = `HuggingFace · ${sub}`;
   } else {
-    const dimMeta = AA_DIMENSIONS[activeDim.value] || {};
+    const dimMeta =
+      AA_DIMENSIONS[activeDim.value as keyof typeof AA_DIMENSIONS] || {};
     const sub = sortLabel || dimMeta.label || "Intelligence Index";
     crumb = `AA · ${sub}`;
   }
@@ -218,14 +238,19 @@ export function AiLeaderboardPage() {
   // 按许可筛选却无结果：说明当前榜单无该类模型，统计哪些 board 有（给提示用）。
   const licenseActive = licenseFilter.value !== "all";
   const licenseEmpty = licenseActive && isEmpty && items.value.length > 0;
-  const boardLabel = (ARENA_BOARDS[activeBoard.value] || {}).label || "文本";
+  const boardLabel =
+    (ARENA_BOARDS[activeBoard.value as keyof typeof ARENA_BOARDS] || {}).label ||
+    "文本";
   const licenseCounts = (() => {
-    const counts = {};
+    const counts: Record<string, number> = {};
     for (const it of items.value) {
       if (licenseKind(it.license) !== licenseFilter.value) continue;
       for (const bk of ARENA_BOARD_KEYS) {
-        const slice = it.arena && it.arena[ARENA_BOARDS[bk].key];
-        if (slice && typeof slice.score === "number") counts[bk] = (counts[bk] || 0) + 1;
+        const slice =
+          it.arena &&
+          it.arena[ARENA_BOARDS[bk as keyof typeof ARENA_BOARDS].key];
+        if (slice && typeof slice.score === "number")
+          counts[bk] = (counts[bk] || 0) + 1;
       }
     }
     return counts;
@@ -365,7 +390,11 @@ export function AiLeaderboardPage() {
             aria-label={`${crumb || "AI 榜单"}数据表`}
           >
             <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>
-              {showInitialLoading && <LoadingState view={view} />}
+              {showInitialLoading && (
+                <LoadingState
+                  view={view as "arena" | "aa" | "livebench" | "huggingface"}
+                />
+              )}
 
               {loading.value && rows.length > 0 && (
                 <div class="ai-lb-refresh-progress" role="status" aria-live="polite">

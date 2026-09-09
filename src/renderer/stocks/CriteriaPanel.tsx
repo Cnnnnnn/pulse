@@ -20,9 +20,15 @@ import {
 import { MARKET_CAP_TIERS } from "../../stocks/stock-constants.ts";
 import { IconSettings } from "../components/icons.tsx";
 
-function RangeInput({ label, minKey, maxKey, suffix }: { label: any; minKey: any; maxKey: any; suffix?: any }) {
+/** 数值条件键 (RangeInput / MinInput 只处理数字项, 不包含 marketCapTier / industries). */
+type CriteriaNumKey =
+  | "peMin" | "peMax" | "pbMin" | "pbMax" | "roeMin" | "dividendYieldMin"
+  | "turnoverMin" | "turnoverMax" | "change5dMin"
+  | "revenueGrowthYoYMin" | "netIncomeGrowthYoYMin";
+
+function RangeInput({ label, minKey, maxKey, suffix }: { label: string; minKey: CriteriaNumKey; maxKey: CriteriaNumKey; suffix?: string }) {
   const c = criteria.value;
-  const numOrNull = (v) => (v === "" ? null : Number(v));
+  const numOrNull = (v: string) => (v === "" ? null : Number(v));
   return (
     <div class="stock-criteria-field">
       <span class="stock-criteria-name">{label}</span>
@@ -52,9 +58,9 @@ function RangeInput({ label, minKey, maxKey, suffix }: { label: any; minKey: any
   );
 }
 
-function MinInput({ label, minKey, suffix }: { label: any; minKey: any; suffix?: any }) {
+function MinInput({ label, minKey, suffix }: { label: string; minKey: CriteriaNumKey; suffix?: string }) {
   const c = criteria.value;
-  const numOrNull = (v) => (v === "" ? null : Number(v));
+  const numOrNull = (v: string) => (v === "" ? null : Number(v));
   return (
     <div class="stock-criteria-field">
       <span class="stock-criteria-name">{label}</span>
@@ -83,15 +89,15 @@ function IndustryChips() {
   // 跳过 (空字符串). 用 useMemo 缓存, results 引用变才重算.
   const allIndustries = useMemo(() => {
     const set = new Set<string>();
-    for (const r of results.value) {
+    for (const r of results.value as any[]) {
       if (r && r.industry) set.add(r.industry);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
   }, [results.value]);
-  const selected = criteria.value.industries || [];
+  const selected: string[] = (criteria.value.industries || []) as string[];
   const isAll = selected.length === 0;
 
-  function toggle(name) {
+  function toggle(name: string) {
     if (isAll) {
       // ponytail: 从"全选"状态切到只选这一项 (而不是"全选 + 选这个" = 全部)
       setCriteria({ industries: [name] });

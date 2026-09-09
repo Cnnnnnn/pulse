@@ -119,13 +119,13 @@ export const ARENA_CATEGORIES = [
 ];
 
 /** 取某 UI 大类下的二级 board key 列表（非法大类回退到首个）。 */
-export function boardsOfCategory(cat) {
+export function boardsOfCategory(cat: string) {
   const c = ARENA_CATEGORIES.find((x) => x.key === cat) || ARENA_CATEGORIES[0];
   return c.boards;
 }
 
 /** 取某 board 所属的 UI 大类 key（ARENA_CATEGORIES 分组，非 IPC category）。 */
-export function uiCategoryOfBoard(board) {
+export function uiCategoryOfBoard(board: keyof typeof ARENA_BOARDS) {
   for (const c of ARENA_CATEGORIES) {
     if (c.boards.includes(board)) return c.key;
   }
@@ -133,7 +133,7 @@ export function uiCategoryOfBoard(board) {
 }
 
 /** 取某 board 的 IPC category（用于 toIpcParams，与 UI 大类分组独立）。 */
-export function categoryOfBoard(board) {
+export function categoryOfBoard(board: keyof typeof ARENA_BOARDS) {
   const meta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
   return meta.category;
 }
@@ -271,7 +271,7 @@ export const ASC_DEFAULT_DIMS = new Set(["price", "speed", "costPerTask"]);
  */
 export function toIpcParams(view: any, boardOrDim: any) {
   if (view === "arena") {
-    const board = ARENA_BOARDS[boardOrDim] || ARENA_BOARDS.text;
+    const board = ARENA_BOARDS[boardOrDim as keyof typeof ARENA_BOARDS] || ARENA_BOARDS.text;
     return { category: board.category, dimension: "elo" };
   }
   if (view === "livebench") {
@@ -282,7 +282,7 @@ export function toIpcParams(view: any, boardOrDim: any) {
     const dim = HF_DIMENSION_KEYS.includes(boardOrDim) ? boardOrDim : "hf_downloads";
     return { category: "llm", dimension: dim };
   }
-  const dim = AA_DIMENSIONS[boardOrDim] ? boardOrDim : "intelligence";
+  const dim = AA_DIMENSIONS[boardOrDim as keyof typeof AA_DIMENSIONS] ? boardOrDim : "intelligence";
   return { category: "llm", dimension: dim };
 }
 
@@ -405,8 +405,8 @@ const VENDOR_ALIAS = {
 export function normalizeVendor(raw: any) {
   if (typeof raw !== "string" || !raw.trim()) return "other";
   const key = raw.trim().toLowerCase();
-  if (VENDOR_META[key]) return key;
-  if (VENDOR_ALIAS[key]) return VENDOR_ALIAS[key];
+  if (key in VENDOR_META) return key as keyof typeof VENDOR_META;
+  if (key in VENDOR_ALIAS) return VENDOR_ALIAS[key as keyof typeof VENDOR_ALIAS];
   return "other";
 }
 

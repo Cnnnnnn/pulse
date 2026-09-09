@@ -35,7 +35,22 @@ import {
   IconX,
 } from "../components/icons.tsx";
 
-const SOURCE_LABELS = {
+/** 模型行最小结构 (store 侧 items 为 loose signal, 此处给出消费字段). */
+interface AiModel {
+  id: string;
+  name: string;
+  vendor?: string;
+  isSample?: boolean;
+  aa?: {
+    outputTokensPerSec?: number;
+    priceOutputPer1M?: number;
+    codingIndex?: number;
+    intelligenceIndex?: number;
+  };
+}
+type MetricEntry = { model: AiModel; value: number | null };
+
+const SOURCE_LABELS: Record<string, string> = {
   arena: "Arena",
   aa: "Artificial Analysis",
   livebench: "LiveBench",
@@ -44,31 +59,37 @@ const SOURCE_LABELS = {
   modelsdev: "Models.dev",
 };
 
-function vendorLabel(model) {
-  return (VENDOR_META[model?.vendor] || {}).label || model?.vendor || "未知厂商";
+const VENDOR_META_ANY = VENDOR_META as Record<string, { label?: string }>;
+function vendorLabel(model: AiModel | undefined) {
+  return (VENDOR_META_ANY[model?.vendor ?? ""] || {}).label || model?.vendor || "未知厂商";
 }
 
-function defaultMetricKey(view) {
+function defaultMetricKey(view: string) {
   if (view === "arena") return "elo";
   if (view === "livebench") return activeLB.value || "lb_overall";
   if (view === "huggingface") return activeDim.value || "hf_downloads";
   return activeDim.value || "intelligence";
 }
 
-function metricLabel(view, key) {
-  if (key && SORT_COLUMN_LABELS[key]) return SORT_COLUMN_LABELS[key];
-  if (view === "arena") return `${ARENA_BOARDS[activeBoard.value]?.label || "Arena"} ELO`;
-  if (view === "livebench") return LIVE_DIMENSIONS[activeLB.value]?.label || "LiveBench Overall";
+const AA_DIMS = AA_DIMENSIONS as Record<string, { label?: string }>;
+const LIVE_DIMS = LIVE_DIMENSIONS as Record<string, { label?: string }>;
+const ARENA_BOARDS_MAP = ARENA_BOARDS as Record<string, { label?: string }>;
+
+function metricLabel(view: string, key: string) {
+  const sortLabels = SORT_COLUMN_LABELS as Record<string, string>;
+  if (key && sortLabels[key]) return sortLabels[key];
+  if (view === "arena") return `${ARENA_BOARDS_MAP[activeBoard.value]?.label || "Arena"} ELO`;
+  if (view === "livebench") return LIVE_DIMS[activeLB.value]?.label || "LiveBench Overall";
   if (view === "huggingface") return "HuggingFace Downloads";
-  return AA_DIMENSIONS[activeDim.value]?.label || "Intelligence Index";
+  return AA_DIMS[activeDim.value]?.label || "Intelligence Index";
 }
 
-function metricValue(model, view, key) {
+function metricValue(model: AiModel, view: string, key: string) {
   const value = columnValue(model, view, key);
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function formatMetric(value, view, key) {
+function formatMetric(value: number | null, view: string, key: string) {
   if (value == null) return "暂无数据";
   if (view === "arena") return fmtScore(value);
   if (view === "aa") {
@@ -81,23 +102,23 @@ function formatMetric(value, view, key) {
   return String(value);
 }
 
-function bestBy(models, getter, direction = "desc") {
+function bestBy(models: AiModel[], getter: (m: AiModel) => number | null, direction: "asc" | "desc" = "desc") {
   return models
     .map((model) => ({ model, value: getter(model) }))
     .filter((entry) => entry.value != null)
-    .sort((a, b) => direction === "asc" ? a.value - b.value : b.value - a.value)[0] || null;
+    .sort((a, b) => direction === "asc" ? (a.value as number) - (b.value as number) : (b.value as number) - (a.value as number))[0] || null;
 }
 
-function buildAnalysis(models, view) {
+function buildAnalysis(models: AiModel[], view: string) {
   const key = sortKey.value || defaultMetricKey(view);
   const label = metricLabel(view, key);
   const values = models.map((model) => ({ model, value: metricValue(model, view, key) }));
   const comparable = values.filter((entry) => entry.value != null);
-  const currentBest = bestBy(models, (model) => metricValue(model, view, key), sortDir.value);
-  const fastest = bestBy(models, (model) => model?.aa?.outputTokensPerSec, "desc");
-  const lowestPrice = bestBy(models, (model) => model?.aa?.priceOutputPer1M, "asc");
-  const coding = bestBy(models, (model) => model?.aa?.codingIndex, "desc");
-  const intelligence = bestBy(models, (model) => model?.aa?.intelligenceIndex, "desc");
+  const currentBest = bestBy(models, (model) => metricValue(model, view, key), sortDir.value as "asc" | "desc");
+  const fastest = bestBy(models, (model) => model?.aa?.outputTokensPerSec ?? null, "desc");
+  const lowestPrice = bestBy(models, (model) => model?.aa?.priceOutputPer1M ?? null, "asc");
+  const coding = bestBy(models, (model) => model?.aa?.codingIndex ?? null, "desc");
+  const intelligence = bestBy(models, (model) => model?.aa?.intelligenceIndex ?? null, "desc");
 
   const conclusion = currentBest
     ? `${currentBest.model.name} 在当前「${label}」指标中表现最好（${formatMetric(currentBest.value, view, key)}）。${models.length > 1 ? `它与其余 ${models.length - 1} 个模型的差异，主要来自当前排序维度。` : "可以先作为当前视角的基准模型。"}`
@@ -125,7 +146,14 @@ function buildAnalysis(models, view) {
   return { key, label, values, conclusion, why, scenes, risks };
 }
 
-function AnalysisSection({ id, title, Icon, children, defaultOpen = true }) {
+interface AnalysisSectionProps {
+  id: string;
+  title: string;
+  Icon: (props: { size?: number }) => import("preact").VNode;
+  children?: import("preact").ComponentChildren;
+  defaultOpen?: boolean;
+}
+function AnalysisSection({ id, title, Icon, children, defaultOpen = true }: AnalysisSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section class={`ai-lb-analysis-section${open ? " is-open" : ""}`}>
@@ -144,10 +172,16 @@ function AnalysisSection({ id, title, Icon, children, defaultOpen = true }) {
   );
 }
 
-export function AIAnalysisPanel({ open, onClose }) {
+interface AIAnalysisPanelProps {
+  open: boolean;
+  onClose: () => void;
+}
+export function AIAnalysisPanel({ open, onClose }: AIAnalysisPanelProps) {
   const [feedback, setFeedback] = useState("");
   const ids = compareList.value;
-  const models = ids.map((id) => items.value.find((model) => model.id === id)).filter(Boolean);
+  const models: AiModel[] = ids
+    .map((id) => (items.value as AiModel[]).find((model) => model.id === id))
+    .filter((m): m is AiModel => !!m);
   const view = activeView.value;
 
   useEffect(() => {
@@ -156,7 +190,7 @@ export function AIAnalysisPanel({ open, onClose }) {
 
   useEffect(() => {
     if (!open) return undefined;
-    function onKeyDown(event) {
+    function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose?.();
     }
     window.addEventListener("keydown", onKeyDown);
@@ -166,13 +200,14 @@ export function AIAnalysisPanel({ open, onClose }) {
   if (!open || models.length === 0) return null;
 
   const analysis = buildAnalysis(models, view);
-  const coverage = sourceCoverage.value || {};
+  const coverage = ({ ...sourceCoverage.value }) as Record<string, number>;
   const coveredSources = Object.keys(SOURCE_LABELS)
     .filter((key) => Number(coverage[key]) > 0)
     .map((key) => SOURCE_LABELS[key]);
-  const sourcesText = coveredSources.length > 0 ? coveredSources.join("、") : (VIEWS[view]?.label || "当前榜单");
+  const viewsAny = VIEWS as Record<string, { label?: string }>;
+  const sourcesText = coveredSources.length > 0 ? coveredSources.join("、") : (viewsAny[view]?.label || "当前榜单");
   const updated = sourceDate.value || fetchedAt.value;
-  const attributionText = (attribution.value || [])
+  const attributionText = ((attribution.value as Array<{ text?: string; label?: string }>) || [])
     .map((entry) => entry?.text || entry?.label)
     .filter(Boolean)
     .slice(0, 2)

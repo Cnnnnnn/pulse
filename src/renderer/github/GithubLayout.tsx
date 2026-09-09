@@ -18,6 +18,7 @@ import {
 } from "../store/github-projects-store.ts";
 import { GithubPage } from "./GithubPage.tsx";
 import { createGithubCheckScheduler } from "./github-check-scheduler.ts";
+import type { GithubProject } from "./GithubProjectList.tsx";
 
 export function GithubLayout() {
   useEffect(() => {
@@ -25,7 +26,7 @@ export function GithubLayout() {
     loadGithubSettings();
     // 首次进入：静默检查一次（仅从未拉过 release 的项目），写入版本字段但不弹 toast
     const t = setTimeout(() => {
-      const projs = githubProjects.value;
+      const projs = githubProjects.value as GithubProject[];
       if (projs.some((p) => !p.releaseFetchedAt)) {
         checkGithubUpdates({ onlyStale: true }).catch(() => {});
       }

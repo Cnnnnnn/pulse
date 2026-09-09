@@ -24,7 +24,7 @@ const PAD_R = 8;
 const PAD_T = 18;
 const PAD_B = 30;
 
-function resolveColor(name, fallback) {
+function resolveColor(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
   try {
     const v = getComputedStyle(document.documentElement)
@@ -36,7 +36,7 @@ function resolveColor(name, fallback) {
   }
 }
 
-function fmtMoney(v) {
+function fmtMoney(v: any): string {
   const n = Number(v);
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString("zh-CN", {
@@ -45,23 +45,29 @@ function fmtMoney(v) {
   });
 }
 
-function fmtDateLabel(d) {
+function fmtDateLabel(d: any): string {
   if (!d) return "";
   const s = String(d);
   return s.length >= 10 ? s.slice(5) : s;
 }
 
-function buildPath(pts) {
+function buildPath(pts: any[]): string {
   return pts
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.vx.toFixed(1)} ${p.vy.toFixed(1)}`)
+    .map((p: any, i: number) => `${i === 0 ? "M" : "L"} ${p.vx.toFixed(1)} ${p.vy.toFixed(1)}`)
     .join(" ");
 }
 
-function buildAreaPath(pts, plotBottom) {
+function buildAreaPath(pts: any[], plotBottom: number): string {
   if (!pts.length) return "";
   const first = pts[0];
   const last = pts[pts.length - 1];
   return `${buildPath(pts)} L ${last.vx.toFixed(1)} ${plotBottom} L ${first.vx.toFixed(1)} ${plotBottom} Z`;
+}
+
+interface FundPoint {
+  date?: string;
+  label?: string;
+  value: number;
 }
 
 export function FundAreaChart({
@@ -70,8 +76,14 @@ export function FundAreaChart({
   formatLabel = fmtDateLabel,
   ariaLabel = "基金走势",
   emptyHint = "暂无数据",
+}: {
+  series?: FundPoint[];
+  formatValue?: (v: any) => string;
+  formatLabel?: (v: any) => string;
+  ariaLabel?: string;
+  emptyHint?: string;
 }) {
-  const wrapRef = useRef(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [hoverIdx, setHoverIdx] = useState(-1);
 
   const data = Array.isArray(series) ? series.filter((s) => Number.isFinite(s.value)) : [];
@@ -133,7 +145,7 @@ export function FundAreaChart({
   const showHover = hoverIdx >= 0 && hoverIdx < points.length;
   const hover = showHover ? points[hoverIdx] : null;
 
-  function onMove(e) {
+  function onMove(e: MouseEvent) {
     const wrap = wrapRef.current;
     if (!wrap) return;
     const rect = wrap.getBoundingClientRect();
@@ -158,7 +170,7 @@ export function FundAreaChart({
         left: `${(hover.vx / W) * 100}%`,
         top: `${(hover.vy / H) * 100}%`,
       }
-    : null;
+    : undefined;
 
   return (
     <div

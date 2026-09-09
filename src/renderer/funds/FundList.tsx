@@ -35,7 +35,7 @@ import { showToast } from "../store/toast-store.ts";
 
 const TYPE_OPTIONS = ["全部", "股票", "债券", "货币", "QDII", "其他"];
 const RISK_OPTIONS = ["全部", "R1", "R2", "R3", "R4", "R5"];
-const RISK_BY_CATEGORY = {
+const RISK_BY_CATEGORY: Record<string, string> = {
   money: "R1",
   bond: "R2",
   stock: "R4",
@@ -43,16 +43,16 @@ const RISK_BY_CATEGORY = {
   other: "R3",
 };
 
-function riskFromCategory(cat) {
+function riskFromCategory(cat: string) {
   return RISK_BY_CATEGORY[cat] || "R3";
 }
 // 2026-07-14: a11y 友好 — R1..R5 翻译为「低/中低/中/中高/高」, 给屏幕阅读器 / 色盲用户
-const RISK_LABEL_MAP = { R1: "低", R2: "中低", R3: "中", R4: "中高", R5: "高" };
-function riskLabel(r) {
+const RISK_LABEL_MAP: Record<string, string> = { R1: "低", R2: "中低", R3: "中", R4: "中高", R5: "高" };
+function riskLabel(r: string) {
   return RISK_LABEL_MAP[r] || r || "—";
 }
 
-function fmtMoney(n) {
+function fmtMoney(n: number | undefined) {
   const v = Number(n);
   if (!Number.isFinite(v)) return "—";
   return v.toLocaleString("zh-CN", {
@@ -65,7 +65,7 @@ function fmtMoney(n) {
 import { fmtSignedPct, fmtCurrency } from "../../funds/format.ts";
 
 // 金额版 — 只在已有 signClass 染色的 cell 用, 0 显示 "¥0.00" 不带箭头
-function fmtSignedCurrency(n) {
+function fmtSignedCurrency(n: number | undefined) {
   const v = Number(n);
   if (!Number.isFinite(v)) return "¥0.00";
   if (v === 0) return fmtCurrency(0);
@@ -77,13 +77,13 @@ function fmtSignedCurrency(n) {
   })}`;
 }
 
-function signClass(n) {
+function signClass(n: number | undefined) {
   if (!Number.isFinite(Number(n))) return "";
   return Number(n) >= 0 ? "positive" : "negative";
 }
 // 2026-07-14: 涨跌幅度分档 — |pct| < 1 浅, 1..3 中, >=3 深
 //   ponytail: 用 class 而非 inline color, 暗色 / 主题切换跟随全局变量
-function magnitudeClass(pct) {
+function magnitudeClass(pct: number | undefined) {
   const v = Math.abs(Number(pct));
   if (!Number.isFinite(v)) return "";
   if (v < 1) return "mag-low";
@@ -94,7 +94,25 @@ function magnitudeClass(pct) {
 // 列定义 (key, label, sortable, align, accessor(row, key))
 //   2026-07-14: 给每列加 align 字段; head/body 都跟着 align 走, 不再写死 text-align
 //   2026-07-14: profit 列 — 累计盈亏绝对金额 ¥, 与 "累计收益" 百分比互补 (一眼看出"亏了多少/赚了多少")
-const COLS = [
+interface ColumnAccessRow {
+  metrics: {
+    nav?: number;
+    dailyReturnPct?: number;
+    todayProfit?: number;
+    profitPct?: number;
+    profit?: number;
+    marketValue?: number;
+  };
+  riskDerived?: string;
+}
+interface ColumnDef {
+  key: string;
+  label: string;
+  sortable: boolean;
+  align: string;
+  accessor?: (r: ColumnAccessRow) => unknown;
+}
+const COLS: ColumnDef[] = [
   { key: "name", label: "基金", sortable: false, align: "left" },
   { key: "type", label: "类型", sortable: false, align: "center" },
   { key: "nav", label: "单位净值", sortable: true, align: "right", accessor: (r) => r.metrics.nav },
@@ -106,13 +124,13 @@ const COLS = [
   { key: "risk", label: "风险", sortable: true, align: "center", accessor: (r) => riskNum(r.riskDerived) },
 ];
 
-function riskNum(r) {
+function riskNum(r: string | undefined) {
   if (!r) return 0;
   const m = String(r).match(/R(\d)/);
   return m ? Number(m[1]) : 0;
 }
 
-function compareValues(a, b) {
+function compareValues(a: unknown, b: unknown) {
   if (a == null && b == null) return 0;
   if (a == null) return 1;
   if (b == null) return -1;
@@ -122,8 +140,50 @@ function compareValues(a, b) {
 
 const PAGE_SIZE = 8;
 
+/** 一行持仓行 (holding + navSnap + metrics) 的最小结构; store 侧为 loose signal, 此处给出消费字段。 */
+interface FundHoldingShape {
+  id?: string;
+  code?: string;
+  name?: string;
+  category?: string;
+  shares?: number;
+  costNav?: number;
+  note?: string;
+  addedAt?: number | string;
+}
+interface FundMetricsShape {
+  nav?: number;
+  dailyReturnPct?: number;
+  todayProfit?: number;
+  profitPct?: number;
+  profit?: number;
+  marketValue?: number;
+  costValue?: number;
+  holdingDays?: number;
+  cumulativeProfit?: number;
+  annualizedPct?: number | null;
+  usingEstimate?: boolean;
+}
+/** 装饰后的行 (含 typeLabel / riskDerived)。 */
+type FundListRow = {
+  holding?: FundHoldingShape;
+  navSnap?: unknown;
+  rawNavSnap?: unknown;
+  metrics: FundMetricsShape;
+  typeLabel?: string;
+  riskDerived?: string;
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  stock: "股票",
+  bond: "债券",
+  money: "货币",
+  qdii: "QDII",
+  other: "其他",
+};
+
 export function FundList() {
-  const all = rowsWithMetrics.value || [];
+  const all = (rowsWithMetrics.value as FundListRow[]) || [];
   // 输入 (controlled)
   const [type, setType] = useState("全部");
   const [risk, setRisk] = useState("全部");
@@ -161,7 +221,7 @@ export function FundList() {
       void refreshWatchlist().catch(() => {});
     }
   }, []);
-  async function toggleFundPin(e, code) {
+  async function toggleFundPin(e: Event, code: string | undefined) {
     e.stopPropagation();
     e.preventDefault();
     if (!code) return;
@@ -177,7 +237,7 @@ export function FundList() {
     () =>
       all.map((r) => {
         const cat = (r.holding && r.holding.category) || "other";
-        const typeLabel = { stock: "股票", bond: "债券", money: "货币", qdii: "QDII", other: "其他" }[cat] || "其他";
+        const typeLabel = TYPE_LABELS[cat] || "其他";
         return Object.assign({}, r, {
           typeLabel,
           riskDerived: riskFromCategory(cat),
@@ -209,7 +269,7 @@ export function FundList() {
             typeof window !== "undefined" && (window as unknown as { __FUND_PIN_CHECK__?: (code: string) => boolean }).__FUND_PIN_CHECK__
               ? (window as unknown as { __FUND_PIN_CHECK__: (code: string) => boolean }).__FUND_PIN_CHECK__
               : null;
-          if (wl) return wl(r.holding && r.holding.code);
+          if (wl) return wl((r.holding && r.holding.code) as string);
         } catch {
           /* noop */
         }
@@ -222,9 +282,9 @@ export function FundList() {
   // 排序
   const sorted = useMemo(() => {
     const col = COLS.find((c) => c.key === sortKey);
-    if (!col || !col.sortable) return filtered;
+    if (!col || !col.sortable || !col.accessor) return filtered;
     const dir = sortDir === "asc" ? 1 : -1;
-    return [...filtered].sort((a, b) => compareValues(col.accessor(a), col.accessor(b)) * dir);
+    return [...filtered].sort((a, b) => compareValues(col.accessor!(a), col.accessor!(b)) * dir);
   }, [filtered, sortKey, sortDir]);
 
   // 分页
@@ -233,7 +293,7 @@ export function FundList() {
   const start = (safePage - 1) * PAGE_SIZE;
   const pageItems = sorted.slice(start, start + PAGE_SIZE);
 
-  function toggleSort(key) {
+  function toggleSort(key: string) {
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
@@ -266,7 +326,7 @@ export function FundList() {
       "日涨跌(%)", "今日盈亏(¥)", "累计收益(%)", "累计盈亏(¥)",
       "持仓市值(¥)", "持有份额", "持仓权重(%)", "是否自选",
     ];
-    const weightMap = (holdingWeights.value && holdingWeights.value.byCode) || {};
+    const weightMap = ((holdingWeights.value && holdingWeights.value.byCode) || {}) as Record<string, number>;
     const rows = [
       [`# Pulse 基金列表导出 — ${new Date().toLocaleString("zh-CN")}`],
       [`# 视图: ${fundView.value === "watch" ? "自选" : "全部"} | 搜索: ${search || "(无)"} | 类型: ${type} | 风险: ${risk}`],
@@ -288,7 +348,7 @@ export function FundList() {
       const cum = Number(m.profit);
       const mv = Number(m.marketValue);
       const shares = Number(h.shares);
-      const weight = Number(weightMap[h.code]) || 0;
+      const weight = Number(weightMap[h.code as string]) || 0;
       rows.push([
         h.code || "",
         h.name || "",
@@ -485,27 +545,17 @@ export function FundList() {
               ? emptyRow(COLS.length + 1, fundView.value === "watch")
               : pageItems.map((rawRow) => {
                   // ponytail: row.metrics 是 store 动态计算 union, 此组件消费展示,
-                  // 给一个具体类型 cast 而非 any. 字段集对应 useHoldingMetrics 计算结果.
-                  const r = rawRow as {
-                    typeLabel?: string;
-                    riskDerived?: string;
-                    holding?: { id?: string; code?: string; name?: string };
-                    metrics?: {
-                      marketValue?: number; costValue?: number;
-                      profit?: number; profitPct?: number;
-                      todayProfit?: number; usingEstimate?: boolean;
-                      nav?: number; dailyReturnPct?: number;
-                    };
-                  };
+                  // 字段集对应 useHoldingMetrics 计算结果, 由 FundListRow 类型给出.
+                  const r = rawRow;
                   // 2026-07-14: 行 tint 标记 — R5 / 深度亏损 / 集中度高 触发视觉权重提升
                   //   ponytail: 不引入新 store, 在渲染时算 attr, CSS 用 attribute selector
                   const profitPctNum = Number((r.metrics && r.metrics.profitPct) || 0);
                   const isDeepLoss = profitPctNum <= -30;
                   const isHighRisk = r.riskDerived === "R5";
                   // 持仓权重 >= 30% 视为「鸡蛋都在一个篮子里」
-                  const weightByCode = holdingWeights.value && holdingWeights.value.byCode;
+                  const weightByCode = (holdingWeights.value && holdingWeights.value.byCode) as Record<string, number> | undefined;
                   const code = r.holding && r.holding.code;
-                  const weight = (weightByCode && code && weightByCode[code]) || 0;
+                  const weight = (weightByCode && code && weightByCode[code as string]) || 0;
                   const isHighWeight = weight >= 0.3;
                   return (
                   <tr
@@ -630,7 +680,7 @@ export function FundList() {
   );
 }
 
-function renderPageButtons(current, total, onPick) {
+function renderPageButtons(current: number, total: number, onPick: (p: number) => void) {
   // 简单展开: ≤7 显示全部, 否则首/末 + 当前 ±2
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1).map((p) => (
@@ -671,7 +721,7 @@ function renderPageButtons(current, total, onPick) {
   return out;
 }
 
-function skeletonRows(n) {
+function skeletonRows(n: number) {
   const widths = [40, 80, 60, 50, 60, 70, 70, 60, 70, 40];
   const rows = [];
   for (let i = 0; i < n; i++) {
@@ -691,7 +741,7 @@ function skeletonRows(n) {
   return rows;
 }
 
-function emptyRow(colspan, isWatchView) {
+function emptyRow(colspan: number, isWatchView: boolean) {
   // 2026-07-14: 区分空态文案 — 「自选」视图下是「还没加自选」, 「全部」是「筛选无结果」
   //   ponytail: 自选视图给一个加号引导, 减少用户认知负担
   const msg = isWatchView

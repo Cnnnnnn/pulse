@@ -133,7 +133,7 @@ export function AppRow({ name }: { name: string }) {
   const muted = isMuted(name);
   const lastOpenedEntry = lastOpenedApps.value.get(name);
 
-  function onContextMenu(e) {
+  function onContextMenu(e: any) {
     if (e.target.closest('.btn-upgrade-row')
         || e.target.closest('.status-badge')
         || e.target.closest('.app-info-btn')
@@ -184,17 +184,17 @@ export function AppRow({ name }: { name: string }) {
 }
 
 // ─── helpers ─────────────────────────────────────────
-let _configCache = null;
+let _configCache: any = null;
 function getConfig() {
   if (_configCache) return _configCache;
   return _configCache || { apps: [] };
 }
 
-export function primeConfigCache(cfg) {
+export function primeConfigCache(cfg: any) {
   _configCache = cfg || { apps: [] };
 }
 
-function lookupConfig(appName) {
+function lookupConfig(appName: string) {
   const cfg = getConfig();
-  return (cfg.apps || []).find(a => a.name === appName) || null;
+  return (cfg.apps || []).find((a: any) => a.name === appName) || null;
 }

@@ -37,7 +37,7 @@ import {
 import { AddToCompareButton } from "../stocks/AddToCompareButton.tsx";
 
 /** ISO 8601 周号 (YYYY-Www). */
-function isoWeekKey(dateStr) {
+function isoWeekKey(dateStr: string) {
   const d = new Date(dateStr + "T00:00:00Z");
   const day = d.getUTCDay() || 7;
   const thursday = new Date(d);
@@ -48,12 +48,12 @@ function isoWeekKey(dateStr) {
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
-function monthKey(dateStr) {
+function monthKey(dateStr: string) {
   return dateStr ? dateStr.slice(0, 7) : "";
 }
 
 /** 聚合日线到周/月线. close 必有; OHLC 缺用 close 补. */
-function aggregateKlines(points, period) {
+function aggregateKlines(points: any[], period: string) {
   if (!Array.isArray(points) || points.length === 0) return [];
   if (period === "day") return points.map(normalizePoint);
   const buckets = new Map();
@@ -71,7 +71,7 @@ function aggregateKlines(points, period) {
   return order.map((k) => buckets.get(k));
 }
 
-function normalizePoint(p) {
+function normalizePoint(p: any) {
   const c = p.close;
   return {
     date: p.date,
@@ -82,7 +82,7 @@ function normalizePoint(p) {
   };
 }
 
-function mergePoint(dst, src) {
+function mergePoint(dst: any, src: any) {
   dst.high = Math.max(dst.high, src.high != null ? src.high : src.close);
   dst.low = Math.min(dst.low, src.low != null ? src.low : src.close);
   dst.close = src.close;
@@ -93,7 +93,7 @@ function mergePoint(dst, src) {
  * 轻量趋势图: 有 OHLC 画蜡烛, 纯 close 画面积折线.
  * 宽度自适应 (viewBox + preserveAspectRatio=none).
  */
-function MetalTrendChart({ points }) {
+function MetalTrendChart({ points }: { points: any[] }) {
   if (!points || points.length < 2) return null;
   const W = 640;
   const H = 240;
@@ -112,8 +112,8 @@ function MetalTrendChart({ points }) {
   const yMax = max + pad;
   const yRange = yMax - yMin || 1;
   const slot = W / points.length;
-  const xAt = (i) => slot * i + slot / 2;
-  const yAt = (v) => padY + (H - 2 * padY) * (1 - (v - yMin) / yRange);
+  const xAt = (i: number) => slot * i + slot / 2;
+  const yAt = (v: number) => padY + (H - 2 * padY) * (1 - (v - yMin) / yRange);
 
   const first = closes[0];
   const last = closes[closes.length - 1];
@@ -176,13 +176,16 @@ const INTERVALS = [
   { key: "month", label: "月" },
 ];
 
-export function MetalDetail({ metalId, onClose }) {
+export function MetalDetail({ metalId, onClose }: {
+  metalId: string;
+  onClose: () => void;
+}) {
   const [interval, setInterval] = useState("day");
   const metal = getMetalById(metalId) || METALS[0];
 
   const quote = quoteCache.value.data[metal.id];
   const fx = fxCache.value.rate;
-  const arr = historyMap.value[metal.id] || [];
+  const arr: any[] = historyMap.value[metal.id] || [];
 
   const refCNY = getRefPriceCNY(quote, fx);
   const changePerGram = getChangePerGramCNY(quote, fx);

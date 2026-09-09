@@ -26,7 +26,7 @@ export function openDiagnosticsDrawer(open: any = 0) {
 export function toggleDiagnosticsDrawer() {
   diagnosticsDrawerOpen.value = !diagnosticsDrawerOpen.value;
 }
-export const errorEntries = signal([]);
+export const errorEntries = signal<any[]>([]);
 export const errorStats = signal({ total: 0, byLevel: {}, skipped: 0 });
 export const errorLoading = signal(false);
 export const errorDataState = signal<DataState<{
@@ -40,14 +40,14 @@ export const errorDataState = signal<DataState<{
 );
 
 // Phase Q1 v2: 启动 + 性能 metrics + top-5 failures
-export const diagnosticsStartup = signal(null); // { bootstrapMs, readyMs } 或 null
-export const diagnosticsMetrics = signal({
+export const diagnosticsStartup = signal<any>(null); // { bootstrapMs, readyMs } 或 null
+export const diagnosticsMetrics = signal<{ latest: any; peak: any; count: number }>({
   latest: null,
   peak: null,
   count: 0,
 });
-export const diagnosticsTopFailures = signal([]);
-export const diagnosticsSamples = signal([]); // ring buffer (60 帧)
+export const diagnosticsTopFailures = signal<any[]>([]);
+export const diagnosticsSamples = signal<any[]>([]); // ring buffer (60 帧)
 export const diagnosticsDiagnosticsLoading = signal(false);
 export const diagnosticsExporting = signal(false);
 export const diagnosticsLastExport = signal(null); // { path, sizeBytes, fileCount, ts } | null

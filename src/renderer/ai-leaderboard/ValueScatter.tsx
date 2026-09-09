@@ -37,23 +37,23 @@ const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
 /** log scale 映射。 */
-function logScale(val, min, max, px) {
+function logScale(val: number, min: number, max: number, px: number) {
   const logMin = Math.log10(Math.max(min, 0.001));
   const logMax = Math.log10(max);
   const logVal = Math.log10(Math.max(val, 0.001));
   return ((logVal - logMin) / (logMax - logMin)) * px;
 }
 
-function costOf(m) {
+function costOf(m: any): number | null {
   const c = m && m.aa && m.aa.costPerTask;
   return typeof c === "number" && c > 0 ? c : null;
 }
 
-export function ValueScatter({ items }) {
+export function ValueScatter({ items }: { items?: any }) {
   const [hover, setHover] = useState(null);
 
   // 过滤有完整数据的点
-  const points = (items || []).filter((m) => {
+  const points = (items || []).filter((m: any) => {
     const aa = m.aa;
     return (
       aa &&
@@ -66,26 +66,26 @@ export function ValueScatter({ items }) {
 
   // 低 Cost/Task 且高智能 → 取 Index/Cost 最高的 Top 3 标名
   const top3 = points
-    .map((m) => ({ id: m.id, name: m.name, ratio: m.aa.intelligenceIndex / costOf(m) }))
-    .sort((a, b) => b.ratio - a.ratio)
+    .map((m: any) => ({ id: m.id, name: m.name, ratio: m.aa.intelligenceIndex / costOf(m)! }))
+    .sort((a: any, b: any) => b.ratio - a.ratio)
     .slice(0, 3)
-    .map((t) => t.id);
+    .map((t: any) => t.id);
   const top3Set = new Set(top3);
 
   const selected = compareList.value;
 
   // 动态范围
-  const costs = points.map((m) => costOf(m));
-  const indexes = points.map((m) => m.aa.intelligenceIndex);
+  const costs = points.map((m: any) => costOf(m));
+  const indexes = points.map((m: any) => m.aa.intelligenceIndex);
   const pMin = Math.max(0.001, Math.min(...costs) * 0.7);
   const pMax = Math.max(...costs) * 1.3;
   const iMin = Math.max(0, Math.min(...indexes) - 5);
   const iMax = Math.max(...indexes) + 5;
 
-  function toX(cost) {
+  function toX(cost: number) {
     return PAD.left + logScale(cost, pMin, pMax, PLOT_W);
   }
-  function toY(idx) {
+  function toY(idx: number) {
     return PAD.top + PLOT_H - ((idx - iMin) / (iMax - iMin)) * PLOT_H;
   }
 
@@ -152,11 +152,11 @@ export function ValueScatter({ items }) {
         </text>
 
         {/* 数据点 */}
-        {points.map((m) => {
-          const cost = costOf(m);
+        {points.map((m: any) => {
+          const cost = costOf(m)!;
           const x = toX(cost);
           const y = toY(m.aa.intelligenceIndex);
-          const color = VENDOR_COLORS[m.vendor] || DEFAULT_COLOR;
+          const color = (VENDOR_COLORS as Record<string, string>)[m.vendor] || DEFAULT_COLOR;
           const isHover = hover === m.id;
           const isSelected = selected.includes(m.id);
           const isTop3 = top3Set.has(m.id);
@@ -193,9 +193,9 @@ export function ValueScatter({ items }) {
 
         {/* Hover tooltip */}
         {hover && (() => {
-          const m = points.find((p) => p.id === hover);
+          const m = points.find((p: any) => p.id === hover);
           if (!m) return null;
-          const cost = costOf(m);
+          const cost = costOf(m)!;
           const x = toX(cost);
           const y = toY(m.aa.intelligenceIndex);
           const costLabel = cost < 1 ? cost.toFixed(3) : cost.toFixed(2);

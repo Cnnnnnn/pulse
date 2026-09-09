@@ -24,7 +24,14 @@ import {
   readCountForDate,
 } from "./news-utils.ts";
 
-function dayCountTuple(dateKey, isFavorites, articles, dayStats, favorites, readIds) {
+function dayCountTuple(
+  dateKey: any,
+  isFavorites: any,
+  articles: any,
+  dayStats: any,
+  favorites: any,
+  readIds: any,
+) {
   if (isFavorites) {
     return { total: favoritesForDate(favorites, dateKey).length, read: 0 };
   }
@@ -49,7 +56,7 @@ export function NewsSidebar() {
     ? favoriteDateKeys(favorites)
     : monthDayRange().days;
 
-  function handleSelect(dateKey) {
+  function handleSelect(dateKey: any) {
     if (isFavorites) {
       setIthomeFavoriteSelectedDate(dateKey);
     } else {

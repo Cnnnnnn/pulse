@@ -7,13 +7,17 @@ import { ModuleCard } from "./ModuleCard.tsx";
 // ponytail: 股东人数 环比 下降 = 筹码集中, 偏多信号; 机构持仓 上升 = 主力加仓, 偏多.
 // 两项都看, 至少一项有数据就 OK.
 
-function fmtPct(v) {
+function fmtPct(v: any) {
   if (v == null) return "—";
   return `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard (2 个早 return 也要带).
-export function ShareholdersCard({ data, angle = null, onRefresh = null }) {
+export function ShareholdersCard({ data, angle = null, onRefresh = null }: {
+  data: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   if (!d) {
     return <ModuleCard variant="shareholders" title="👥 股东结构" angle={angle} onRefresh={onRefresh} empty="数据不足" />;

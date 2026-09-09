@@ -14,6 +14,7 @@
  */
 
 import { checkJob, checkSession } from './store.ts';
+import type { CheckJobState } from './store.ts';
 import { api } from './api.ts';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.tsx';
 import { Toast } from './components/Toast.tsx';
@@ -102,7 +103,9 @@ export function App({ onCheck }: { onCheck?: () => void }) {
   );
 }
 
-function footerTime(session, job) {
+type CheckSessionValue = typeof checkSession.value;
+
+function footerTime(session: CheckSessionValue, job: CheckJobState) {
   if (job.phase === 'running' && job.startedAt) {
     return `检查中... ${formatTime(new Date(job.startedAt))} 开始 · ${job.completed}/${job.total}`;
   }
@@ -132,8 +135,8 @@ function footerTime(session, job) {
   return '';
 }
 
-function formatTime(d) {
-  const pad = (n) => String(n).padStart(2, '0');
+function formatTime(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 

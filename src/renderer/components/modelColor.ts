@@ -10,7 +10,7 @@
  */
 
 /** 已知模型 → 固定颜色槽位 (1-based, 对应 --model-color-N). */
-export const MODEL_COLOR_HINTS = {
+export const MODEL_COLOR_HINTS: Record<string, number> = {
   "MiniMax-M3-512k": 1,
   "MiniMax-M2.7": 2,
   "MiniMax-M2.7-highspeed": 3,

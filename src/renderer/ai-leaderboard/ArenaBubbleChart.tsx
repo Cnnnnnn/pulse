@@ -14,6 +14,7 @@
 
 import { useState } from "preact/hooks";
 import { toggleCompare, compareList } from "./aiLeaderboardStore.ts";
+import type { AiLeaderboardItem } from "../../shared/ipc-contracts.ts";
 
 // 厂商 → 气泡颜色（与 ValueScatter 一致）
 const VENDOR_COLORS = {
@@ -40,7 +41,7 @@ const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
 /** log scale 映射（票数范围，下限保护 1）。 */
-function logScale(val, min, max, px) {
+function logScale(val: number, min: number, max: number, px: number) {
   const logMin = Math.log10(Math.max(min, 1));
   const logMax = Math.log10(Math.max(max, 2));
   const logVal = Math.log10(Math.max(val, 1));
@@ -48,15 +49,21 @@ function logScale(val, min, max, px) {
 }
 
 /** CI → 气泡半径（CI 越大越不确定，气泡越大）。 */
-function ciToRadius(ci, maxCi) {
+function ciToRadius(ci: number, maxCi: number) {
   if (!Number.isFinite(ci) || ci <= 0) return 5;
   if (maxCi <= 0) return 5;
   const t = Math.min(1, ci / maxCi);
   return 5 + t * 11; // 5 ~ 16
 }
 
-export function ArenaBubbleChart({ items, board }) {
-  const [hover, setHover] = useState(null);
+export function ArenaBubbleChart({
+  items,
+  board,
+}: {
+  items: AiLeaderboardItem[];
+  board: any;
+}) {
+  const [hover, setHover] = useState<string | null>(null);
 
   const boardKey = typeof board === "string" ? board : board && board.key;
 
@@ -94,10 +101,10 @@ export function ArenaBubbleChart({ items, board }) {
 
   const selected = compareList.value;
 
-  function toX(score) {
+  function toX(score: number) {
     return PAD.left + ((score - sMin) / (sMax - sMin)) * PLOT_W;
   }
-  function toY(v) {
+  function toY(v: number) {
     return PAD.top + PLOT_H - logScale(v, vMin, vMax, PLOT_H);
   }
 
@@ -179,7 +186,7 @@ export function ArenaBubbleChart({ items, board }) {
           const x = toX(s.score);
           const y = toY(s.votes);
           const r = ciToRadius(s.ci, maxCi);
-          const color = VENDOR_COLORS[m.vendor] || DEFAULT_COLOR;
+          const color = VENDOR_COLORS[m.vendor as keyof typeof VENDOR_COLORS] || DEFAULT_COLOR;
           const isHover = hover === m.id;
           const isSelected = selected.includes(m.id);
           const isTop3 = top3Set.has(m.id);

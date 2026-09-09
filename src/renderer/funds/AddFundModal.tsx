@@ -13,8 +13,29 @@ import { api } from '../api.ts';
 import { BareModalShell } from '../components/ModalShell.tsx';
 import { TabList, Tab } from '../components/TabList.tsx';
 import { IconCoin, IconBarChart } from '../components/icons.tsx';
+import type { FundHoldingInput } from '../../shared/ipc-contracts.ts';
 
-function initialForm(holding) {
+/** 基金搜索下拉项（api.fundsSearch 结果元素的最小结构）。 */
+interface FundSearchItem {
+  code: string;
+  name?: string;
+  shortName?: string;
+  ftype?: string;
+  latestNav?: number;
+}
+
+type TimerHandle = ReturnType<typeof setTimeout>;
+
+/** 从 unknown catch 值提取人类可读消息。 */
+function messageOf(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return String(err);
+}
+
+function initialForm(holding: FundHoldingInput | null) {
   if (holding) {
     const costNav = Number(holding.costNav);
     const shares = Number(holding.shares);
@@ -42,24 +63,24 @@ function initialForm(holding) {
   };
 }
 
-function navFromSnap(snap) {
+function navFromSnap(snap: unknown) {
   return pickEffectiveNavNumber(snap, navSource.value);
 }
 
 export function AddFundModal() {
-  const editing = editingHolding.value;
+  const editing = editingHolding.value as FundHoldingInput | null;
   const [form, setForm] = useState(initialForm(editing));
   const [mode, setMode] = useState('amount');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [resolvedNav, setResolvedNav] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [resolvedNav, setResolvedNav] = useState<number | null>(null);
   const [resolving, setResolving] = useState(false);
-  const codeRef = useRef(null);
-  const amountRef = useRef(null);
+  const codeRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
 
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<FundSearchItem[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -84,11 +105,11 @@ export function AddFundModal() {
     }
   }
 
-  function updateField(k, v) {
+  function updateField(k: string, v: string) {
     setForm((prev) => ({ ...prev, [k]: v }));
   }
 
-  function applyFundMeta(item) {
+  function applyFundMeta(item: FundSearchItem) {
     if (!item) return;
     setForm((prev) => ({
       ...prev,
@@ -100,11 +121,11 @@ export function AddFundModal() {
     }
   }
 
-  const searchTimerRef = useRef(null);
+  const searchTimerRef = useRef<TimerHandle>(null);
   const lastQueryRef = useRef('');
-  const navFetchRef = useRef(null);
+  const navFetchRef = useRef<TimerHandle>(null);
 
-  async function prefetchNav(code) {
+  async function prefetchNav(code: string) {
     if (!/^\d{6}$/.test(code)) return;
     if (navFetchRef.current) clearTimeout(navFetchRef.current);
     navFetchRef.current = setTimeout(async () => {
@@ -127,7 +148,7 @@ export function AddFundModal() {
     }, 150);
   }
 
-  function handleCodeChange(value) {
+  function handleCodeChange(value: string) {
     const clean = value.replace(/\D/g, '').slice(0, 6);
     updateField('code', clean);
     if (editing) return;
@@ -171,7 +192,7 @@ export function AddFundModal() {
       } catch (err) {
         if (lastQueryRef.current !== clean) return;
         setSearchResults([]);
-        setSearchError(err && err.message ? err.message : String(err));
+        setSearchError(messageOf(err));
         if (clean.length === 6) prefetchNav(clean);
       } finally {
         if (lastQueryRef.current === clean) setSearching(false);
@@ -179,7 +200,7 @@ export function AddFundModal() {
     }, clean.length === 6 ? 120 : 250);
   }
 
-  function pickResult(item) {
+  function pickResult(item: FundSearchItem) {
     updateField('code', item.code);
     applyFundMeta(item);
     setDropdownOpen(false);
@@ -197,7 +218,7 @@ export function AddFundModal() {
     if (!form.code || form.code.length !== 6) return null;
     const cache = navCache.value;
     if (!cache || !cache.data) return null;
-    return navFromSnap(cache.data[form.code]);
+    return navFromSnap((cache.data as Record<string, unknown>)[form.code]);
   }, [form.code, navCache.value, resolvedNav, navSource.value]);
 
   const computedShares = useMemo(() => {
@@ -210,7 +231,7 @@ export function AddFundModal() {
     return amount / nav;
   }, [mode, form.amount, form.navAtBuy, currentNavForCode]);
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     if (submitting) return;
     setError(null);
@@ -280,7 +301,7 @@ export function AddFundModal() {
       }
       closeModal();
     } catch (err) {
-      setError(err && err.message ? err.message : String(err));
+      setError(messageOf(err));
     } finally {
       setSubmitting(false);
     }

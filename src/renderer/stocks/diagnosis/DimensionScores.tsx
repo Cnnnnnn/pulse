@@ -15,7 +15,7 @@ const DIMS = [
   ["risk", "风险"],
 ];
 // P5: 返回 CSS 变量, 走 token 体系 (--gray-200 / --accent-*).
-const COLOR = (s) =>
+const COLOR = (s: any) =>
   s == null
     ? "var(--gray-200)"
     : s >= 7
@@ -26,7 +26,7 @@ const COLOR = (s) =>
           ? "var(--accent-orange)"
           : "var(--accent-red)";
 
-export function DimensionScores({ scores }) {
+export function DimensionScores({ scores }: { scores: any }) {
   const dims = scores?.dimensions || {};
   return (
     <div class="dimension-scores">

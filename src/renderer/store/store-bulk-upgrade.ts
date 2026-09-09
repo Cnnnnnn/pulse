@@ -17,7 +17,7 @@
 import { signal, computed } from '@preact/signals';
 
 export const bulkUpgradeModalOpen = signal(false);
-export const bulkUpgradeItems = signal([]);
+export const bulkUpgradeItems = signal<any[]>([]);
 export const bulkUpgradeStatuses = signal(new Map());
 export const bulkUpgradeRunning = signal(false);
 export const bulkUpgradeDoneCount = signal(0);

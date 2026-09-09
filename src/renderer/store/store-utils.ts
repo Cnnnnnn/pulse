@@ -13,10 +13,10 @@ export function getApi() {
 }
 
 /** @param {string} methodName */
-export function requireApiMethod(methodName: any) {
+export function requireApiMethod(methodName: string) {
   const api = getApi();
-  if (!api || typeof api[methodName] !== "function") return null;
-  return api[methodName].bind(api);
+  if (!api || typeof (api as any)[methodName] !== "function") return null;
+  return (api as any)[methodName].bind(api);
 }
 
 /**

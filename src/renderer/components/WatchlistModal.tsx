@@ -24,14 +24,14 @@ import { getMetalById } from "../../metals/metal-config.ts";
 import { ModalShell, ModalHeader } from "./ModalShell.tsx";
 import { IconStar, IconX, WatchlistTypeIcon } from "./icons.tsx";
 
-function fmtTs(ts) {
+function fmtTs(ts: any) {
   if (!ts || typeof ts !== "number") return "";
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-const TYPE_LABEL = {
+const TYPE_LABEL: Record<string, { key: string; label: string; icon: string }> = {
   app: { key: "app", label: "App", icon: "📦" },
   fund: { key: "fund", label: "基金", icon: "💰" },
   metal: { key: "metal", label: "贵金属", icon: "🥇" },
@@ -45,7 +45,7 @@ const FILTERS = [
   ...TYPE_ORDER.map((t) => ({ key: t, label: TYPE_LABEL[t].label })),
 ];
 
-function entryTitle(w) {
+function entryTitle(w: any) {
   if (w.type === "app") return w.ref;
   if (w.type === "fund") return w.ref;
   if (w.type === "metal") {
@@ -55,7 +55,7 @@ function entryTitle(w) {
   return `「${w.ref}」`;
 }
 
-function entryMeta(w) {
+function entryMeta(w: any) {
   if (w.type === "app") {
     return w.lastNotifiedVersion
       ? `上次通知版本: ${w.lastNotifiedVersion}`
@@ -79,7 +79,7 @@ function entryMeta(w) {
   return "";
 }
 
-function WatchlistRow({ w, onRemove }) {
+function WatchlistRow({ w, onRemove }: { w: any; onRemove: () => void }) {
   const type = TYPE_LABEL[w.type] || TYPE_LABEL.app;
   return (
     <li class="watchlist-row" data-id={itemKey(w)}>
@@ -113,7 +113,7 @@ function WatchlistRow({ w, onRemove }) {
   );
 }
 
-function TypeSection({ type, items, onRemove, defaultExpanded = true }) {
+function TypeSection({ type, items, onRemove, defaultExpanded = true }: { type: string; items: any[]; onRemove: (w: any) => () => void; defaultExpanded?: boolean }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const meta = TYPE_LABEL[type] || TYPE_LABEL.app;
   return (
@@ -136,7 +136,7 @@ function TypeSection({ type, items, onRemove, defaultExpanded = true }) {
           ? <div class="watchlist-section__empty">暂无</div>
           : (
             <ul class="watchlist-section__list">
-              {items.map((w) => (
+              {items.map((w: any) => (
                 <WatchlistRow key={itemKey(w)} w={w} onRemove={onRemove(w)} />
               ))}
             </ul>
@@ -168,25 +168,29 @@ export function WatchlistModal() {
 
   // 按 type 分组
   const grouped = useMemo(() => {
-    const out = { app: [], fund: [], metal: [], keyword: [] };
+    const out: Record<string, any[]> = { app: [], fund: [], metal: [], keyword: [] };
     for (const w of filtered) {
-      if (out[w.type]) out[w.type].push(w);
+      const t = w.type as string | undefined;
+      if (t && out[t]) out[t].push(w);
     }
     return out;
   }, [filtered]);
 
   const counts = useMemo(() => {
-    const out = { app: 0, fund: 0, metal: 0, keyword: 0 };
-    for (const w of items) if (out[w.type] != null) out[w.type] += 1;
+    const out: Record<string, number> = { app: 0, fund: 0, metal: 0, keyword: 0 };
+    for (const w of items) {
+      const t = w.type as string | undefined;
+      if (t && out[t] != null) out[t] += 1;
+    }
     return out;
   }, [items]);
 
   // 移除一行, 已按 (type, ref) 闭包绑定
-  const onRemove = (w) => () => {
+  const onRemove = (w: any) => () => {
     removeWatchlistItem({ type: w.type, ref: w.ref });
   };
 
-  async function onAddKeyword(e) {
+  async function onAddKeyword(e: any) {
     e.preventDefault();
     const kw = keyword.trim();
     if (!kw) return;

@@ -13,7 +13,7 @@ const SKELETON_COLUMNS = {
   huggingface: 9,
 };
 
-export function LoadingState({ view = "aa" }: { view?: string } = {}) {
+export function LoadingState({ view = "aa" }: { view?: keyof typeof SKELETON_COLUMNS } = {}) {
   const columnCount = SKELETON_COLUMNS[view] || SKELETON_COLUMNS.aa;
   const cells = Array.from({ length: columnCount });
   return (
@@ -54,7 +54,7 @@ export function LoadingState({ view = "aa" }: { view?: string } = {}) {
   );
 }
 
-export function ErrorState({ message, onRetry }) {
+export function ErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
   return (
     <div class="ai-lb-state ai-lb-state--error" role="alert">
       <div class="ai-lb-state-icon" aria-hidden="true">
@@ -75,7 +75,7 @@ export function ErrorState({ message, onRetry }) {
   );
 }
 
-export function EmptyState({ onRetry }) {
+export function EmptyState({ onRetry }: { onRetry?: () => void }) {
   return (
     <div class="ai-lb-state ai-lb-state--empty">
       <div class="ai-lb-state-icon" aria-hidden="true">

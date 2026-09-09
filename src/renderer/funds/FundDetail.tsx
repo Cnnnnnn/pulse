@@ -74,9 +74,9 @@ function loadSavedNavRange() {
   }
 }
 
-const TYPE_LABEL = { stock: "股票", bond: "债券", money: "货币", qdii: "QDII", other: "其他" };
+const TYPE_LABEL: Record<string, string> = { stock: "股票", bond: "债券", money: "货币", qdii: "QDII", other: "其他" };
 
-function fmtNum(v, dp = 4) {
+function fmtNum(v: number | undefined, dp = 4) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString("zh-CN", {
@@ -84,7 +84,7 @@ function fmtNum(v, dp = 4) {
     maximumFractionDigits: dp,
   });
 }
-function signClass(n) {
+function signClass(n: number | undefined) {
   const v = Number(n);
   if (!Number.isFinite(v)) return "";
   return v >= 0 ? "positive" : "negative";
@@ -92,7 +92,45 @@ function signClass(n) {
 
 // 2026-07-15: 导出净值序列为 CSV — 用户想用 Excel/Numbers 进一步分析
 //   ponytail: downloadCsv 已抽到 utils/csv.js 共享; 这里只负责组装 rows
-function buildNavHistoryCsv(h, navHistory, rangeLabel) {
+
+/** 净值历史行 (升序输入 / 展示用)。 */
+interface NavHistoryPoint {
+  date?: string;
+  nav?: number;
+  dailyChange?: number | null;
+  cumulativeChange?: number | null;
+}
+interface NavLoadingShape {
+  name?: string;
+  code?: string;
+}
+type NavSeriesPoint = { date?: string; value: number };
+
+interface FundHoldingShapeDetail {
+  id?: string;
+  code?: string;
+  name?: string;
+  category?: string;
+  shares?: number;
+  costNav?: number;
+  note?: string;
+  addedAt?: number | string;
+}
+interface FundDetailMetricsShape {
+  nav?: number;
+  dailyReturnPct?: number;
+  profitPct?: number;
+  marketValue?: number;
+  costValue?: number;
+  profit?: number;
+  todayProfit?: number;
+}
+type FundDetailRow = {
+  holding?: FundHoldingShapeDetail;
+  metrics?: FundDetailMetricsShape;
+};
+
+function buildNavHistoryCsv(h: NavLoadingShape, navHistory: NavHistoryPoint[], rangeLabel: string) {
   const header = ["日期", "单位净值", "日涨跌(%)", "累计涨跌(%)"];
   const rows = [
     [`# ${h.name || ""} (${h.code || ""})`],
@@ -115,7 +153,7 @@ function buildNavHistoryCsv(h, navHistory, rangeLabel) {
   return rows;
 }
 
-function pickRisk(metrics) {
+function pickRisk(metrics: { todayReturnPct?: number; profitPct?: number } | null | undefined) {
   // 没有真实 riskRating, 用波动代理 — 今日盈亏幅度映射 R1..R5
   const today = Number(metrics && metrics.todayReturnPct) || 0;
   const profit = Number(metrics && metrics.profitPct) || 0;
@@ -127,8 +165,8 @@ function pickRisk(metrics) {
   return "R5";
 }
 // 2026-07-14: 风险标签 — 与 FundList RISK_LABEL_MAP 同步
-const RISK_LABEL_MAP_DETAIL = { R1: "低", R2: "中低", R3: "中", R4: "中高", R5: "高" };
-function riskLabel(r) {
+const RISK_LABEL_MAP_DETAIL: Record<string, string> = { R1: "低", R2: "中低", R3: "中", R4: "中高", R5: "高" };
+function riskLabel(r: string) {
   return RISK_LABEL_MAP_DETAIL[r] || r || "—";
 }
 
@@ -142,7 +180,7 @@ const RISK_METRIC_HINT = {
   贝塔: "相对沪深 300 的波动倍数。=1 表示同步, >1 表示比大盘更激进, <1 表示更保守。",
 };
 
-function buildRiskMetrics(metrics) {
+function buildRiskMetrics(metrics: { todayReturnPct?: number; profitPct?: number } | null | undefined) {
   // 5 维: 波动/回撤/夏普/标准差/贝塔 — 没真实数据时用近似
   const today = Math.abs(Number(metrics && metrics.todayReturnPct) || 0);
   const profitPct = Number(metrics && metrics.profitPct) || 0;
@@ -159,7 +197,7 @@ function buildRiskMetrics(metrics) {
       norm: vol / 20,
       value: vol.toFixed(2) + "%",
       hint: RISK_METRIC_HINT["波动率"],
-      band: (n) =>
+      band: (n: number) =>
         n < 0.25 ? { text: "稳健", level: "ok" } : n < 0.75 ? { text: "适中", level: "mid" } : { text: "高", level: "warn" },
     },
     {
@@ -167,7 +205,7 @@ function buildRiskMetrics(metrics) {
       norm: dd / 30,
       value: dd.toFixed(2) + "%",
       hint: RISK_METRIC_HINT["回撤"],
-      band: (n) =>
+      band: (n: number) =>
         n < 0.33 ? { text: "平稳", level: "ok" } : n < 0.66 ? { text: "正常", level: "mid" } : { text: "显著", level: "warn" },
     },
     {
@@ -176,7 +214,7 @@ function buildRiskMetrics(metrics) {
       value: sharpe.toFixed(2),
       hint: RISK_METRIC_HINT["夏普"],
       // 注意: 夏普越高越好, band 反向 (norm 越高 → 越好)
-      band: (n) =>
+      band: (n: number) =>
         n > 0.5 ? { text: "优秀", level: "ok" } : n > 0.2 ? { text: "一般", level: "mid" } : { text: "差", level: "warn" },
     },
     {
@@ -184,7 +222,7 @@ function buildRiskMetrics(metrics) {
       norm: stddev / 15,
       value: stddev.toFixed(2) + "%",
       hint: RISK_METRIC_HINT["标准差"],
-      band: (n) =>
+      band: (n: number) =>
         n < 0.25 ? { text: "稳健", level: "ok" } : n < 0.75 ? { text: "适中", level: "mid" } : { text: "高", level: "warn" },
     },
     {
@@ -193,19 +231,20 @@ function buildRiskMetrics(metrics) {
       value: beta.toFixed(2),
       hint: RISK_METRIC_HINT["贝塔"],
       // 贝塔: ≈0.5 中等 (1=大盘同步), 太偏离都算波动放大
-      band: (n) =>
+      band: (n: number) =>
         n < 0.4 ? { text: "保守", level: "ok" } : n < 0.6 ? { text: "同步", level: "mid" } : { text: "激进", level: "warn" },
     },
   ];
 }
 
-function pickNavSeries(code) {
-  const c = navHistoryCache.value && navHistoryCache.value[code];
+function pickNavSeries(code: string | undefined): NavSeriesPoint[] {
+  const cache = navHistoryCache.value as Record<string, { series?: unknown[] } | undefined>;
+  const c = code ? cache[code] : undefined;
   if (!c || !Array.isArray(c.series)) return [];
   return c.series
     .map((s) => ({
-      date: s.date,
-      value: Number(s.nav) || 0,
+      date: (s as { date?: string }).date,
+      value: Number((s as { nav?: number }).nav) || 0,
     }))
     .filter((s) => Number.isFinite(s.value));
 }
@@ -215,7 +254,7 @@ function pickNavSeries(code) {
  * @param {Array<{date:string, nav:number, dailyChange?:number}>} rowsAsc
  * @param {number|null} days null = 全部 (截到 maxRows)
  */
-export function pickNavHistoryWindow(rowsAsc, days, maxRows = NAV_HISTORY_MAX_ROWS) {
+export function pickNavHistoryWindow(rowsAsc: NavHistoryPoint[], days: number | null, maxRows = NAV_HISTORY_MAX_ROWS) {
   if (!Array.isArray(rowsAsc) || !rowsAsc.length) return [];
   const windowAsc =
     days == null ? rowsAsc.slice(-maxRows) : rowsAsc.slice(-Math.max(1, days));
@@ -228,15 +267,15 @@ export function pickNavHistoryWindow(rowsAsc, days, maxRows = NAV_HISTORY_MAX_RO
   return withCum.slice().reverse();
 }
 
-function subTextForNavRange(key, total) {
+function subTextForNavRange(key: string, total: number) {
   if (total === 0) return "尚无历史净值";
   const opt = NAV_HISTORY_OPTIONS.find((o) => o.key === key) || NAV_HISTORY_OPTIONS[0];
   if (opt.days == null) return `全部 ${Math.min(total, NAV_HISTORY_MAX_ROWS)} / ${total} 个交易日`;
   return `近 ${opt.days} 个交易日（总计 ${total}）`;
 }
 
-export function FundDetail({ code }) {
-  const all = rowsWithMetrics.value || [];
+export function FundDetail({ code }: { code: string }) {
+  const all = (rowsWithMetrics.value as FundDetailRow[]) || [];
   const row = useMemo(
     () => all.find((r) => r.holding && r.holding.code === code) || null,
     [all, code],
@@ -269,7 +308,7 @@ export function FundDetail({ code }) {
     const chartDays = chartOpt ? chartOpt.days : 180;
     const navDays = navOpt.days == null ? 9999 : navOpt.days;
     const requestedDays = Math.max(chartDays, navDays);
-    const c = navHistoryCache.value && navHistoryCache.value[code];
+    const c = (navHistoryCache.value as Record<string, { series?: { date?: string; nav?: number }[]; fetchedDays?: number }>)[code];
     const haveRows = c && c.series && c.series.length >= requestedDays;
     const alreadyTried = c && (c.fetchedDays || 0) >= requestedDays;
     if (!haveRows && !alreadyTried) {
@@ -338,7 +377,7 @@ export function FundDetail({ code }) {
     );
   }
 
-  const h = row.holding;
+  const h = row.holding!;
   // ponytail: row.metrics 由 store 动态计算, 此组件是数据消费的最后一公里,
   // 给一个具体类型 cast 而非 any. 字段集对应 useHoldingMetrics 计算结果.
   const m = (row.metrics || {}) as {
@@ -367,7 +406,7 @@ export function FundDetail({ code }) {
         showToast(`已加入自选：${h.name}`, "success");
       }
     } catch (err) {
-      showToast(`自选操作失败: ${(err && err.message) || err}`, "error");
+      showToast(`自选操作失败: ${(err && typeof err === "object" && "message" in err) ? String((err as { message?: unknown }).message) : String(err)}`, "error");
     }
   }
 
@@ -490,7 +529,7 @@ export function FundDetail({ code }) {
                     {" "}· 已加载 {fullSeries.length} 日
                   </span>
                 )}
-                {navHistoryLoading.value[code] && (
+                {(navHistoryLoading.value as Record<string, boolean>)[code] && (
                   <span class="fund-fetch-tag" role="status" aria-live="polite">
                     <span class="fund-fetch-spinner" aria-hidden="true" />
                     加载更长历史…
@@ -628,7 +667,7 @@ export function FundDetail({ code }) {
                 {subTextForNavRange(navRange.value, navHistoryAll.length)}
                 {/* 2026-07-15: 数据完整度指示 — 区间 > 缓存时显示"加载中", 避免用户以为数据没了
                    ponytail: 走信号响应式, 加载态自动更新, 不需要手 setState */}
-                {navHistoryLoading.value[code] && (
+                {(navHistoryLoading.value as Record<string, boolean>)[code] && (
                   <span class="fund-fetch-tag" role="status" aria-live="polite">
                     <span class="fund-fetch-spinner" aria-hidden="true" />
                     加载更长历史…

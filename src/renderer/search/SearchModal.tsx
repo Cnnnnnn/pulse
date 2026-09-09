@@ -18,7 +18,7 @@ import { ModalShell } from '../components/ModalShell.tsx';
 import { IconSearch } from '../components/icons.tsx';
 
 export function SearchModal() {
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const isOpen = isSearchOpen.value;
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function SearchModal() {
     }
   }, [isOpen]);
 
-  function onCardKeyDown(e) {
+  function onCardKeyDown(e: KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       moveSearchSelection(1);

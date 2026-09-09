@@ -36,16 +36,24 @@ function truncate(s: any, n: any) {
  * @param {string} [errorMessage]  LLM 原始 error message (reason 没命中时透出)
  * @returns {{ label: string, hint: string|null, raw: string }}
  */
-export function humanizeAiError(reason: any, errorMessage?: any) {
+export function humanizeAiError(reason: string, errorMessage?: string) {
   const raw = reason || errorMessage || "unknown";
   let label;
-  if (reason && REASON_LABELS[reason]) {
-    label = REASON_LABELS[reason];
+  if (reason) {
+    const reasonLabel = REASON_LABELS[reason as keyof typeof REASON_LABELS];
+    if (reasonLabel) {
+      label = reasonLabel;
+    } else if (typeof errorMessage === "string" && errorMessage.trim()) {
+      label = truncate(errorMessage, 60);
+    } else {
+      label = "未知错误";
+    }
   } else if (typeof errorMessage === "string" && errorMessage.trim()) {
     label = truncate(errorMessage, 60);
   } else {
     label = "未知错误";
   }
-  const hint = (reason && REASON_HINT[reason]) || null;
+  const hint =
+    (reason && REASON_HINT[reason as keyof typeof REASON_HINT]) || null;
   return { label, hint, raw };
 }

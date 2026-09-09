@@ -43,12 +43,12 @@ const REASON_TEXT = {
   unknown: "未知错误",
 };
 
-function formatReason(reason) {
+function formatReason(reason?: any) {
   if (!reason) return REASON_TEXT.unknown;
-  return REASON_TEXT[reason] || `${REASON_TEXT.unknown} (${reason})`;
+  return REASON_TEXT[reason as keyof typeof REASON_TEXT] || `${REASON_TEXT.unknown} (${reason})`;
 }
 
-function LoadingElapsed({ since }) {
+function LoadingElapsed({ since }: { since: number }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
@@ -58,8 +58,8 @@ function LoadingElapsed({ since }) {
   return <span class="verdict-loading-elapsed">已等待 {sec}s</span>;
 }
 
-export function VerdictCard({ scores, aiResult, aiStatus, errorReason, aiStartedAt, api, code }) {
-  const meta = SIGNAL_META[aiResult?.signal] || SIGNAL_META.neutral;
+export function VerdictCard({ scores, aiResult, aiStatus, errorReason, aiStartedAt, api, code }: { scores?: any; aiResult?: any; aiStatus?: any; errorReason?: any; aiStartedAt?: any; api?: any; code?: any }) {
+  const meta = SIGNAL_META[aiResult?.signal as keyof typeof SIGNAL_META] || SIGNAL_META.neutral;
   return (
     <div class="verdict-card">
       <div class="verdict-title">
@@ -109,7 +109,7 @@ export function VerdictCard({ scores, aiResult, aiStatus, errorReason, aiStarted
 
           {Array.isArray(aiResult?.highlights) && aiResult.highlights.length > 0 && (
             <ul class="verdict-section verdict-section-highlights">
-              {aiResult.highlights.map((h, i) => (
+              {aiResult.highlights.map((h: any, i: number) => (
                 <li key={i}>
                   <IconCheck size={12} class="verdict-icon-positive" />
                   <span>{h}</span>
@@ -120,7 +120,7 @@ export function VerdictCard({ scores, aiResult, aiStatus, errorReason, aiStarted
 
           {Array.isArray(aiResult?.blindspots) && aiResult.blindspots.length > 0 && (
             <ul class="verdict-section verdict-section-blindspots">
-              {aiResult.blindspots.map((b, i) => (
+              {aiResult.blindspots.map((b: any, i: number) => (
                 <li key={i}>
                   <IconAlert size={12} class="verdict-icon-cautious" />
                   <span>{b}</span>

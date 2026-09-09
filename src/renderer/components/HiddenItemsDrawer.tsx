@@ -9,7 +9,16 @@ import { DrawerShell } from './DrawerShell.tsx';
 import { DrawerEmpty } from './EmptyState.tsx';
 import { NavIcon } from './icons.tsx';
 
-export function HiddenItemsDrawer({ open, hiddenItems = [], onRestore, onClose }) {
+type HiddenItem = { key: string; label: string };
+
+export interface HiddenItemsDrawerProps {
+  open: boolean;
+  hiddenItems?: HiddenItem[];
+  onRestore?: (key: string) => void;
+  onClose: () => void;
+}
+
+export function HiddenItemsDrawer({ open, hiddenItems = [], onRestore, onClose }: HiddenItemsDrawerProps) {
   return (
     <DrawerShell
       open={open}
@@ -32,7 +41,7 @@ export function HiddenItemsDrawer({ open, hiddenItems = [], onRestore, onClose }
           <button
             type="button"
             class="nav-drawer-hidden-row__restore"
-            onClick={() => onRestore && onRestore(item.key)}
+            onClick={() => { if (onRestore) onRestore(item.key); }}
           >
             恢复
           </button>

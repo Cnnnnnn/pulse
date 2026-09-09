@@ -16,6 +16,13 @@ export function Sparkline({
   upColor = "var(--accent-green)",
   downColor = "var(--accent-red)",
   flatColor = "var(--accent-gray)",
+}: {
+  closes: Array<string | number>;
+  width?: number;
+  height?: number;
+  upColor?: string;
+  downColor?: string;
+  flatColor?: string;
 }) {
   if (!Array.isArray(closes) || closes.length === 0) return null;
 

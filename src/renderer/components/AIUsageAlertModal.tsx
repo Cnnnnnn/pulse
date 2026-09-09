@@ -23,7 +23,7 @@ export function AIUsageAlertModal() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     const abs = Number(absMinPct);
     const ratio = Number(spikeRatio);

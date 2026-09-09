@@ -44,7 +44,7 @@ export function LazyNavPanel({
       setLoading(false);
       return undefined;
     }
-    const loader = LOADERS[nav];
+    const loader = LOADERS[nav as keyof typeof LOADERS];
     if (!loader) {
       setPanel(() => VersionsLayout);
       setLoading(false);

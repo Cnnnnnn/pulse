@@ -22,7 +22,7 @@
 import { signal } from "@preact/signals";
 
 export const fundPage = signal("dashboard");
-export const selectedFundCode = signal(null);
+export const selectedFundCode = signal<string | null>(null);
 
 export function setFundPage(page: any) {
   if (page !== "dashboard" && page !== "list") return;

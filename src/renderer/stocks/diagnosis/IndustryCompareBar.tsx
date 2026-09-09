@@ -11,7 +11,7 @@
  *   - 给定 industry (绝对数): 本股 vs 行业中位 (盈利能力对比用).
  *   - 数据都不够: 返回 null.
  */
-const fmtNum = (v, digits = 1) => (v == null ? "—" : v.toFixed(digits));
+const fmtNum = (v: number | null | undefined, digits = 1) => (v == null ? "—" : v.toFixed(digits));
 
 export function IndustryCompareBar({
   label,

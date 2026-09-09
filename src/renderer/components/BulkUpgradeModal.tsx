@@ -67,12 +67,21 @@ const STATUS_TEXT = {
   cancelled: '已取消',
 };
 
+type BulkStatus = keyof typeof STATUS_TEXT;
+type BulkItem = { id: string; source: string; name: string; current: string; latest: string };
+type BulkSummary = {
+  succeeded: { id: string }[];
+  failed: { id: string }[];
+  skipped: { id: string }[];
+  cancelled: boolean;
+};
+
 export function BulkUpgradeModal() {
   const open = bulkUpgradeModalOpen.value;
-  const items = bulkUpgradeItems.value;
+  const items = bulkUpgradeItems.value as BulkItem[];
   const statuses = bulkUpgradeStatuses.value;
   const running = bulkUpgradeRunning.value;
-  const summary = bulkUpgradeSummary.value;
+  const summary = bulkUpgradeSummary.value as BulkSummary | null;
   const doneCount = bulkUpgradeDoneCount.value;
 
   const initialSelected = new Set(
@@ -90,7 +99,7 @@ export function BulkUpgradeModal() {
     items.find((it) => it.id === id && !NON_UPGRADABLE.has(it.source))
   ).length;
 
-  function toggle(id) {
+  function toggle(id: string) {
     if (running) return; // running 时不能改
     const next = new Set(selected);
     if (next.has(id)) next.delete(id);
@@ -117,7 +126,7 @@ export function BulkUpgradeModal() {
     }
   }
 
-  function handleRetry(id) {
+  function handleRetry(id: string) {
     if (running) return;
     const item = items.find((it) => it.id === id);
     if (!item) return;
@@ -132,7 +141,7 @@ export function BulkUpgradeModal() {
     if (running || !summary) return;
     const failed = summary.failed
       .map((f) => items.find((it) => it.id === f.id))
-      .filter(Boolean);
+      .filter((x): x is BulkItem => Boolean(x));
     if (failed.length === 0) return;
     try {
       window.api && window.api.bulkUpgradeStart && window.api.bulkUpgradeStart(failed);
@@ -188,7 +197,7 @@ export function BulkUpgradeModal() {
       {Object.entries(groups).map(([source, list]) => (
         <div class="bulk-group" key={source}>
           <div class="bulk-group-header">
-            <span class={`source-tag source-${source}`}>{SOURCE_LABELS[source] || source}</span>
+            <span class={`source-tag source-${source}`}>{SOURCE_LABELS[source as keyof typeof SOURCE_LABELS] || source}</span>
             <span class="bulk-group-count">{list.length}</span>
           </div>
           <div class="bulk-list">
@@ -196,7 +205,7 @@ export function BulkUpgradeModal() {
               <BulkRow
                 key={item.id}
                 item={item}
-                status={statuses.get(item.id) || 'pending'}
+                status={statuses.get(item.id) as BulkStatus || 'pending'}
                 selected={selected.has(item.id)}
                 onToggle={() => toggle(item.id)}
                 running={running}
@@ -212,7 +221,16 @@ export function BulkUpgradeModal() {
   );
 }
 
-function BulkRow({ item, status, selected, onToggle, running, onRetry, error, output }) {
+function BulkRow({ item, status, selected, onToggle, running, onRetry, error, output }: {
+  item: BulkItem;
+  status: BulkStatus;
+  selected: boolean;
+  onToggle: () => void;
+  running: boolean;
+  onRetry: () => void;
+  error?: string;
+  output?: string;
+}) {
   const isUpgradable = !NON_UPGRADABLE.has(item.source);
 
   return (

@@ -13,9 +13,9 @@ const DIM_LABELS = {
   tech: "技术",
   risk: "风险",
 };
-const DIM_ORDER = ["fundamental", "valuation", "capital", "tech", "risk"];
+const DIM_ORDER: (keyof typeof DIM_LABELS)[] = ["fundamental", "valuation", "capital", "tech", "risk"];
 
-function formatRelative(ts, now) {
+function formatRelative(ts: number, now: number) {
   const diff = now - ts;
   if (diff < 60 * 1000) return "刚刚";
   if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)} 分钟前`;
@@ -25,19 +25,19 @@ function formatRelative(ts, now) {
   return `${Math.floor(days / 30)} 个月前`;
 }
 
-function fmtDelta(delta, digits = 1) {
+function fmtDelta(delta: number | null, digits = 1) {
   if (delta == null) return "—";
   const rounded = Math.round(delta * Math.pow(10, digits)) / Math.pow(10, digits);
   if (rounded === 0) return "0";
   return rounded > 0 ? `+${rounded}` : `${rounded}`;
 }
 
-function deltaTone(delta) {
+function deltaTone(delta: number | null) {
   if (delta == null || delta === 0) return "neutral";
   return delta > 0 ? "up" : "down";
 }
 
-export function LastDiagnosisBadge({ code, currentScores, currentPrice }) {
+export function LastDiagnosisBadge({ code, currentScores, currentPrice }: { code: any; currentScores: any; currentPrice: any }) {
   if (!code || !currentScores) return null;
   const prev = loadLastSnapshot(code);
   if (!prev) return null;

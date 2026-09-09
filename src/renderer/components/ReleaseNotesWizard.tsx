@@ -23,6 +23,7 @@ import { showToast } from '../store.ts';
 import { api } from '../api.ts';
 import { openConfirm } from '../store/confirmStore.ts';
 import { BareModalShell } from './ModalShell.tsx';
+import type { ReleaseNotesPayload } from '../../shared/ipc-contracts';
 import {
   releaseNotesOpen,
   releaseNotesEntryPath,
@@ -42,7 +43,7 @@ export function ReleaseNotesWizard() {
   return <WizardInner payload={payload} />;
 }
 
-function WizardInner({ payload }) {
+function WizardInner({ payload }: { payload: ReleaseNotesPayload }) {
   const { version, changelogMd, slides } = payload;
   const slidesArr = slides && Array.isArray(slides.slides) ? slides.slides : [];
   const totalPages = 1 + slidesArr.length;
@@ -96,7 +97,7 @@ function WizardInner({ payload }) {
   const isLastPage = page === totalPages - 1;
   const currentSlide = !isFirstPage ? slidesArr[page - TOTAL_PAGE_OFFSET] : null;
 
-  function onCardKeyDown(e) {
+  function onCardKeyDown(e: KeyboardEvent) {
     if (e.key === 'ArrowRight') {
       e.preventDefault();
       setPage((p) => Math.min(p + 1, totalPages - 1));

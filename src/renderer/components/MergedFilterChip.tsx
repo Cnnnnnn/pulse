@@ -15,7 +15,7 @@ import { results } from "../store.ts";
 import { getCategoryTabsWithCount } from "../../config/category.ts";
 import { IconSearch } from "./icons.tsx";
 
-const STATUS_TABS = [
+const STATUS_TABS: Array<{ key: "all" | "update" | "latest" | "error"; label: string }> = [
   { key: "all", label: "全部" },
   { key: "update", label: "有更新" },
   { key: "latest", label: "已是最新" },

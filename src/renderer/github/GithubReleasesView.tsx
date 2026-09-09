@@ -27,22 +27,22 @@ import {
 } from "../store/github-projects-store.ts";
 import { GithubMarkdown } from "./GithubMarkdown.tsx";
 
-function absoluteDate(ts) {
+function absoluteDate(ts: any) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return "";
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /** 月份分组键（YYYY-M），无日期归为 unknown 单独成组。 */
-function monthKeyOf(ts) {
+function monthKeyOf(ts: any) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime()) || !(ts > 0)) return "unknown";
   return `${d.getFullYear()}-${d.getMonth() + 1}`;
 }
 
 /** 月份分组标题（中文「YYYY 年 M 月」）。 */
-function monthLabelOf(ts) {
+function monthLabelOf(ts: any) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime()) || !(ts > 0)) return "日期不明";
   return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
@@ -70,7 +70,7 @@ function ReleasesSkeleton() {
   );
 }
 
-function ReleasesError({ reason, onRetry }) {
+function ReleasesError({ reason, onRetry }: { reason?: any; onRetry?: () => void }) {
   return (
     <div class="github-ai-error">
       <IconAlert size={18} />
@@ -90,8 +90,8 @@ function ReleasesError({ reason, onRetry }) {
 
 export function GithubReleasesView({ project, onMarkSeen }: { project: any; onMarkSeen?: () => void }) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [expanded, setExpanded] = useState({});
+  const [error, setError] = useState<any>(null);
+  const [expanded, setExpanded] = useState<Record<string, any>>({});
 
   const needsFetch = !project.releaseFetchedAt;
   const hasUpdate = hasGithubUpdate(project);
@@ -128,7 +128,7 @@ export function GithubReleasesView({ project, onMarkSeen }: { project: any; onMa
     if (onMarkSeen) onMarkSeen();
   }
 
-  function toggleNotes(i) {
+  function toggleNotes(i: number) {
     setExpanded((prev) => ({ ...prev, [i]: !prev[i] }));
   }
 
@@ -146,7 +146,7 @@ export function GithubReleasesView({ project, onMarkSeen }: { project: any; onMa
   }
 
   const density = githubDensity.value;
-  const timelineItems = releases.map((r, i) => ({
+  const timelineItems = releases.map((r: any, i: number) => ({
     r,
     originalIndex: i,
     isLatest: i === 0,
@@ -164,7 +164,7 @@ export function GithubReleasesView({ project, onMarkSeen }: { project: any; onMa
     g.items.push(it);
   }
   // 默认展开条数由密度决定：紧凑仅展开最新，舒适展开全部
-  function isOpen(i) {
+  function isOpen(i: number) {
     const def = density === "compact" ? i === 0 : true;
     return expanded[i] ?? def;
   }
@@ -199,7 +199,7 @@ export function GithubReleasesView({ project, onMarkSeen }: { project: any; onMa
         {groups.map((g) => (
           <div class="github-rel-group" key={g.key}>
             <div class="github-rel-month">{g.label}</div>
-            {g.items.map(({ r, originalIndex, isLatest }) => (
+            {g.items.map(({ r, originalIndex, isLatest }: { r: any; originalIndex: number; isLatest: boolean }) => (
               <div
                 class={`github-rel-item ${isLatest ? "is-latest" : ""}`}
                 key={r.tagName || r.version || originalIndex}

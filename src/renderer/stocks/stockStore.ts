@@ -20,6 +20,7 @@
  *   }
  */
 import { signal, computed } from "@preact/signals";
+import type { StockRow, StockScreenerCriteria } from "../../shared/ipc-contracts";
 import { taggedLog } from "../log.ts";
 import {
   beginDataRequest,
@@ -40,11 +41,13 @@ const log = taggedLog("[stocks]");
 
 // ── signals ──
 
-export const criteria = signal({ ...DEFAULT_SCREENER_CRITERIA });
+export const criteria = signal<StockScreenerCriteria>({
+  ...DEFAULT_SCREENER_CRITERIA,
+} as StockScreenerCriteria);
 export const activeStrategy = signal("value_roe");
-export const results = signal([]);
+export const results = signal<StockRow[]>([]);
 export const stocksDataState = signal<DataState<any[]>>(createDataState([]));
-export const fetchedAt = signal(null);
+export const fetchedAt = signal<number | null>(null);
 // 数据源和是否为快速截断样本独立于 DataState.source: 后者表示 live/cache，前者描述实际行情提供方.
 export const dataProvider = signal("unknown");
 export const dataTruncated = signal(false);
@@ -55,7 +58,17 @@ export const sortDir = signal("desc");
 export const advancedOpen = signal(false);
 // 阶段二: AI 推荐抽屉
 export const aiAdviseOpen = signal(false);
-export const aiAdvise = signal({
+export const aiAdvise = signal<{
+  status: "idle" | "loading" | "ready" | "error";
+  result: {
+    criteria?: StockScreenerCriteria;
+    sortConfig?: { key: string; dir: string };
+    summary?: string;
+  } | null;
+  fromCache: boolean;
+  reason: string | null;
+  error: string | null;
+}>({
   status: "idle",
   result: null,
   fromCache: false,
@@ -73,7 +86,7 @@ export const sortConfig = computed(() => ({
 export const silentRefreshTick = signal(0);
 
 // ponytail 2026-07-08 D-6: 静默刷新定时器模块级管理, 不放 signal (避免订阅抖动).
-let _refreshTimerId = null;
+let _refreshTimerId: ReturnType<typeof setInterval> | null = null;
 // ponytail: 60s 刷新间隔. 主进程 cache TTL 60s, 刷一次即 cache miss → 重拉 (P-1 后 ~9s).
 //   价值: 用户盯盘场景下"15 分钟没看 tab, 数据是几分钟前的" → 始终 ≤ 1 分钟旧.
 const REFRESH_INTERVAL_MS = 60_000;
@@ -103,7 +116,7 @@ export function stopRefreshTimer() {
 export function applyStrategy(id: any) {
   const c = buildCriteria(id);
   if (!c) return;
-  criteria.value = c;
+  criteria.value = c as StockScreenerCriteria;
   activeStrategy.value = id;
 }
 
@@ -295,7 +308,7 @@ export async function runScreenSilent(api: any) {
         results.value,
         {
           source: r.fromCache ? "cache" : "live",
-          fetchedAt: fetchedAt.value,
+          fetchedAt: fetchedAt.value ?? undefined,
         },
       );
     } else {

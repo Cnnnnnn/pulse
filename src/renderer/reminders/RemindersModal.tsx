@@ -28,6 +28,7 @@ import {
   toggleRemindersOpen,
 } from "./remindersStore.ts";
 import { openConfirm } from "../store/confirmStore.ts";
+import type { Reminder, ReminderCreateInput } from "../../shared/ipc-contracts";
 import { Badge } from "../components/Badge.tsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.tsx";
 import { PanelEmpty } from "../components/EmptyState.tsx";
@@ -49,7 +50,7 @@ const WEEKDAYS = [
   { id: 6, label: "六" },
 ];
 
-function relTime(ts, now) {
+function relTime(ts: number, now: number) {
   if (typeof ts !== "number") return "";
   const diff = ts - now;
   const absDiff = Math.abs(diff);
@@ -66,7 +67,7 @@ function relTime(ts, now) {
     return diff > 0 ? `${h} 小时后` : `${h} 小时前`;
   }
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   const today = new Date(now);
   const sameYear = d.getFullYear() === today.getFullYear();
   if (sameYear) {
@@ -75,18 +76,18 @@ function relTime(ts, now) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function toLocalInputValue(ts) {
+function toLocalInputValue(ts: number) {
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-function fromLocalInputValue(str) {
+function fromLocalInputValue(str: string) {
   if (typeof str !== "string" || str.length === 0) return null;
   const ts = new Date(str).getTime();
   return Number.isFinite(ts) ? ts : null;
 }
 
-function repeatLabel(r) {
+function repeatLabel(r: Reminder) {
   if (r.repeat === "once") return "一次";
   if (r.repeat === "daily") return "每天";
   if (r.repeat === "weekdays") return "工作日";
@@ -98,13 +99,14 @@ function repeatLabel(r) {
 }
 
 // ── 行内的 `…` overflow menu ────────────────────────
-function RowOverflowMenu({ onEdit, onDelete, testid }) {
+interface RowOverflowMenuProps { onEdit: () => void; onDelete: () => void; testid: string; }
+function RowOverflowMenu({ onEdit, onDelete, testid }: RowOverflowMenuProps) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
+  const wrapRef = useRef<HTMLSpanElement | null>(null);
   useEffect(() => {
     if (!open) return undefined;
-    function onDoc(e) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    function onDoc(e: Event) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -158,7 +160,7 @@ function RowOverflowMenu({ onEdit, onDelete, testid }) {
 }
 
 // ── 单行 ──────────────────────────────────────────────
-function ReminderRow({ r, now, onEdit }) {
+function ReminderRow({ r, now, onEdit }: { r: Reminder; now: number; onEdit: (r: Reminder) => void }) {
   const rel = relTime(r.triggerAt, now);
   const isFired = r.status === "fired";
   const isDismissed = r.status === "dismissed";
@@ -228,7 +230,7 @@ function ReminderRow({ r, now, onEdit }) {
 }
 
 // ── 表单 (topbar 弹出抽屉) ──────────────────────────
-function ReminderForm({ initial, onSave, onCancel, onDelete }) {
+function ReminderForm({ initial, onSave, onCancel, onDelete }: { initial: Reminder | null; onSave: () => void; onCancel: () => void; onDelete?: (id: string) => void }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [triggerStr, setTriggerStr] = useState(
     initial?.triggerAt
@@ -240,14 +242,14 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
     typeof initial?.weekday === "number" ? initial.weekday : 1,
   );
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const titleRef = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const titleRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     titleRef.current && titleRef.current.focus();
   }, []);
 
-  const submit = useCallback(async (e) => {
+  const submit = useCallback(async (e: Event) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     if (submitting) return;
     const t = (title || "").trim();
@@ -266,7 +268,7 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
     }
     setError(null);
     setSubmitting(true);
-    const input: any = { title: t, triggerAt, repeat };
+    const input: ReminderCreateInput = { title: t, triggerAt, repeat: repeat as Reminder["repeat"] };
     if (repeat === "weekly") input.weekday = weekday;
     let r;
     if (initial && initial.id) {
@@ -282,7 +284,7 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
     }
   }, [title, triggerStr, repeat, weekday, initial, submitting, onSave]);
 
-  function onKey(e) {
+  function onKey(e: KeyboardEvent) {
     if (e.key === "Escape") {
       e.preventDefault();
       onCancel && onCancel();
@@ -336,7 +338,7 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
                 name="reminder-repeat"
                 value={rp.id}
                 checked={repeat === rp.id}
-                onChange={() => setRepeat(rp.id)}
+                onChange={() => setRepeat(rp.id as "once" | "daily" | "weekdays" | "weekly")}
               />
               <span>{rp.label}</span>
             </label>
@@ -397,14 +399,15 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
 // ── 主 modal ──────────────────────────────────────────
 export function RemindersModal() {
   const open = remindersOpen.value;
-  const list = reminders.value;
+  const list = reminders.value as Reminder[];
   const loaded = remindersLoaded.value;
   const loadState = remindersDataState.value;
   const loading = loadState.phase === "loading";
   const loadError = loadState.error;
   const now = useNowTick(open);
+  const next = nextDue.value as Reminder | null;
 
-  const [editing, setEditing] = useState(null); // null | 'new' | Reminder
+  const [editing, setEditing] = useState<null | "new" | Reminder>(null); // null | 'new' | Reminder
   const fired = useMemo(
     () => list.filter((r) => r && r.status === "fired"),
     [list],
@@ -568,16 +571,16 @@ export function RemindersModal() {
         </section>
       )}
 
-      {loaded && editing === null && nextDue.value && (
+      {loaded && editing === null && next && (
         <footer class="reminder-modal-footer">
-          下一个: {nextDue.value.title} · {relTime(nextDue.value.triggerAt, now)}
+          下一个: {next.title} · {relTime(next.triggerAt, now)}
         </footer>
       )}
     </ModalShell>
   );
 }
 
-function useNowTick(active) {
+function useNowTick(active: boolean) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!active) return;

@@ -21,10 +21,34 @@ import { useBrushRange } from "../hooks/useBrushRange.ts";
 // 2026-07-26: formatCompact 改用 utils/number.ts (canonical, 2 处实现合并)
 import { formatCompact } from "../utils/number.ts";
 
+/** 单点用量（与 useUsageSeries 适配层对齐）。 */
+interface ChartPoint {
+  date: string;
+  total: number;
+  lastWeek?: number | null;
+  input?: number;
+  output?: number;
+}
+interface UsageTrendProps {
+  data?: ChartPoint[];
+  period?: "day" | "week" | "month";
+  loading?: boolean;
+  error?: boolean;
+  visibleSeries?: Partial<Record<"total" | "input" | "output" | "lastWeek", boolean>>;
+  target?: number;
+  mode?: "area" | "line";
+  onBrush?: (range: [number, number]) => void;
+  onFocusPoint?: (p: ChartPoint | null) => void;
+  onRetry?: () => void;
+  onReset?: () => void;
+  height?: number;
+  title?: string;
+}
+
 // ─── 工具 ────────────────────────────────────────────────────
 
 /** 轴最大值向上取整到「好看」的数（1/2/5 × 10^n）。 */
-function niceMax(v) {
+function niceMax(v: number) {
   if (!Number.isFinite(v) || v <= 0) return 10;
   const exp = Math.floor(Math.log10(v));
   const base = Math.pow(10, exp);
@@ -41,7 +65,7 @@ function niceMax(v) {
  * @param {boolean} close 是否闭合到 plotBottom（面积）
  * @param {number} plotBottom
  */
-function buildLinePath(vals, xAt, yAt) {
+function buildLinePath(vals: number[], xAt: (i: number) => number, yAt: (v: number) => number) {
   if (vals.length === 0) return "";
   let d = "";
   for (let i = 0; i < vals.length; i++) {
@@ -50,7 +74,7 @@ function buildLinePath(vals, xAt, yAt) {
   return d.trim();
 }
 
-function buildAreaPath(vals, xAt, yAt, plotBottom) {
+function buildAreaPath(vals: number[], xAt: (i: number) => number, yAt: (v: number) => number, plotBottom: number) {
   if (vals.length === 0) return "";
   const line = buildLinePath(vals, xAt, yAt);
   const x0 = xAt(0).toFixed(2);
@@ -76,7 +100,7 @@ function buildAreaPath(vals, xAt, yAt, plotBottom) {
  * @param {number} [props.height]
  * @param {string} [props.title]
  */
-export function UsageTrendChart(props) {
+export function UsageTrendChart(props: UsageTrendProps) {
   const {
     data = [],
     loading = false,
@@ -96,8 +120,8 @@ export function UsageTrendChart(props) {
   const length = data.length;
 
   // 容器宽度测量 → viewBox 1:1，避免非均匀缩放导致描边变形
-  const containerRef = useRef(/** @type {HTMLDivElement|null} */ (null));
-  const svgRef = useRef(/** @type {SVGSVGElement|null} */ (null));
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const [width, setWidth] = useState(1000);
   useEffect(() => {
     const el = containerRef.current;
@@ -111,7 +135,7 @@ export function UsageTrendChart(props) {
   }, []);
 
   // 序列开关（total 默认开）
-  const [visible, setVisible] = useState(
+  const [visible, setVisible] = useState<Partial<Record<"total" | "input" | "output" | "lastWeek", boolean>>>(
     visibleSeriesProp || { total: true }
   );
   useEffect(() => {
@@ -124,9 +148,9 @@ export function UsageTrendChart(props) {
   const { range, setBrush, reset, visible: visRange } = useBrushRange(length);
   const rangeRef = useRef(range);
   useEffect(() => { rangeRef.current = range; }, [range]);
-  const [hoverIdx, setHoverIdx] = useState(/** @type {number|null} */ (null));
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [cursorLocked, setCursorLocked] = useState(false);
-  const dragRef = useRef(/** @type {null|{mode:"start"|"end"|"move", startX:number, orig:[number,number]}} */ (null));
+  const dragRef = useRef<null | { mode: "start" | "end" | "move"; startX: number; orig: [number, number] }>(null);
 
   // 几何
   const H = height;
@@ -162,17 +186,17 @@ export function UsageTrendChart(props) {
 
   // 坐标换算（可见局部索引 j → 全局 index = visRange[0] + j）
   const xAt = useCallback(
-    (j) => (visN <= 1 ? plotLeft : plotLeft + (j / (visN - 1)) * (plotRight - plotLeft)),
+    (j: number) => (visN <= 1 ? plotLeft : plotLeft + (j / (visN - 1)) * (plotRight - plotLeft)),
     [visN, plotLeft, plotRight]
   );
   const yAt = useCallback(
-    (v) => plotBottom - (maxVal > 0 ? v / maxVal : 0) * (plotBottom - plotTop),
+    (v: number) => plotBottom - (maxVal > 0 ? v / maxVal : 0) * (plotBottom - plotTop),
     [maxVal, plotBottom, plotTop]
   );
 
   // 把客户端 X → 序列全局索引
   const clientToIndex = useCallback(
-    (clientX) => {
+    (clientX: number) => {
       const svg = svgRef.current;
       if (!svg || length <= 1) return 0;
       const rect = svg.getBoundingClientRect();
@@ -185,7 +209,7 @@ export function UsageTrendChart(props) {
 
   // 十字游标 / 聚焦回调
   const setHover = useCallback(
-    (idx) => {
+    (idx: number | null) => {
       setHoverIdx(idx);
       if (typeof onFocusPoint === "function") {
         onFocusPoint(idx != null ? data[idx] || null : null);
@@ -194,7 +218,7 @@ export function UsageTrendChart(props) {
     [data, onFocusPoint]
   );
 
-  const handlePlotMove = (e) => {
+  const handlePlotMove = (e: MouseEvent) => {
     if (dragRef.current) return; // 拖拽刷选时不动游标
     setHover(clientToIndex(e.clientX));
   };
@@ -203,7 +227,7 @@ export function UsageTrendChart(props) {
   };
 
   // 键盘导航
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (length <= 0) return;
     const [s, en] = visRange;
     const cur = hoverIdx == null ? s : hoverIdx;
@@ -222,7 +246,7 @@ export function UsageTrendChart(props) {
   };
 
   // minimap 刷选
-  const onHandleDown = (e, handle) => {
+  const onHandleDown = (e: PointerEvent, handle: "start" | "end" | "move") => {
     e.preventDefault();
     e.stopPropagation();
     const svg = svgRef.current;
@@ -236,7 +260,7 @@ export function UsageTrendChart(props) {
       orig: range || [visRange[0], visRange[1]],
     };
   };
-  const onSvgPointerMove = (e) => {
+  const onSvgPointerMove = (e: PointerEvent) => {
     const drag = dragRef.current;
     if (!drag) return;
     const idx = clientToIndex(e.clientX);
@@ -518,9 +542,9 @@ export function UsageTrendChart(props) {
               {/* 全量面积缩略 */}
               {(() => {
                 if (length === 0) return null;
-                const mmX = (i) => plotLeft + (length <= 1 ? 0 : (i / (length - 1)) * (plotRight - plotLeft));
+                const mmX = (i: number) => plotLeft + (length <= 1 ? 0 : (i / (length - 1)) * (plotRight - plotLeft));
                 const mmMax = niceMax(Math.max(...data.map((p) => p.total || 0), 1));
-                const mmY = (v) => minimapBottom - (v / mmMax) * (minimapBottom - minimapTop);
+                const mmY = (v: number) => minimapBottom - (v / mmMax) * (minimapBottom - minimapTop);
                 let d = `M ${mmX(0)} ${minimapBottom}`;
                 for (let i = 0; i < length; i++) d += ` L ${mmX(i).toFixed(2)} ${mmY(data[i].total || 0).toFixed(2)}`;
                 d += ` L ${mmX(length - 1)} ${minimapBottom} Z`;

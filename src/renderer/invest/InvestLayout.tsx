@@ -72,7 +72,7 @@ export function InvestLayout() {
   useEffect(() => {
     if (typeof window === "undefined" || !window.metalsApi) return undefined;
     let cancelled = false;
-    let cleanupStore = null;
+    let cleanupStore: (() => void) | null = null;
     import("../metals/metalStore.ts").then((mod) => {
       if (cancelled) return;
       cleanupStore = () => mod.cleanupMetalStore();
@@ -102,7 +102,7 @@ export function InvestLayout() {
     <div class="invest-layout">
       <InvestLayoutHeader
         fundPage={fundPage.value}
-        onFundPageChange={(k) => setFundPage(k)}
+        onFundPageChange={(k: any) => setFundPage(k)}
         onRefresh={() => {
           void refreshActiveNav("invest");
         }}

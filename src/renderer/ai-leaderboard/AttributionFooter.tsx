@@ -8,7 +8,7 @@
 
 import { ATTRIBUTION } from "./types.ts";
 
-export function AttributionFooter({ attribution }) {
+export function AttributionFooter({ attribution }: { attribution: any }) {
   const active = Array.isArray(attribution) ? attribution.slice() : [];
 
   // 强制 AA 署名（即使主进程未返回，也保证出现）
@@ -17,7 +17,11 @@ export function AttributionFooter({ attribution }) {
   }
 
   const items = active
-    .map((a) => (a && a.id && ATTRIBUTION[a.id] ? ATTRIBUTION[a.id] : a))
+    .map((a) =>
+      a && a.id && ATTRIBUTION[a.id as keyof typeof ATTRIBUTION]
+        ? ATTRIBUTION[a.id as keyof typeof ATTRIBUTION]
+        : a,
+    )
     .filter(Boolean);
 
   return (

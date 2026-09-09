@@ -27,11 +27,12 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
   const md = m.modelsdev || {};
   const lbData = m.livebench || {};
   const byCat = lbData.byCategory || {};
+  const vendorMeta = VENDOR_META as Record<string, { label: string } | undefined>;
   const vendorLabel =
-    (VENDOR_META[m.vendor] && VENDOR_META[m.vendor].label) || m.vendor || "—";
+    vendorMeta[m.vendor]?.label || m.vendor || "—";
 
   // Arena 切片（所有视角复用，避免分支内重复解构）
-  const boardMeta = view === "arena" ? (ARENA_BOARDS[board] || ARENA_BOARDS.text) : null;
+  const boardMeta = view === "arena" ? ((ARENA_BOARDS as Record<string, { key: string }>)[board] || ARENA_BOARDS.text) : null;
   const arenaSlice = boardMeta && m.arena && m.arena[boardMeta.key] ? m.arena[boardMeta.key] : null;
   const licKind = licenseKind(m.license);
   const licBadge =
@@ -143,7 +144,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
   );
 
   // 内联条形：仅主指标列（primaryKey）渲染，width = 值/primaryMax。
-  function bar(key, value) {
+  function bar(key: string, value: unknown) {
     if (key !== primaryKey || !primaryMax || typeof value !== "number" || !isFinite(value)) {
       return null;
     }
@@ -263,7 +264,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
     const catName = isText ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT)
       : isCode ? (activeCodeCat.value || CODE_CATEGORY_DEFAULT) : null;
     const catSlice = (isText || isCode) && arenaSlice && arenaSlice.categories
-      ? (catName === "overall" ? arenaSlice : (arenaSlice.categories[catName] || null))
+      ? (catName === "overall" ? arenaSlice : (arenaSlice.categories[catName!] || null))
       : null;
     const elo = dim && typeof dim.score === "number"
       ? dim.score

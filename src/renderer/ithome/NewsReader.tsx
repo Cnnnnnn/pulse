@@ -11,19 +11,19 @@ import { NewsAnalysisPanel } from "./NewsAnalysisPanel.tsx";
 
 const MIN_USEFUL_BODY_CHARS = 200;
 
-function bodyText(article) {
+function bodyText(article: any) {
   return String(article?.body || article?.excerpt || "").trim();
 }
 
-function splitParagraphs(text) {
+function splitParagraphs(text: string) {
   return text
     .split(/\n{2,}|\r\n|\n/)
     .map((part) => part.trim())
     .filter(Boolean);
 }
 
-function fetchReason(reason) {
-  const labels = {
+function fetchReason(reason: string) {
+  const labels: Record<string, string> = {
     article_not_found: "文章已过期，无法加载正文",
     fetch_failed: "正文加载失败，请稍后重试",
     parse_failed: "正文格式暂时无法解析",
@@ -32,7 +32,7 @@ function fetchReason(reason) {
   return labels[reason] || reason || "正文加载失败";
 }
 
-export function NewsReader({ article }) {
+export function NewsReader({ article }: { article: any }) {
   const [bodyLoading, setBodyLoading] = useState(false);
   const [bodyError, setBodyError] = useState("");
   const [favoriteBusy, setFavoriteBusy] = useState(false);

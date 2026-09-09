@@ -53,11 +53,15 @@ export function ChangelogSummary({ appName }: { appName: string }) {
       if (r && r.ok) {
         setSummary(r);
       } else {
-        const { label, raw } = humanizeAiError(r && r.reason, r && r.error);
+        const { label, raw } = humanizeAiError((r && r.reason) || "", r && r.error);
         setError({ label, raw });
       }
     } catch (err) {
-      setError({ label: "获取失败", raw: (err && err.message) || "" });
+      const rawMsg =
+        err && typeof err === "object" && "message" in err
+          ? (err as { message?: unknown }).message
+          : null;
+      setError({ label: "获取失败", raw: (typeof rawMsg === "string" && rawMsg) || "" });
     } finally {
       setLoading(false);
     }
@@ -102,6 +106,8 @@ export function ChangelogSummary({ appName }: { appName: string }) {
       </div>
     );
   }
+
+  if (!summary) return null;
 
   const items = (summary && summary.highlights) || [];
   const showList =

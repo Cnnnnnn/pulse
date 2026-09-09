@@ -90,7 +90,7 @@ function changelogPreview(raw: string | undefined | null): string {
 function muteUntilLabel(untilMs: number): string {
   if (!untilMs) return '永远';
   const d = new Date(untilMs);
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getMonth() + 1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 

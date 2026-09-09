@@ -10,7 +10,7 @@
  */
 const CARD_LABELS = ["基本面", "估值", "资金", "技术", "舆情", "业绩预期", "股东", "股本"];
 
-function CardSkeleton({ label }) {
+function CardSkeleton({ label }: { label: string }) {
   return (
     <div class="module-card module-card-skel">
       <div class="skel-line skel-line-title" />

@@ -9,18 +9,18 @@
  *   给 FundDashboard KPI 卡用, 不复用以免一个组件两套 props.
  */
 
-function buildPoints(values, w, h, pad) {
+function buildPoints(values: number[], w: number, h: number, pad: number): { x: number; y: number }[] {
   if (!values || values.length < 2) return [];
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min || 1;
-  return values.map((v, i) => ({
+  return values.map((v: number, i: number) => ({
     x: pad + (i / (values.length - 1)) * (w - pad * 2),
     y: h - pad - ((v - min) / span) * (h - pad * 2),
   }));
 }
 
-export function FundSparkline({ values, width = 120, height = 32, emptyHint = "—" }) {
+export function FundSparkline({ values, width = 120, height = 32, emptyHint = "—" }: { values?: any; width?: number; height?: number; emptyHint?: any }) {
   const v = Array.isArray(values) ? values.filter(Number.isFinite) : [];
   if (v.length < 2) {
     // 2026-07-14: 缺数据时给个 "—" 占位 — 之前返回空 div, 用户不知道是 bug 还是真的没数据
@@ -37,7 +37,7 @@ export function FundSparkline({ values, width = 120, height = 32, emptyHint = "�
   }
   const pts = buildPoints(v, width, height, 2);
   const d = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .map((p: { x: number; y: number }, i: number) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(" ");
   const up = v[v.length - 1] >= v[0];
   return (

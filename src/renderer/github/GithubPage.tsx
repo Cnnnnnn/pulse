@@ -44,7 +44,7 @@ const KNOWN_REASONS = new Set([
   "parse_error", "no_readme", "server_error",
 ]);
 
-function _reportCheckResult(r) {
+function _reportCheckResult(r: any) {
   if (!r || !r.ok) return;
   const errorCount = r.errorCount || 0;
   const skippedCount = r.skippedCount || 0;
@@ -58,7 +58,7 @@ function _reportCheckResult(r) {
   }
   if (errorCount === 0 && skippedCount > 0) {
     const names = (r.skippedProjects || [])
-      .map((f) => f.name)
+      .map((f: any) => f.name)
       .slice(0, 3)
       .join("、");
     const more = skippedCount > 3 ? ` 等 ${skippedCount} 个` : "";
@@ -71,7 +71,7 @@ function _reportCheckResult(r) {
   }
   if (errorCount > 0) {
     const details = (r.failedProjects || [])
-      .map((f) => {
+      .map((f: any) => {
         const text = githubReasonText(f.reason);
         const rlBits = [];
         if (f.reason === "rate_limited") {
@@ -90,18 +90,18 @@ function _reportCheckResult(r) {
       })
       .join("、");
     const fps = r.failedProjects || [];
-    const hint = fps.some((f) => f.reason === "auth_invalid")
+    const hint = fps.some((f: any) => f.reason === "auth_invalid")
       ? " · 请在 设置 → GitHub 中重新生成 Token"
-      : fps.some((f) => f.reason === "rate_limited")
+      : fps.some((f: any) => f.reason === "rate_limited")
         ? " · 可在 设置 → GitHub 配置 Token 解除 60 次/小时限制"
         : fps.some(
-            (f) =>
+            (f: any) =>
               f.reason === "network_error" ||
               f.reason === "fetch_failed" ||
               f.reason === "timeout",
           )
           ? " · 请检查网络连接"
-          : fps.some((f) => f.reason === "server_error")
+          : fps.some((f: any) => f.reason === "server_error")
             ? " · GitHub 服务暂时异常，请稍后重试"
             : "";
     const skipNote = skippedCount > 0 ? `（另有 ${skippedCount} 个已失效）` : "";
@@ -129,14 +129,14 @@ export function GithubPage() {
     sort: "added",
   });
 
-  function handleView(id, tab = "overview") {
+  function handleView(id: any, tab: string = "overview") {
     setDrawerTab(tab);
     setDrawerId(id);
     // 通过「新版本」徽标进入更新 tab 时，主动标记为已读（徽标随即消失）
     if (tab === "update") markGithubSeen(id);
   }
 
-  function handleParse(id) {
+  function handleParse(id: any) {
     setDrawerTab("ai");
     setDrawerId(id);
   }
@@ -147,7 +147,7 @@ export function GithubPage() {
     setProgress({ done: 0, total: githubProjects.value.length });
     try {
       const r = await checkGithubUpdates({
-        onProgress: (done, total) => setProgress({ done, total }),
+        onProgress: (done: number, total: number) => setProgress({ done, total }),
       });
       _reportCheckResult(r);
       return r;
@@ -164,7 +164,7 @@ export function GithubPage() {
     setProgress({ done: 0, total: lastFailedIds.value.length });
     try {
       const r = await retryFailedGithubUpdates({
-        onProgress: (done, total) => setProgress({ done, total }),
+        onProgress: (done: number, total: number) => setProgress({ done, total }),
       });
       _reportCheckResult(r);
       return r;
@@ -180,7 +180,7 @@ export function GithubPage() {
     return n;
   }
 
-  async function handleRemove(project) {
+  async function handleRemove(project: any) {
     const ok = await openConfirm({
       title: "取消收录该项目？",
       message: `将从你的 GitHub 收录库中移除「${project.name}」，此操作不可撤销。`,
@@ -255,7 +255,7 @@ export function GithubPage() {
               onView={handleView}
               onParse={handleParse}
               onRemove={handleRemove}
-              onTogglePin={(project) => togglePinGithubProject(project.id)}
+              onTogglePin={(project: any) => togglePinGithubProject(project.id)}
             />
           </div>
         </div>

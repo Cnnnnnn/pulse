@@ -64,7 +64,7 @@ const GAP_REASON_TEXT = {
 };
 function gapReasonText(gap: any) {
   const r = gap.reason || "unknown";
-  return GAP_REASON_TEXT[r] || `${r}${gap.error ? `: ${gap.error}` : ""}`;
+  return GAP_REASON_TEXT[r as keyof typeof GAP_REASON_TEXT] || `${r}${gap.error ? `: ${gap.error}` : ""}`;
 }
 
 function computeDataGaps(perAngleData: any) {
@@ -74,7 +74,7 @@ function computeDataGaps(perAngleData: any) {
     if (!e || e.status !== "ok") {
       gaps.push({
         key: k,
-        label: ANGLE_LABELS[k] || k,
+        label: ANGLE_LABELS[k as keyof typeof ANGLE_LABELS] || k,
         reason: e ? e.reason || "unknown" : "missing",
         error: e ? e.error || null : null,
       });
@@ -92,16 +92,28 @@ export const stockDiagnosisCode = signal(null);
 
 // 当前诊断股票信息 { code, name, industry, price?, changePct? } — 搜索选中时存完整信息,
 // 不依赖筛选结果列表 (搜索诊断时 results 为空, 之前 hero 拿不到 name).
-export const diagnosisStock = signal(null);
+export const diagnosisStock = signal<any>(null);
 
 // 诊断页数据状态:
 //   status: idle|loading|ready|error (数据拉取)
 //   aiStatus: idle|loading|ready|error (AI 解读, 手动触发)
 //   errorReason: 后端 reason 透出 (timeout / parse_failed / llm_failed / budget_exceeded / api_key_missing / auth_401 ...)
 //   aiStartedAt: loading 起算时间戳 (ms), 前端用于显示已等待秒数, 避免"卡住"的体感
-export const diagnosisState = signal({
+// ponytail: code 偶发写进 state（reloadAngle 兜底读）；默认 null
+type DiagnosisState = {
+  status: string;
+  code: string | null;
+  perAngleData: Record<string, any>;
+  scores: any;
+  aiResult: any;
+  aiStatus: string;
+  error: string | null;
+  errorReason: string | null;
+  aiStartedAt: number | null;
+  dataGaps: any[];
+};
+export const diagnosisState = signal<DiagnosisState>({
   status: "idle",
-  // ponytail: code 偶发写进 state（reloadAngle 兜底读）；默认 null
   code: null as string | null,
   perAngleData: {},
   scores: null,
@@ -119,7 +131,7 @@ export const diagnosisState = signal({
 // ponytail: 2026-07-07 P1-1 — 核心数据 (perAngle + scores) 和 AI 解读不再串行.
 // loadDiagnosis 只 fetch 数据 + 算分. AI 解读由用户在 VerdictCard 点「生成解读」手动触发,
 // 避免一进诊断页就打 LLM 浪费 token. aiStatus 默认 idle (不主动跑), aiResult 为 null.
-let _aiPromise = null;
+let _aiPromise: symbol | Promise<unknown> | null = null;
 
 // 开启诊断: 设 stock 信息 + 切 tab + 立即拉数据.
 // stock 是 { code, name, industry? } (搜索联想项) 或 { code, name, price, changePct, ... } (筛选行).
@@ -316,11 +328,11 @@ export async function requestAiSummary(api: any, code: string, override?: any) {
 // ponytail: 2026-07-07 P1-2 — 单条 angle 的本地重解读, 不调 LLM. 把新 note 写回
 // aiResult.perAngle[angleKey], 0.05s 出新句. refreshingAngles 单独 signal, 避免
 // 触发整个 diagnosisState 的订阅.
-export const refreshingAngles = signal(new Set());
+export const refreshingAngles = signal<Set<string>>(new Set());
 
 // ponytail: 2026-07-07 — 失败闪烁: 跟 refreshingAngles 互斥 (失败时才进).
 //          2 秒后自动清, 给按钮闪一下红 + 一行 toast 类提示 (AiNoteLine 内部渲染).
-export const failedAngles = signal(new Set());
+export const failedAngles = signal<Set<string>>(new Set());
 
 export async function refreshAngle(api: any, angleKey: any) {
   const { perAngleData, aiResult, scores } = diagnosisState.value;

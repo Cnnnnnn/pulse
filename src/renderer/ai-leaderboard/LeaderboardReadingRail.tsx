@@ -39,8 +39,19 @@ import {
   uiCategoryOfBoard,
 } from "./types.ts";
 import { IconCheck, IconChevronDown, IconSparkles } from "../components/icons.tsx";
+import type { ComponentChildren } from "preact";
 
-function RailDimensionButton({ active, label, sub = "", onClick }) {
+function RailDimensionButton({
+  active,
+  label,
+  sub = "",
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  sub?: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -57,7 +68,17 @@ function RailDimensionButton({ active, label, sub = "", onClick }) {
   );
 }
 
-function RailSelect({ label, value, onChange, children }) {
+function RailSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  children?: ComponentChildren;
+}) {
   return (
     <label class="ai-lb-rail__select">
       <span>{label}</span>
@@ -72,7 +93,7 @@ function RailSelect({ label, value, onChange, children }) {
 }
 
 function ArenaRailControls() {
-  const category = uiCategoryOfBoard(activeBoard.value);
+  const category = uiCategoryOfBoard(activeBoard.value as keyof typeof ARENA_BOARDS);
   const categoryMeta = ARENA_CATEGORIES.find((item) => item.key === category) || ARENA_CATEGORIES[0];
 
   return (
@@ -101,7 +122,7 @@ function ArenaRailControls() {
         >
           {categoryMeta.boards.map((boardKey) => (
             <option key={boardKey} value={boardKey}>
-              {ARENA_BOARDS[boardKey].label}
+              {ARENA_BOARDS[boardKey as keyof typeof ARENA_BOARDS].label}
             </option>
           ))}
         </RailSelect>
@@ -129,11 +150,11 @@ function ArenaRailControls() {
   );
 }
 
-function dimensionsForView(view) {
+function dimensionsForView(view: string) {
   if (view === "aa") {
     return AA_DIMENSION_KEYS.map((key) => ({
       key,
-      label: AA_DIMENSIONS[key].label,
+      label: AA_DIMENSIONS[key as keyof typeof AA_DIMENSIONS].label,
       active: activeDim.value === key,
       onClick: () => setDim(key),
     }));
@@ -141,7 +162,7 @@ function dimensionsForView(view) {
   if (view === "livebench") {
     return LIVE_DIMENSION_KEYS.map((key) => ({
       key,
-      label: LIVE_DIMENSIONS[key].label,
+      label: LIVE_DIMENSIONS[key as keyof typeof LIVE_DIMENSIONS].label,
       active: activeLB.value === key,
       onClick: () => setLB(key),
     }));
@@ -149,7 +170,7 @@ function dimensionsForView(view) {
   if (view === "huggingface") {
     return HF_DIMENSION_KEYS.map((key) => ({
       key,
-      label: HF_DIMENSIONS[key].label,
+      label: HF_DIMENSIONS[key as keyof typeof HF_DIMENSIONS].label,
       active: activeDim.value === key,
       // HF 的各维度在同一快照中可本地切换，避免切换维度时再次挤压表格。
       onClick: () => {
@@ -160,7 +181,11 @@ function dimensionsForView(view) {
   return [];
 }
 
-export function LeaderboardReadingRail({ onAnalyze }) {
+export function LeaderboardReadingRail({
+  onAnalyze,
+}: {
+  onAnalyze: () => void;
+}) {
   const view = activeView.value;
   const selectedCount = compareList.value.length;
   const dimensions = dimensionsForView(view);
@@ -176,7 +201,7 @@ export function LeaderboardReadingRail({ onAnalyze }) {
         <h3 id="ai-lb-rail-sources">数据源</h3>
         <nav class="ai-lb-rail__source-list" aria-label="数据源视角">
           {VIEW_KEYS.map((key) => {
-            const meta = VIEWS[key];
+            const meta = VIEWS[key as keyof typeof VIEWS];
             const active = view === key;
             return (
               <button

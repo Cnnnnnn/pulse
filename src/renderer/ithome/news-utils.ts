@@ -29,7 +29,7 @@ export function monthDayRange(now: any = new Date()) {
   return { today, days, firstDay: days[0], lastDay: days[days.length - 1] };
 }
 
-export function shiftDateKey(dateKey, delta, now = new Date()) {
+export function shiftDateKey(dateKey: string, delta: number, now = new Date()) {
   const { days } = monthDayRange(now);
   const idx = days.indexOf(dateKey);
   if (idx < 0) return dateKey;
@@ -37,12 +37,12 @@ export function shiftDateKey(dateKey, delta, now = new Date()) {
   return next || dateKey;
 }
 
-export function canGoPrevDay(dateKey, now = new Date()) {
+export function canGoPrevDay(dateKey: string, now = new Date()) {
   const { days } = monthDayRange(now);
   return days.indexOf(dateKey) > 0;
 }
 
-export function canGoNextDay(dateKey, now = new Date()) {
+export function canGoNextDay(dateKey: string, now = new Date()) {
   const { days } = monthDayRange(now);
   const idx = days.indexOf(dateKey);
   return idx >= 0 && idx < days.length - 1;
@@ -140,7 +140,7 @@ export function favoriteCount(favorites: any) {
   return Object.keys(favorites || {}).length;
 }
 
-export function isTodayDateKey(dateKey, now = new Date()) {
+export function isTodayDateKey(dateKey: string, now = new Date()) {
   return dateKey === todayShanghaiDateKey(now);
 }
 

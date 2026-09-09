@@ -7,7 +7,12 @@ import { IndustryCompareBar } from "./IndustryCompareBar.tsx";
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard,
 //   ModuleCard 自动渲 DataHealthPill (4 态 + failed 重试按钮).
-export function FundamentalsCard({ data, peerCompare, angle = null, onRefresh = null }) {
+export function FundamentalsCard({ data, peerCompare, angle = null, onRefresh = null }: {
+  data: any;
+  peerCompare?: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   const fetchedAt = data?.status === "ok" ? data.fetchedAt : null;
   const showRoe = peerCompare && peerCompare.roeIndustryMedian != null && d?.roe != null;

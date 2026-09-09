@@ -26,8 +26,8 @@ const log = taggedLog("[store/ai-usage]");
 
 export const AI_USAGE_PROVIDERS = ["minimax", "glm"];
 
-function emptySlots(value: any) {
-  const out = {};
+function emptySlots(value: any): Record<string, any> {
+  const out: Record<string, any> = {};
   for (const pid of AI_USAGE_PROVIDERS) out[pid] = value;
   return out;
 }

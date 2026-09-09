@@ -44,7 +44,7 @@ const log = taggedLog("[ai-usage]");
 
 // ─── 格式化 helpers ────────────────────────────────────────────
 
-function formatAge(ms, now) {
+function formatAge(ms: number, now: number) {
   if (typeof ms !== "number" || ms <= 0) return "—";
   const diff = Math.max(0, Math.floor((now - ms) / 1000));
   if (diff < 60) return `${diff} 秒前`;
@@ -67,7 +67,7 @@ const PROVIDER_META = {
  * GLM 的 token 数动辄亿级, 单独紧凑格式化 (复用 format-glm 纯函数).
  * minimax 用 toLocaleString 原样.
  */
-function formatTodayUsed(provider, used) {
+function formatTodayUsed(provider: string, used: number | null) {
   if (used === null) return null;
   if (provider === "glm") {
     const s = formatTokens(used);
@@ -76,12 +76,12 @@ function formatTodayUsed(provider, used) {
   return `${used.toLocaleString()} 单位`;
 }
 
-function ProviderUsageView({ provider }) {
-  const snapshots = aiUsageSnapshot.value;
-  const histories = aiUsageHistory.value;
-  const errors = aiUsageLastError.value;
-  const fetchingMap = aiUsageFetching.value;
-  const fromCacheMap = aiUsageFromCache.value;
+function ProviderUsageView({ provider }: { provider: string }) {
+  const snapshots = aiUsageSnapshot.value as Record<string, any>;
+  const histories = aiUsageHistory.value as Record<string, any>;
+  const errors = aiUsageLastError.value as Record<string, any>;
+  const fetchingMap = aiUsageFetching.value as Record<string, any>;
+  const fromCacheMap = aiUsageFromCache.value as Record<string, any>;
   const dataState = aiUsageDataState?.value || { phase: "idle", error: null };
   const now = useNowTick();
 
@@ -95,7 +95,7 @@ function ProviderUsageView({ provider }) {
     !snapshot && !lastError && !hasAnySnapshot ? dataState.error : null;
   const initialLoading =
     !snapshot && !lastError && !dataStateError && dataState.phase === "loading";
-  const meta = PROVIDER_META[provider] || PROVIDER_META.minimax;
+  const meta = PROVIDER_META[provider as keyof typeof PROVIDER_META] || PROVIDER_META.minimax;
 
   const onRefresh = async () => {
     log.info("manual refresh clicked, provider=", provider);
@@ -121,7 +121,7 @@ function ProviderUsageView({ provider }) {
 
   const todayLabel = formatTodayUsed(provider, todayUsed);
 
-  const prefs = aiUsageAlertPrefs.value;
+  const prefs = aiUsageAlertPrefs.value as { enabled: boolean; absMinPct: number; spikeRatio: number; reAlertStepPct: number; lastNotified: Record<string, { date: string; percent: number }> };
   const prevNotified = prefs.lastNotified?.[provider];
   const lastNotifiedPercent =
     prevNotified && prevNotified.date === todayKey()
@@ -175,7 +175,7 @@ function ProviderUsageView({ provider }) {
                 class={`ai-usage-tab${pid === provider ? " ai-usage-tab--active" : ""}`}
                 onClick={() => setActiveProvider(pid)}
               >
-                {(PROVIDER_META[pid] || { label: pid }).label}
+                {(PROVIDER_META[pid as keyof typeof PROVIDER_META] || { label: pid }).label}
               </button>
             ))}
           </div>

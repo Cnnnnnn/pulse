@@ -2,7 +2,11 @@ import { ModuleCard } from "./ModuleCard.tsx";
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard
 //   (3 个早 return 也要带, 否则 failed 时 pill 不显示).
-export function CapitalFlowCard({ data, angle = null, onRefresh = null }) {
+export function CapitalFlowCard({ data, angle = null, onRefresh = null }: {
+  data: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   if (!d) {
     return <ModuleCard variant="capital" title="🌊 资金面" angle={angle} onRefresh={onRefresh} empty="数据不足" />;

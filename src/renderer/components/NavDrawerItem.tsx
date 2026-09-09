@@ -65,7 +65,7 @@ export function NavDrawerItem({
   const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
 
   // contextmenu 弹窗: 始终在 li 上右键就开, 不论 active / collapsed
-  function handleContextMenu(e) {
+  function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     if (dialogRef.current && typeof dialogRef.current.showModal === "function") {
       dialogRef.current.showModal();
@@ -81,20 +81,20 @@ export function NavDrawerItem({
     }
   }
 
-  function handleDragStart(e) {
+  function handleDragStart(e: DragEvent) {
     if (!draggable) {
       e.preventDefault();
       return;
     }
-    e.dataTransfer.setData("text/plain", item.key);
-    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer!.setData("text/plain", item.key);
+    e.dataTransfer!.effectAllowed = "move";
     if (liRef.current) liRef.current.classList.add("nav-drawer-item-dragging");
   }
 
-  function handleDragOver(e) {
+  function handleDragOver(e: DragEvent) {
     if (!draggable) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+    e.dataTransfer!.dropEffect = "move";
     if (!liRef.current) return;
     const rect = liRef.current.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
@@ -117,9 +117,9 @@ export function NavDrawerItem({
     clearDropIndicator();
   }
 
-  function handleDrop(e) {
+  function handleDrop(e: DragEvent) {
     e.preventDefault();
-    const fromKey = e.dataTransfer.getData("text/plain");
+    const fromKey = e.dataTransfer!.getData("text/plain");
     if (!fromKey || fromKey === item.key) {
       clearDropIndicator();
       return;
@@ -151,9 +151,9 @@ export function NavDrawerItem({
   useEffect(() => {
     const dlg = dialogRef.current;
     if (!dlg) return undefined;
-    function onCancel(e) {
+    function onCancel(e: Event) {
       e.preventDefault();
-      dlg.close();
+      dlg!.close();
     }
     dlg.addEventListener("cancel", onCancel);
     return () => dlg.removeEventListener("cancel", onCancel);

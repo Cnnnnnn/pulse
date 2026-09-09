@@ -9,15 +9,15 @@
 import { IconAlert } from "../../components/icons.tsx";
 import { gapReasonText } from "../diagnosisStore.js";
 
-export function DataGapsIndicator({ gaps }) {
+export function DataGapsIndicator({ gaps }: { gaps?: any[] }) {
   if (!gaps || gaps.length === 0) return null;
-  const labels = gaps.map((g) => g.label).join("、");
+  const labels = gaps.map((g: any) => g.label).join("、");
   return (
     <div class="diagnosis-data-gaps" role="status" aria-live="polite">
       <IconAlert size={14} class="diagnosis-data-gaps-icon" />
       <span class="diagnosis-data-gaps-text">
         以下维度数据缺失, 暂不参与判断:&nbsp;
-        {gaps.map((g, i) => (
+        {gaps.map((g: any, i: number) => (
           <span key={g.key}>
             <strong title={gapReasonText(g)}>{g.label}</strong>
             {i < gaps.length - 1 && "、"}

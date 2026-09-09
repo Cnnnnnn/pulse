@@ -22,7 +22,7 @@ const TABS = [
 export function CategoryTabs() {
   // 数字键 1-6 切换
   useEffect(() => {
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const n = parseInt(e.key, 10);
       if (!Number.isFinite(n) || n < 1 || n > TABS.length) return;

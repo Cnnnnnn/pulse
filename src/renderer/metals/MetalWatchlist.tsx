@@ -26,7 +26,7 @@ import {
   isMetalPinned, addWatchlistItem, removeWatchlistItem,
 } from "../watchlist/watchlist-store.ts";
 
-export function MetalWatchlist({ onSelect }) {
+export function MetalWatchlist({ onSelect }: { onSelect?: any }) {
   return (
     <section class="metals-panel" aria-label="行情榜">
       <div class="metals-panel-head">
@@ -42,12 +42,12 @@ export function MetalWatchlist({ onSelect }) {
   );
 }
 
-function WatchRow({ metal, onSelect }) {
+function WatchRow({ metal, onSelect }: { metal: any; onSelect?: any }) {
   const quote = quoteCache.value.data[metal.id];
   const error = quoteCache.value.errors[metal.id];
   const fx = fxCache.value.rate;
   const arr = historyMap.value[metal.id] || [];
-  const closes = arr.map((p) => p.close / (metal.unitDivisor || 1));
+  const closes = arr.map((p: any) => p.close / (metal.unitDivisor || 1));
   const hasHistory = closes.length >= 2;
 
   const refCNY = getRefPriceCNY(quote, fx);
@@ -69,7 +69,7 @@ function WatchRow({ metal, onSelect }) {
     : "var(--metals-flat)";
 
   const pinned = isMetalPinned(metal.id);
-  const togglePin = (e) => {
+  const togglePin = (e: any) => {
     e.stopPropagation();
     if (pinned) {
       removeWatchlistItem({ type: "metal", ref: metal.id });
@@ -81,7 +81,7 @@ function WatchRow({ metal, onSelect }) {
   };
 
   const select = () => { if (onSelect) onSelect(metal.id); };
-  const onKeyDown = (e) => {
+  const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       select();

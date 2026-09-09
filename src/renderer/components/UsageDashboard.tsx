@@ -28,7 +28,7 @@ import { formatCompact } from "../utils/number.ts";
 /**
  * 大数 → 千分位整数 (渲染 tooltip / 详情). 例: 12345678 → "12,345,678".
  */
-function formatFull(n) {
+function formatFull(n: any) {
   if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
   return Math.round(n).toLocaleString("en-US");
 }
@@ -37,7 +37,7 @@ function formatFull(n) {
  * 排名百分位 → 中文标签.
  * usage_ranking_percent: 1=Top 1%, 50=中位数, 100=垫底.
  */
-function formatRankingLabel(pct) {
+function formatRankingLabel(pct: any) {
   if (typeof pct !== "number" || !Number.isFinite(pct) || pct < 0) return null;
   if (pct <= 0) return "Top 0%";
   if (pct >= 100) return "垫底";
@@ -47,7 +47,7 @@ function formatRankingLabel(pct) {
 /**
  * "2026-07-10" → "07-10" (短). null → "—".
  */
-function formatDateShort(isoDate) {
+function formatDateShort(isoDate: any) {
   if (typeof isoDate !== "string" || isoDate.length === 0) return "—";
   const m = /^\d{4}-(\d{2})-(\d{2})/.exec(isoDate);
   if (!m) return isoDate;
@@ -210,7 +210,7 @@ function UsageProviderHero({ snapshot, provider }: { snapshot: any; provider?: s
 /**
  * 把秒数倒计时格式化成简短中文: 3600 → "1h 0m", 90 → "1m 30s".
  */
-function formatResetIn(sec) {
+function formatResetIn(sec: any) {
   if (!Number.isFinite(sec) || sec < 0) return "—";
   if (sec < 60) return `${Math.round(sec)}s`;
   if (sec < 3600) return `${Math.round(sec / 60)}m`;
@@ -228,7 +228,7 @@ function formatResetIn(sec) {
  * 顶部概览条 — 用 usageSummary 数据的 4 KPI 卡 (累计 / 周期 / 连续 / 排名).
  * 仅当 usageSummary 拿到时渲染 (深度统计).
  */
-function UsageOverviewStrip({ usageSummary }) {
+function UsageOverviewStrip({ usageSummary }: { usageSummary: any }) {
   const daily = Array.isArray(usageSummary.dailyTokenUsage) ? usageSummary.dailyTokenUsage : [];
   const cells = useMemo(() => {
     const out = [];
@@ -313,7 +313,7 @@ function UsageOverviewStrip({ usageSummary }) {
  * 数据缺失 (values 为空 / 全为 null) → 渲染占位横线, 不崩.
  * ponytail: 复用 UsageTrendChart 的 buildLinePath 思想, 但简化为单序列 mini SVG.
  */
-function MiniLineChart({ values, mode }) {
+function MiniLineChart({ values, mode }: { values?: any[]; mode?: string }) {
   const W = 220;
   const H = 36;
   const PAD = 2;
@@ -336,8 +336,8 @@ function MiniLineChart({ values, mode }) {
   }
 
   const max = mode === "consecutive" ? 1 : series.reduce((m, v) => (v > m ? v : m), 0);
-  const xAt = (i) => PAD + (i * (W - 2 * PAD)) / Math.max(1, series.length - 1);
-  const yAt = (v) => {
+  const xAt = (i: number) => PAD + (i * (W - 2 * PAD)) / Math.max(1, series.length - 1);
+  const yAt = (v: number) => {
     const norm = max > 0 ? v / max : 0;
     return H - PAD - norm * (H - 2 * PAD);
   };
@@ -362,7 +362,7 @@ function MiniLineChart({ values, mode }) {
 /**
  * 最活跃日卡 — 大数字 + 日期徽章 + 媒体计数 chip.
  */
-function MostActiveDayCard({ usageSummary }) {
+function MostActiveDayCard({ usageSummary }: { usageSummary: any }) {
   const mad = usageSummary.mostActiveDay;
   if (!mad || !mad.date) return null;
   const totalMedia = (mad.imageCount ?? 0) + (mad.videoCount ?? 0) + (mad.musicCount ?? 0) + (mad.voiceCharacterCount ?? 0);
@@ -401,7 +401,7 @@ function MostActiveDayCard({ usageSummary }) {
  *         → useUsageSeries hook (派生 SeriesPoint[] + lastWeek 对照线)
  *         → UsageTrendChart (渲染 SVG 面积图 + 刷选 + 十字游标).
  */
-function UsageTrendSection({ usageSummary }) {
+function UsageTrendSection({ usageSummary }: { usageSummary: any }) {
   const { dailyTokenUsage, recent7Avg, recent30Avg } = usageSummary;
   const { points, status } = useUsageSeries(dailyTokenUsage);
   if (!Array.isArray(dailyTokenUsage) || dailyTokenUsage.length === 0) return null;
@@ -441,7 +441,7 @@ function UsageTrendSection({ usageSummary }) {
 /**
  * 模型分布表 — 按 90 天 token 占比降序, 多色横条 + dot indicator.
  */
-function ModelBreakdownTable({ usageSummary }) {
+function ModelBreakdownTable({ usageSummary }: { usageSummary: any }) {
   const breakdown = usageSummary.modelBreakdown;
   if (!Array.isArray(breakdown) || breakdown.length === 0) return null;
   return (
@@ -478,7 +478,7 @@ function ModelBreakdownTable({ usageSummary }) {
 
 // ─── 主组件 ──────────────────────────────────────────────
 
-export function UsageDashboard({ snapshot, history, provider }) {
+export function UsageDashboard({ snapshot, history, provider }: { snapshot?: any; history?: any; provider?: any }) {
   const usageSummary = snapshot && snapshot.usageSummary;
   const hasUsageSummary = usageSummary && typeof usageSummary === "object";
   const hasWindows = snapshot && snapshot.windows && Object.keys(snapshot.windows).length > 0;
@@ -607,7 +607,7 @@ export function UsageDashboard({ snapshot, history, provider }) {
 /**
  * GLM 套餐档 badge — 把 lite / pro / max 显示成可读 badge.
  */
-function UsagePlanBadge({ level }) {
+function UsagePlanBadge({ level }: { level?: any }) {
   const meta = useMemo(() => {
     const key = (level || "").toLowerCase();
     if (key === "lite") return { label: "Lite", accent: "var(--model-color-3)" };
@@ -628,13 +628,13 @@ function UsagePlanBadge({ level }) {
  * 数据形状: [{ modelCode, usage }]
  * 按 usage 降序, 每条一个 chip + 调用次数.
  */
-function UsageToolBreakdown({ items }) {
+function UsageToolBreakdown({ items }: { items: any[] }) {
   const sorted = useMemo(
-    () => items.slice().sort((a, b) => (b.usage || 0) - (a.usage || 0)),
+    () => items.slice().sort((a: any, b: any) => (b.usage || 0) - (a.usage || 0)),
     [items],
   );
   const total = useMemo(
-    () => sorted.reduce((sum, it) => sum + (it.usage || 0), 0),
+    () => sorted.reduce((sum: number, it: any) => sum + (it.usage || 0), 0),
     [sorted],
   );
   return (
@@ -644,7 +644,7 @@ function UsageToolBreakdown({ items }) {
         <span class="ai-usage-section-title">调用细分 · 当月</span>
       </div>
       <div class="ai-usage-tool-list">
-        {sorted.map((it, i) => {
+        {sorted.map((it: any, i: number) => {
           const colorIdx = modelColorIndex(it.modelCode, i);
           const pct = total > 0 ? Math.round(((it.usage || 0) / total) * 100) : 0;
           return (
@@ -677,7 +677,7 @@ function UsageToolBreakdown({ items }) {
 /**
  * 分析网格第三格 — 近 7 天用量迷你趋势 (从 AIUsagePage 的 history 传入).
  */
-function UsageHistoryCard({ history }) {
+function UsageHistoryCard({ history }: { history?: any }) {
   return (
     <div class="ai-usage-history-card">
       <div class="ai-usage-section-header">

@@ -2,17 +2,20 @@ import { useEffect, useState } from 'preact/hooks';
 import { navHistoryCache, loadFundNavHistory } from './fundStore.ts';
 import { api } from '../api.ts';
 
-export function buildSparklinePoints(values, w = 100, h = 24, pad = 2) {
+export function buildSparklinePoints(values: number[], w = 100, h = 24, pad = 2) {
   if (!values.length) return [];
   const min = Math.min(...values), max = Math.max(...values);
   const span = max - min || 1;
-  return values.map((v, i) => ({
+  return values.map((v: number, i: number) => ({
     x: pad + (i / (values.length - 1 || 1)) * (w - pad * 2),
     y: h - pad - ((v - min) / span) * (h - pad * 2),
   }));
 }
 
-export function FundCardSparkline({ code }) {
+type NavSeries = { nav: number };
+type NavHistoryCacheShape = Record<string, { series: NavSeries[] }>;
+
+export function FundCardSparkline({ code }: { code: string }) {
   const [status, setStatus] = useState('idle'); // idle | loading | ok | error
 
   useEffect(() => {
@@ -22,7 +25,8 @@ export function FundCardSparkline({ code }) {
       const r = await loadFundNavHistory(api, code);
       if (alive) setStatus(r && r.ok ? 'ok' : 'error');
     }
-    const c = navHistoryCache.value[code];
+    const cache = navHistoryCache.value as NavHistoryCacheShape;
+    const c = cache[code];
     if (!c || !c.series || !c.series.length) {
       void load();
     } else {
@@ -33,7 +37,8 @@ export function FundCardSparkline({ code }) {
     };
   }, [code]);
 
-  const series = (navHistoryCache.value[code] && navHistoryCache.value[code].series) || [];
+  const cache = navHistoryCache.value as NavHistoryCacheShape;
+  const series = (cache[code] && cache[code].series) || [];
 
   if (status === 'error') {
     return (

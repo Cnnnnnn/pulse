@@ -24,7 +24,7 @@ const NAV_KEYS: string[] = NAV_KEYS_LIST.slice();
 // ponytail: v3 迁移 — 旧 'ithome' / 'wechat-hot' 归一到 'news'.
 // v4 (2026-07-13): funds + metals + stocks 合并为 'invest' nav, 旧 key 归一到 'invest'.
 //   navStore.setActiveNav 也有同名 alias (运行时兼容), 这里负责 prefs 持久化层.
-const LEGACY_KEY_ALIAS = {
+const LEGACY_KEY_ALIAS: Record<string, string> = {
   ithome: "news",
   "wechat-hot": "news",
   funds: "invest",

@@ -22,12 +22,16 @@ import {
   MAX_COMPARE,
 } from "./comparePool.ts";
 
-export function AddToCompareButton({ entry, variant = "row", api }) {
+export function AddToCompareButton({ entry, variant = "row", api }: {
+  entry: any;
+  variant?: "row" | "card";
+  api?: { stocksSearch?: (code: string) => Promise<any> };
+}) {
   const inPool = isInCompare(entry.code);
   const full = compareIsFull.value;
-  const [flash, setFlash] = useState(null); // "added" | "removed" | "full"
+  const [flash, setFlash] = useState<"added" | "removed" | "full" | null>(null); // "added" | "removed" | "full"
 
-  function handleClick(e) {
+  function handleClick(e: MouseEvent) {
     e.stopPropagation();
     const r = toggleCompare(entry);
     if (!r.ok && r.reason === "full") {
@@ -37,14 +41,14 @@ export function AddToCompareButton({ entry, variant = "row", api }) {
     }
     if (r.ok && r.action === "added" && api && api.stocksSearch && entry && entry.price == null) {
       // ponytail: 缺价 → 后台拉一次补价 (静默失败 — drawer 端 useEnrichMissingPrices 兜底).
-      api.stocksSearch(entry.code).then((resp) => {
-        const got = resp && resp.results ? resp.results.find((x) => x && x.code === entry.code) : null;
+      api.stocksSearch(entry.code).then((resp: any) => {
+        const got = resp && resp.results ? resp.results.find((x: any) => x && x.code === entry.code) : null;
         if (got && got.price != null) {
           updateComparePrice(entry.code, { price: got.price, changePct: got.changePct ?? null });
         }
       }).catch(() => {});
     }
-    if (r.ok) {
+    if (r.ok && (r.action === "added" || r.action === "removed")) {
       setFlash(r.action);
       setTimeout(() => setFlash(null), 1200);
     }

@@ -50,9 +50,11 @@ import { createProgressBuffer } from './check-progress-buffer.ts';
 
 const log = taggedLog("[index]");
 
+type AppConfigShape = Awaited<ReturnType<typeof api.getConfig>>;
+
 import './category-init.ts';
 
-let activeRecheck = null;
+let activeRecheck: ReturnType<typeof createAutoRecheck> | null = null;
 
 async function triggerCheck() {
   if (isCheckRunning()) return;
@@ -65,7 +67,7 @@ function wireRendererListeners() {
     applyProgressBatch(batch, sessionId);
   });
 
-  api.onLastOpenedUpdated((data) => {
+  api.onLastOpenedUpdated((data: any) => {
     if (!data || !data.lastOpened) return;
     const next = new Map();
     for (const [k, v] of Object.entries(data.lastOpened)) next.set(k, v);
@@ -73,7 +75,7 @@ function wireRendererListeners() {
   });
 
   if (typeof api.onMainError === "function") {
-    api.onMainError((data) => {
+    api.onMainError((data: any) => {
       import("./store.ts").then(({ showToast }) => {
         const msg = (data && data.message) || "后台任务出错";
         showToast(`后台异常: ${msg}`, "error", 8000);
@@ -89,27 +91,27 @@ function wireRendererListeners() {
     });
   }
 
-  api.onStateRecovered((evt) => {
+  api.onStateRecovered((evt: any) => {
     import("./store.ts").then(({ stateRecoveredSignal }) => {
       if (evt) stateRecoveredSignal.value = evt;
     });
   });
 
   if (typeof api.onCheckStarted === 'function') {
-    api.onCheckStarted((data) => {
+    api.onCheckStarted((data: any) => {
       if (isCheckRunning()) {
         if (data && data.jobId) attachMainJobId(data.jobId);
         return;
       }
       const appNames = Array.isArray(data && data.appNames)
         ? data.appNames
-        : apps.value.map((app) => app && app.name).filter(Boolean);
+        : apps.value.map((app: any) => app && app.name).filter(Boolean);
       startCheck(appNames);
       if (data && data.jobId) attachMainJobId(data.jobId);
     });
   }
 
-  api.onCheckProgress((result) => {
+  api.onCheckProgress((result: any) => {
     if (!result || !result.name) return;
     if (result.status === 'started') {
       markAppDetecting(result.name, result && result._sessionId);
@@ -119,7 +121,7 @@ function wireRendererListeners() {
   });
 
   if (typeof api.onCheckFinished === 'function') {
-  api.onCheckFinished(async (data) => {
+  api.onCheckFinished(async (data: any) => {
       if (isCheckRunning()) {
         if (data && data.cancelled) cancelCheck("cancelled");
         else finishCheck();
@@ -136,7 +138,7 @@ function wireRendererListeners() {
   }
 
   if (typeof api.onCheckDetecting === 'function') {
-    api.onCheckDetecting((data) => {
+    api.onCheckDetecting((data: any) => {
       if (data && data.name) {
         markAppDetecting(data.name, data._sessionId);
       }
@@ -158,9 +160,9 @@ function wireRendererListeners() {
 
   api.onBulkUpgradeProgress(applyBulkUpgradeProgress);
   activeRecheck = createAutoRecheck({ triggerCheck });
-  api.onBulkUpgradeDone((summary) => {
+  api.onBulkUpgradeDone((summary: any) => {
     applyBulkUpgradeDone(summary);
-    activeRecheck.schedule();
+    activeRecheck?.schedule();
   });
 
   window.addEventListener('app-row:upgraded', () => triggerCheck());
@@ -199,7 +201,7 @@ function wireRendererListeners() {
   }
 }
 
-async function bootstrapDeferred(cfg) {
+async function bootstrapDeferred(cfg: AppConfigShape) {
   try {
     const cached = await api.getCachedState();
     if (cached && cached.apps) {
@@ -245,7 +247,7 @@ async function bootstrapDeferred(cfg) {
   }
 }
 
-function scheduleDeferredBootstrap(cfg) {
+function scheduleDeferredBootstrap(cfg: AppConfigShape) {
   const run = () => bootstrapDeferred(cfg).catch(() => {});
   if (typeof requestIdleCallback === 'function') {
     requestIdleCallback(run, { timeout: 2000 });
@@ -260,14 +262,14 @@ async function bootstrap() {
   hydrateChatHistory();
   startAssistantProactiveWatch();
 
-  let cfg = { apps: [], check_on_launch: true };
+  let cfg: AppConfigShape = { apps: [], check_on_launch: true };
   try {
     cfg = await api.getConfig();
     cfg.apps = cfg.apps || [];
   } catch (err) {
     log.error("getConfig failed:", err);
   }
-  apps.value = cfg.apps;
+  apps.value = cfg.apps as never[];
   primeConfigCache(cfg);
 
   // Phase 9: Dashboard 落点 — 拿到上次停留的 nav, 在 render 之前覆盖 activeNav,

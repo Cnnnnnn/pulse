@@ -14,7 +14,7 @@ const TYPE_TONE = {
   不确定: "neutral",
 };
 
-function formatChange(min, max) {
+function formatChange(min: any, max: any) {
   if (min == null && max == null) return "";
   if (min != null && max != null && min !== max) {
     return `${min > 0 ? "+" : ""}${min}% ~ ${max > 0 ? "+" : ""}${max}%`;
@@ -25,7 +25,11 @@ function formatChange(min, max) {
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard
 //   (2 个早 return 也要带, 否则 failed 时 pill 不显示).
-export function EarningsForecastCard({ data, angle = null, onRefresh = null }) {
+export function EarningsForecastCard({ data, angle = null, onRefresh = null }: {
+  data: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   const items = Array.isArray(d?.items) ? d.items : null;
   if (items && items.length === 0) {
@@ -35,7 +39,7 @@ export function EarningsForecastCard({ data, angle = null, onRefresh = null }) {
   if (!latest) {
     return <ModuleCard variant="earnings" title="📈 业绩预期" angle={angle} onRefresh={onRefresh} empty="数据不足" />;
   }
-  const tone = TYPE_TONE[latest.type] || "neutral";
+  const tone = TYPE_TONE[latest.type as keyof typeof TYPE_TONE] || "neutral";
   return (
     <ModuleCard
       variant="earnings"

@@ -15,8 +15,8 @@ function generateSessionId() {
   return `s-${Date.now()}-${_sessionCounter++}`;
 }
 
-export const apps = signal([]);
-export const results = signal(new Map());
+export const apps = signal<any[]>([]);
+export const results = signal<Map<string, any>>(new Map());
 
 export type CheckJobPhase =
   | "idle"
@@ -55,12 +55,12 @@ export const checkJob = signal<CheckJobState>({
 });
 
 export const checkSession = signal({
-  id: null,
-  phase: "idle",
-  startedAt: null,
-  finishedAt: null,
-  error: null,
-  appOrder: [],
+  id: null as string | null,
+  phase: "idle" as string,
+  startedAt: null as number | null,
+  finishedAt: null as number | null,
+  error: null as string | null,
+  appOrder: [] as string[],
 });
 
 export const appPhases = signal(new Map());
@@ -131,7 +131,7 @@ function finalJobPhase(counts: ReturnType<typeof getJobCounts>): CheckJobPhase {
   return "succeeded";
 }
 
-export function startCheck(appNames = []) {
+export function startCheck(appNames: any[] = []) {
   const sessionId = generateSessionId();
   const startedAt = Date.now();
 

@@ -16,7 +16,7 @@
  */
 import { useState } from "preact/hooks";
 
-function buildDefaultName(code, stockName) {
+function buildDefaultName(code: string, stockName?: string) {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -25,9 +25,17 @@ function buildDefaultName(code, stockName) {
   return `${code}${safeName ? `-${safeName}` : ""}-诊断-${y}-${m}-${day}`;
 }
 
-export function ExportDiagnosisButton({ api, code, stockName }) {
+export function ExportDiagnosisButton({
+  api,
+  code,
+  stockName,
+}: {
+  api: any;
+  code: string;
+  stockName?: string;
+}) {
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState(null); // { type: "ok"|"err", text }
+  const [toast, setToast] = useState<{ type: "ok" | "err"; text: string } | null>(null); // { type: "ok"|"err", text }
   // ponytail: 2026-07-07 — createApi() 漏声明 / preload 漏暴露时 pick() 会返 noop.
   //          noop()() 不报错, 但导出按钮变"点了没反应", 这比"is not a function"更难排查.
   //          显式检查 api.stocksExportDiagnosisPng 是不是个真 bridge; 不是 → 按钮置灰 + tooltip 说明.
@@ -52,7 +60,7 @@ export function ExportDiagnosisButton({ api, code, stockName }) {
         const errText = r && r.error ? `: ${r.error}` : "";
         setToast({ type: "err", text: `导出失败${errText}` });
       }
-    } catch (e) {
+    } catch (e: any) {
       setToast({ type: "err", text: `导出失败: ${e && e.message ? e.message : e}` });
     } finally {
       if (root) root.classList.remove("is-exporting");

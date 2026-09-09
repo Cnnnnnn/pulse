@@ -20,7 +20,7 @@ import {
 } from "../store.ts";
 import { WechatHotList } from "./WechatHotList.tsx";
 
-function titleMatches(item, q) {
+function titleMatches(item: any, q: any) {
   return typeof item?.title === "string" && item.title.toLowerCase().includes(q);
 }
 

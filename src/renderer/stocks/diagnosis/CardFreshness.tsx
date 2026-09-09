@@ -10,7 +10,7 @@
  */
 import { STALE_MS } from "./dataHealth.ts";
 
-function formatRelative(ts, now) {
+function formatRelative(ts: any, now: any) {
   const diff = now - ts;
   if (diff < 60 * 1000) return "刚刚";
   if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)} 分钟前`;
@@ -22,7 +22,7 @@ function formatRelative(ts, now) {
   return `${y}-${m}-${day}`;
 }
 
-export function CardFreshness({ fetchedAt }) {
+export function CardFreshness({ fetchedAt }: { fetchedAt: any }) {
   if (!fetchedAt) return null;
   const ts = typeof fetchedAt === "number" ? fetchedAt : Date.parse(fetchedAt);
   if (!Number.isFinite(ts)) return null;

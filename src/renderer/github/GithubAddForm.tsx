@@ -16,7 +16,7 @@ import {
 import { showToast } from "../store/toast-store.ts";
 
 /** 把批量 textarea 的原始文本解析成地址数组：按换行分割，过滤空行和 # 注释行。 */
-export function parseBatchInputs(text) {
+export function parseBatchInputs(text: string) {
   if (!text || typeof text !== "string") return [];
   return text
     .split(/\r?\n/)
@@ -26,9 +26,9 @@ export function parseBatchInputs(text) {
 
 export function GithubAddForm({ onComplete }: { onComplete?: () => void } = {}) {
   const [value, setValue] = useState("");
-  const [localErr, setLocalErr] = useState(null);
+  const [localErr, setLocalErr] = useState<string | null>(null);
   const [batchMode, setBatchMode] = useState(false);
-  const [batchResults, setBatchResults] = useState(null);
+  const [batchResults, setBatchResults] = useState<any[] | null>(null);
 
   async function handleAdd() {
     if (batchMode) return handleBatchAdd();
@@ -79,7 +79,7 @@ export function GithubAddForm({ onComplete }: { onComplete?: () => void } = {}) 
     }
   }
 
-  function onKeyDown(e) {
+  function onKeyDown(e: KeyboardEvent) {
     // 批量模式下 textarea 的 Enter 是换行，不触发提交（用按钮或 Cmd/Ctrl+Enter）
     if (e.key === "Enter" && !batchMode) {
       e.preventDefault();

@@ -69,7 +69,7 @@ function loadSavedRange() {
 }
 
 // 2026-07-14: 时间格式化 — 短时:分, 用于 "上次刷新 14:32 / 下次 14:37"
-function fmtClock(ts) {
+function fmtClock(ts: any) {
   if (!ts || !Number.isFinite(ts)) return "—";
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return "—";
@@ -77,7 +77,7 @@ function fmtClock(ts) {
   const m = String(d.getMinutes()).padStart(2, "0");
   return `${h}:${m}`;
 }
-function fmtCountdown(ts, now) {
+function fmtCountdown(ts: any, now: any) {
   if (!ts || !Number.isFinite(ts)) return "";
   const diff = ts - now;
   if (diff <= 0) return "即将刷新";
@@ -88,24 +88,24 @@ function fmtCountdown(ts, now) {
 }
 // 2026-07-14: 实时持仓行内 mini sparkline 用 — 取该基金最近 30 个交易日的单位净值
 //   ponytail: 复用 navHistoryCache, 缺失时返回空数组 (FundSparkline 自带兜底渲染)
-function pickLast30DayValues(code) {
+function pickLast30DayValues(code: any) {
   if (!code) return [];
   const c = navHistoryCache.value && navHistoryCache.value[code];
   if (!c || !Array.isArray(c.series) || c.series.length < 2) return [];
   return c.series
     .slice(-30)
-    .map((s) => Number(s.nav))
+    .map((s: any) => Number(s.nav))
     .filter(Number.isFinite);
 }
 
-function fmtSignedPct(p) {
+function fmtSignedPct(p: any) {
   if (!Number.isFinite(p)) return "—";
   if (p === 0) return "0.00%";
   const arrow = p > 0 ? "▲" : "▼";
   const sign = p > 0 ? "+" : "";
   return `${arrow}${sign}${p.toFixed(2)}%`;
 }
-function magnitudeClass(pct) {
+function magnitudeClass(pct: any) {
   const v = Math.abs(Number(pct));
   if (!Number.isFinite(v)) return "";
   if (v < 1) return "mag-low";
@@ -121,14 +121,14 @@ const RISK_BY_CATEGORY_DASH = {
   qdii: "R4",
   other: "R3",
 };
-function riskFromCategoryDashboard(cat) {
-  return RISK_BY_CATEGORY_DASH[cat] || "R3";
+function riskFromCategoryDashboard(cat: any) {
+  return (RISK_BY_CATEGORY_DASH as Record<string, string>)[cat] || "R3";
 }
-function signClass(n) {
+function signClass(n: any) {
   return n >= 0 ? "positive" : "negative";
 }
 
-function pickRangeSeries(snaps, days) {
+function pickRangeSeries(snaps: any, days: number) {
   const arr = Array.isArray(snaps) ? [...snaps] : [];
   arr.sort((a, b) => (a.date < b.date ? -1 : 1));
   return arr.slice(-days).map((s) => ({
@@ -137,7 +137,7 @@ function pickRangeSeries(snaps, days) {
   }));
 }
 
-function buildSparkFromSnapshots(snaps, days) {
+function buildSparkFromSnapshots(snaps: any, days: number) {
   return pickRangeSeries(snaps, days).map((s) => s.value);
 }
 
@@ -145,7 +145,7 @@ function buildSparkFromSnapshots(snaps, days) {
  * ponytail: 简单回撤估算 — 用 dailySnapshots 在区间内找峰值, 与当前值的差.
  * 不是严格 MDD (peak-to-trough 遍历), 但对概览仪表盘足够, 主进程后续可接真实指标.
  */
-function estimateDrawdown(snaps, days) {
+function estimateDrawdown(snaps: any, days: number) {
   const series = pickRangeSeries(snaps, days);
   if (!series.length) return 0;
   let peak = -Infinity;
@@ -196,8 +196,8 @@ export function FundDashboard() {
   const benchSeries = benchEnabled ? indexHistoryCache.value[symbol] || [] : [];
 
   // 数据源切换: 立即 toast, 等 IPC 返回后给结果 toast
-  async function handleSwitchSource(id) {
-    const label = NAV_SOURCE_LABELS[id] || id;
+  async function handleSwitchSource(id: any) {
+    const label = (NAV_SOURCE_LABELS as Record<string, string>)[id] || id;
     if (navSource.value === id) return;
     showToast(`已切换到 ${label}，正在拉取最新净值…`, "info");
     try {
@@ -214,7 +214,7 @@ export function FundDashboard() {
         showToast(`${label} ${why}`, "error");
       }
     } catch (err) {
-      showToast(`切换失败: ${(err && err.message) || err}`, "error");
+      showToast(`切换失败: ${(err as any)?.message || err}`, "error");
     }
   }
 
@@ -761,7 +761,7 @@ export function FundDashboard() {
               scale: 400,
               unit: "",
               hint: "HHI 越低越分散。=1 表示全押单只基金, 越接近 0 表示越平均。",
-              band: (v) =>
+              band: (v: number) =>
                 v < 0.15
                   ? { text: "低", level: "ok" }
                   : v < 0.25
@@ -774,7 +774,7 @@ export function FundDashboard() {
               scale: 2,
               unit: "%",
               hint: "占组合市值最大的一只基金占比。>30% 表示鸡蛋过于集中在一只篮子里。",
-              band: (v) =>
+              band: (v: number) =>
                 v < 20
                   ? { text: "分散", level: "ok" }
                   : v < 30
@@ -787,7 +787,7 @@ export function FundDashboard() {
               scale: 1.2,
               unit: "%",
               hint: "市值最大的 3 只基金合计占比。>60% 意味着组合高度依赖少数几只。",
-              band: (v) =>
+              band: (v: number) =>
                 v < 50
                   ? { text: "分散", level: "ok" }
                   : v < 70
@@ -800,7 +800,7 @@ export function FundDashboard() {
               scale: 2,
               unit: "%",
               hint: "所选区间内组合峰值到谷底的最大跌幅。>15% 算明显回撤, >30% 算深度回撤。",
-              band: (v) =>
+              band: (v: number) =>
                 v < 5
                   ? { text: "平稳", level: "ok" }
                   : v < 15

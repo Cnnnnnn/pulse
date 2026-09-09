@@ -4,7 +4,7 @@
 import DOMPurify from 'dompurify';
 import { SearchSourceIcon } from '../components/icons.tsx';
 
-function formatTimeAgo(ms) {
+function formatTimeAgo(ms: number) {
   if (!ms) return '';
   const diff = Date.now() - ms;
   if (diff < 60_000) return '刚刚';
@@ -13,11 +13,16 @@ function formatTimeAgo(ms) {
   return `${Math.floor(diff / 86400_000)}天前`;
 }
 
-export function SearchResultRow({ result, isSelected, onClick }) {
+export function SearchResultRow({ result, isSelected, onClick }: {
+  result: { matchedSnippet: string; title: string; source: string; payload?: Record<string, unknown> };
+  isSelected: boolean;
+  onClick: (e: MouseEvent) => void;
+}) {
   const snippetHtml = result.matchedSnippet
     ? DOMPurify.sanitize(result.matchedSnippet)
     : '';
-  const dateMs = result.payload && result.payload.dateMs;
+  const dateMsRaw = result.payload?.dateMs;
+  const dateMs = typeof dateMsRaw === "number" ? dateMsRaw : undefined;
   return (
     <div
       class={`search-result-row${isSelected ? ' is-selected' : ''}`}

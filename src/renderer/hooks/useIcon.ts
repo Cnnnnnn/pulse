@@ -51,7 +51,7 @@ function bundleToPath(bundle: string | null | undefined): string | null {
  * @returns {{ src: string|null, nameInitial: string, nameColor: string }}
  */
 export function useIcon(bundle: string | null | undefined, name?: string | null): { src: string | null; nameInitial: string; nameColor: string } {
-  const [src, setSrc] = useState(() => iconCache.get(bundle) || null);
+  const [src, setSrc] = useState(() => iconCache.get(bundle ?? '') || null);
 
   useEffect(() => {
     if (!bundle) return undefined;
@@ -62,7 +62,7 @@ export function useIcon(bundle: string | null | undefined, name?: string | null)
     // 命中缓存 → 立即设值
     if (iconCache.has(path)) {
       const cached = iconCache.get(path);
-      if (cached !== src) setSrc(cached);
+      if (cached !== undefined && cached !== src) setSrc(cached);
       return undefined;
     }
 

@@ -13,23 +13,23 @@ const ANALYSIS_MODES = [
   { key: "cluster", label: "多篇聚合" },
 ];
 
-function completeness(article) {
+function completeness(article: any) {
   const size = String(article?.body || article?.excerpt || "").trim().length;
   if (size >= 500) return "高";
   if (size >= 200) return "中";
   return "低";
 }
 
-function completenessLabel(value, article) {
-  const map = { high: "高", medium: "中", low: "低", 高: "高", 中: "中", 低: "低" };
+function completenessLabel(value: string, article: any) {
+  const map: Record<string, string> = { high: "高", medium: "中", low: "低", 高: "高", 中: "中", 低: "低" };
   return map[value] || completeness(article);
 }
 
-function listText(items) {
+function listText(items: string[]) {
   return Array.isArray(items) && items.length > 0 ? items.join("；") : "";
 }
 
-function modeContent(mode, fields, summary) {
+function modeContent(mode: string, fields: any, summary: any) {
   if (mode === "summary") return fields.abstract || summary?.text || "暂无摘要。";
   if (mode === "impact") return fields.impact || "当前摘要接口尚未返回影响对象字段。";
   if (mode === "whyImportant") {
@@ -42,12 +42,12 @@ function modeContent(mode, fields, summary) {
   return "多篇聚合入口已预留，下一步接入队列多选和聚合 prompt。";
 }
 
-export function NewsAnalysisPanel({ article }) {
+export function NewsAnalysisPanel({ article }: { article: any }) {
   const [expanded, setExpanded] = useState(false);
   const [mode, setMode] = useState("summary");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const summary = ithomeSummaries.value[article?.id];
+  const summary = (ithomeSummaries.value as Record<string, any>)[article?.id];
   const fields = normalizeArticleSummary(summary);
   const hasSummary = !!(summary && (summary.text || fields.abstract));
 

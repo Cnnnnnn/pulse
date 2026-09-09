@@ -49,10 +49,11 @@ export function AppAction({
 
   // 有 brew cask 且需要升级 → 升级按钮 (主操作)
   if (result.has_update && result.brew_cask) {
+    const cask = result.brew_cask;
     return (
       <button
         class="btn-upgrade-row"
-        onClick={() => onUpgrade(result.brew_cask, result.name)}
+        onClick={() => onUpgrade(cask, result.name)}
         disabled={isUpgrading}
         aria-label={`升级 ${result.name}`}
       >
@@ -63,7 +64,7 @@ export function AppAction({
 
   // 其它 → status badge. Phase 15: error_message 当 title (hover tooltip) 让用户知道
   // 为啥 detector 失败. 比如 "timeout — https://api..." "HTTP 404" 等.
-  const meta = STATUS_MAP[status] || { text: status || '', cls: 'warning' };
+  const meta = (status && STATUS_MAP[status]) || { text: status || '', cls: 'warning' };
   const errorMsg = result.error_message;
   const title = errorMsg ? `${meta.text} · ${errorMsg}` : meta.text;
   return <StatusBadge status={meta.cls} title={title}>{meta.text}</StatusBadge>;

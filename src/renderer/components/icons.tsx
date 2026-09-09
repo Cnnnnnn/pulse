@@ -3,12 +3,11 @@
  * UI 层按 id 映射 SVG (CategoryTabIcon); 数据层 category.js 只持 id/name/order.
  */
 
-// ponytail: spread 进 svg attributes, Preact SVGAttributes 把 strokeLinecap
-// 限成 "round"|"butt"|"square"|"inherit" (Signalish 包装). 静态字面量这里
-// 不用 lift 到 SVGProps<SvgElement>; 调用面是 Svg 内部 spread,绕过强类型校验.
+import type { ComponentChildren } from 'preact';
+
+// ponytail: spread 进 svg attributes. width/height 在调用处用 size 显式传,
+// 不再进 defaults, 避免与 <svg width={size}> 重复声明 (TS2783).
 const defaults = {
-  width: 16,
-  height: 16,
   fill: 'none',
   stroke: 'currentColor',
   strokeWidth: 2,
@@ -27,11 +26,13 @@ const svgBaseStyle = {
   flexShrink: 0,
 };
 
+type IconComponent = (props: { size?: number; class?: string }) => any;
+
 function Svg({ size = 16, style = {}, children, ...rest }: {
   size?: number;
-  style?: Record<string, any>;
-  children?: any;
-  [k: string]: any;
+  style?: Record<string, string | number>;
+  children?: ComponentChildren;
+  [k: string]: unknown;
 }) {
   return (
     <svg
@@ -241,7 +242,7 @@ export function IconBarChart({ size = 14 }) {
   );
 }
 
-const APP_CATEGORY_ICON = {
+const APP_CATEGORY_ICON: Record<string, IconComponent> = {
   all: IconList,
   ai: IconBot,
   dev: IconWrench,
@@ -253,7 +254,7 @@ const APP_CATEGORY_ICON = {
   other: IconPackage,
 };
 
-const FUND_CATEGORY_ICON = {
+const FUND_CATEGORY_ICON: Record<string, IconComponent> = {
   all: IconLayers,
   stock: IconTrendingUp,
   bond: IconBarChart,
@@ -263,7 +264,11 @@ const FUND_CATEGORY_ICON = {
 };
 
 /** 分类 tab / 行内标签 — 按 category id 渲染 SVG */
-export function CategoryTabIcon({ id, domain = 'app', size = 14 }) {
+export function CategoryTabIcon({ id, domain = 'app', size = 14 }: {
+  id: string;
+  domain?: 'app' | 'fund';
+  size?: number;
+}) {
   const map = domain === 'fund' ? FUND_CATEGORY_ICON : APP_CATEGORY_ICON;
   const Icon = map[id] || IconPackage;
   return <Icon size={size} />;
@@ -434,7 +439,7 @@ export function IconKey({ size = 18 }: { size?: number }) {
   );
 }
 
-const NAV_ICON = {
+const NAV_ICON: Record<string, IconComponent> = {
   ithome: IconNews,
   news: IconNews,
   'wechat-hot': IconFlame,
@@ -453,29 +458,29 @@ const NAV_ICON = {
   vault: IconKey,
 };
 
-export function NavIcon({ navKey, size = 18 }) {
+export function NavIcon({ navKey, size = 18 }: { navKey: string; size?: number }) {
   const Icon = NAV_ICON[navKey] || IconPackage;
   return <Icon size={size} />;
 }
 
-const WATCHLIST_TYPE_ICON = {
+const WATCHLIST_TYPE_ICON: Record<string, IconComponent> = {
   app: IconStar,
   fund: IconCoin,
   keyword: IconSearch,
   metal: IconMedal,
 };
 
-export function WatchlistTypeIcon({ type, size = 14 }) {
+export function WatchlistTypeIcon({ type, size = 14 }: { type: string; size?: number }) {
   const Icon = WATCHLIST_TYPE_ICON[type] || IconStar;
   return <Icon size={size} />;
 }
 
-const FUND_TAB_ICON = {
+const FUND_TAB_ICON: Record<string, IconComponent> = {
   holdings: IconList,
   pnl: IconTrendingUp,
 };
 
-export function FundTabIcon({ tabId, size = 14 }) {
+export function FundTabIcon({ tabId, size = 14 }: { tabId: string; size?: number }) {
   const Icon = FUND_TAB_ICON[tabId] || IconList;
   return <Icon size={size} />;
 }
@@ -657,19 +662,19 @@ export function TeamFlag({ code, size = 16, className }: { code?: string; size?:
   );
 }
 
-const TOAST_TYPE_ICON = {
+const TOAST_TYPE_ICON: Record<string, IconComponent> = {
   info: IconInfo,
   warn: IconAlert,
   error: IconX,
   success: IconCheck,
 };
 
-export function ToastTypeIcon({ type = 'info', size = 14 }) {
+export function ToastTypeIcon({ type = 'info', size = 14 }: { type?: string; size?: number }) {
   const Icon = TOAST_TYPE_ICON[type] || IconInfo;
   return <Icon size={size} />;
 }
 
-const SEARCH_SOURCE_ICON = {
+const SEARCH_SOURCE_ICON: Record<string, IconComponent> = {
   news: IconNews,
   'ai-task': IconBot,
   reminder: IconClock,
@@ -677,13 +682,13 @@ const SEARCH_SOURCE_ICON = {
   app: IconRefresh,
 };
 
-export function SearchSourceIcon({ source, size = 14 }) {
+export function SearchSourceIcon({ source, size = 14 }: { source?: string; size?: number }) {
   if (!source) return <IconPackage size={size} />;
   const Icon = SEARCH_SOURCE_ICON[source] || IconPackage;
   return <Icon size={size} />;
 }
 
-const DIGEST_SECTION_ICON = {
+const DIGEST_SECTION_ICON: Record<string, IconComponent> = {
   updates: IconArrowUp,
   hot: IconFlame,
   news: IconNews,
@@ -691,12 +696,12 @@ const DIGEST_SECTION_ICON = {
   ai_usage: IconAlert,
 };
 
-export function DigestSectionIcon({ kind, size = 14 }) {
+export function DigestSectionIcon({ kind, size = 14 }: { kind: string; size?: number }) {
   const Icon = DIGEST_SECTION_ICON[kind] || IconDot;
   return <Icon size={size} />;
 }
 
-const RECENT_ACTIVITY_ICON = {
+const RECENT_ACTIVITY_ICON: Record<string, IconComponent> = {
   'app-upgrade': IconArrowUp,
   'app-check': IconRefresh,
   'reminder-create': IconClock,
@@ -715,12 +720,12 @@ const RECENT_ACTIVITY_ICON = {
   'settings-open': IconSettings,
 };
 
-export function RecentActivityIcon({ kind, size = 14 }) {
+export function RecentActivityIcon({ kind, size = 14 }: { kind: string; size?: number }) {
   const Icon = RECENT_ACTIVITY_ICON[kind] || IconDot;
   return <Icon size={size} />;
 }
 
-const PROMPT_SECTION_ICON = {
+const PROMPT_SECTION_ICON: Record<string, IconComponent> = {
   ithome_summary: IconNews,
   upgrade_advice: IconSparkles,
   changelog_summary: IconSparkles,
@@ -728,12 +733,12 @@ const PROMPT_SECTION_ICON = {
   daily_digest_summary: IconList,
 };
 
-export function PromptSectionIcon({ promptKey, size = 14 }) {
+export function PromptSectionIcon({ promptKey, size = 14 }: { promptKey: string; size?: number }) {
   const Icon = PROMPT_SECTION_ICON[promptKey] || IconBot;
   return <Icon size={size} />;
 }
 
-const BULK_STATUS_ICON = {
+const BULK_STATUS_ICON: Record<string, IconComponent> = {
   pending: IconDot,
   running: IconRefresh,
   done: IconCheck,
@@ -742,12 +747,12 @@ const BULK_STATUS_ICON = {
   cancelled: IconBan,
 };
 
-export function BulkStatusIcon({ status, size = 12 }) {
+export function BulkStatusIcon({ status, size = 12 }: { status: string; size?: number }) {
   const Icon = BULK_STATUS_ICON[status] || IconDot;
   return <Icon size={size} />;
 }
 
-export function PnlSignIcon({ value, size = 14 }) {
+export function PnlSignIcon({ value, size = 14 }: { value: number; size?: number }) {
   if (value > 0) return <IconCheck size={size} />;
   if (value < 0) return <IconX size={size} />;
   return null;

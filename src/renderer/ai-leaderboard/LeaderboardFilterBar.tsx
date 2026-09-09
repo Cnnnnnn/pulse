@@ -98,7 +98,7 @@ function ArenaBoardSelector() {
                     aria-pressed={activeBoard.value === bk}
                     onClick={() => { setBoard(bk); setOpenCat(null); }}
                   >
-                    {ARENA_BOARDS[bk].label}
+                    {ARENA_BOARDS[bk as keyof typeof ARENA_BOARDS].label}
                   </button>
                 ))}
               </div>
@@ -177,7 +177,7 @@ function AaDimChips() {
   return (
     <div class="ai-leaderboard-chips ai-leaderboard-chips--dim" role="group" aria-label="AA 排序维度">
       {AA_DIMENSION_KEYS.map((key) => {
-        const meta = AA_DIMENSIONS[key];
+        const meta = AA_DIMENSIONS[key as keyof typeof AA_DIMENSIONS];
         const active = activeDim.value === key;
         return (
           <button
@@ -204,8 +204,8 @@ export function LeaderboardFilterBar() {
     setQ(searchQuery.value);
   }, [searchQuery.value]);
 
-  function onSearch(e) {
-    const v = e.currentTarget.value;
+  function onSearch(e: Event) {
+    const v = (e.currentTarget as HTMLInputElement).value;
     setQ(v);
     setSearchQuery(v);
   }
@@ -213,7 +213,7 @@ export function LeaderboardFilterBar() {
     setQ("");
     clearSearchQuery();
   }
-  function onSearchKey(e) {
+  function onSearchKey(e: KeyboardEvent) {
     if (e.key === "Escape" && q) {
       e.preventDefault();
       onClear();
@@ -223,7 +223,7 @@ export function LeaderboardFilterBar() {
   const view = activeView.value;
   const metricText = sortKeyLabel(view);
   const hasActiveFilter = activeVendor.value !== "all" || licenseFilter.value !== "all" || !!q;
-  const viewMeta = VIEWS[view] || VIEWS.aa;
+  const viewMeta = VIEWS[view as keyof typeof VIEWS] || VIEWS.aa;
 
   return (
     <div class={`ai-leaderboard-filter-bar${filtersOpen ? " is-filters-open" : ""}`}>
@@ -317,11 +317,11 @@ export function LeaderboardFilterBar() {
   );
 }
 
-function sortKeyLabel(view) {
+function sortKeyLabel(view: string) {
   if (view === "arena") return "综合 ELO";
-  if (view === "livebench") return SORT_COLUMN_LABELS[activeLB.value] || "LiveBench Overall";
-  if (view === "huggingface") return SORT_COLUMN_LABELS[activeDim.value] || "Downloads";
-  return SORT_COLUMN_LABELS[activeDim.value] || "Intelligence Index";
+  if (view === "livebench") return SORT_COLUMN_LABELS[activeLB.value as keyof typeof SORT_COLUMN_LABELS] || "LiveBench Overall";
+  if (view === "huggingface") return SORT_COLUMN_LABELS[activeDim.value as keyof typeof SORT_COLUMN_LABELS] || "Downloads";
+  return SORT_COLUMN_LABELS[activeDim.value as keyof typeof SORT_COLUMN_LABELS] || "Intelligence Index";
 }
 
 export default LeaderboardFilterBar;

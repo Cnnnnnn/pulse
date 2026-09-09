@@ -6,7 +6,14 @@
 
 import { signal } from "@preact/signals";
 
-export const toast = signal([]);
+interface ToastItem {
+  id: string;
+  message: string;
+  type: string;
+  ts: number;
+}
+
+export const toast = signal<ToastItem[]>([]);
 
 let _toastIdCounter = 0;
 function _nextToastId() {

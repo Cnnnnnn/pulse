@@ -12,7 +12,7 @@
 import { fmtVendor, fmtScore, fmtPricePer1M } from "./format.ts";
 
 // 厂商 → 颜色（与 CrossSourceRadar / ValueScatter / ArenaBubbleChart 同一套色板）
-const VENDOR_COLORS = {
+const VENDOR_COLORS: Record<string, string> = {
   openai: "oklch(60% 0.18 150)",
   anthropic: "oklch(60% 0.16 25)",
   google: "oklch(60% 0.16 245)",
@@ -29,14 +29,14 @@ const VENDOR_COLORS = {
 };
 const DEFAULT_COLOR = "oklch(55% 0.05 250)";
 
-const vendorColor = (vendor) => VENDOR_COLORS[vendor] || DEFAULT_COLOR;
+const vendorColor = (vendor: string) => VENDOR_COLORS[vendor] || DEFAULT_COLOR;
 
 // 条形入场动画节奏（错峰生长）：duration 在 CSS 里，delay 在此错峰并封顶，
 // 避免长榜单尾部行等待过久。
 const BAR_STAGGER_MS = 55;
 const BAR_STAGGER_CAP = 14;
 
-function fmtEpd(v) {
+function fmtEpd(v: number | null | undefined) {
   if (v == null || !Number.isFinite(v)) return "—";
   return Math.round(v).toLocaleString("en-US");
 }
@@ -50,7 +50,15 @@ function fmtEpd(v) {
  * @param {Set<string>} focusSet 选中模型所属厂商（高亮）
  * @param {(vendor:string)=>void} [onJump] 点击/回车某行时的跳转回调（如跳转到该厂商在主榜单的详情）
  */
-export function EloPerDollar({ rows = [], focusSet = new Set(), onJump = null }) {
+export function EloPerDollar({
+  rows = [],
+  focusSet = new Set<string>(),
+  onJump = null,
+}: {
+  rows: Array<{ vendor: string; eloPerDollar: number; arena: number; priceOut: number }>;
+  focusSet?: Set<string | undefined>;
+  onJump?: ((vendor: string) => void) | null;
+}) {
   if (!rows.length) {
     return (
       <p class="ai-lb-drawer__hint">

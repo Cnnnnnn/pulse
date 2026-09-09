@@ -56,31 +56,49 @@ const CY = SIZE / 2;
 const R = SIZE / 2 - 48; // 留白给轴标签
 
 // 三轴角度（SVG：y 向下，故 -90°=正上）
-const AXES = [
+type RadarKey = "arena" | "aa" | "livebench";
+const AXES: Array<{ key: RadarKey; label: string }> = [
   { key: "arena", label: "Arena ELO" },
   { key: "aa", label: "AA 智能" },
   { key: "livebench", label: "LiveBench" },
 ];
 const AXIS_ANGLES = [-90, 30, 150];
 
-function pt(axisIdx, t) {
+interface CrossSourceProfile {
+  vendor: string;
+  arena: number | null;
+  aa: number | null;
+  livebench: number | null;
+  focus?: boolean;
+}
+
+function pt(axisIdx: number, t: number) {
   const a = (AXIS_ANGLES[axisIdx] * Math.PI) / 180;
   return [CX + R * t * Math.cos(a), CY + R * t * Math.sin(a)];
 }
 
-function fmtAxisVal(key, v) {
+function fmtAxisVal(key: RadarKey, v: number | null) {
   if (v == null) return "—";
   if (key === "arena") return fmtScore(v);
   if (key === "aa") return fmtIndex(v);
   return fmtLivebench(v);
 }
 
-export function CrossSourceRadar({ profiles = [] }) {
-  const [hover, setHover] = useState(null);
+export function CrossSourceRadar({ profiles = [] }: { profiles?: CrossSourceProfile[] }) {
+  const [hover, setHover] = useState<string | null>(null);
 
   // 计算每个厂商的归一化轮廓 + 收集可用轴 / 缺失轴
-  const plotted = [];
-  const nodata = [];
+  const plotted: Array<{
+    vendor: string;
+    label: string;
+    raw: { arena: number | null; aa: number | null; livebench: number | null };
+    norm: { arena: number | null; aa: number | null; livebench: number | null };
+    avail: number[];
+    miss: string[];
+    focus: boolean;
+    color: string;
+  }> = [];
+  const nodata: string[] = [];
   for (const p of profiles) {
     const norm = {
       arena: normalizeToUnit(p.arena, ELO_MIN, ELO_MAX),
@@ -101,7 +119,7 @@ export function CrossSourceRadar({ profiles = [] }) {
       avail,
       miss,
       focus: !!p.focus,
-      color: VENDOR_COLORS[p.vendor] || DEFAULT_COLOR,
+      color: VENDOR_COLORS[p.vendor as keyof typeof VENDOR_COLORS] || DEFAULT_COLOR,
     });
   }
 
@@ -122,7 +140,7 @@ export function CrossSourceRadar({ profiles = [] }) {
   }
 
   const rings = [0.25, 0.5, 0.75, 1];
-  const ringPath = (t) =>
+  const ringPath = (t: number) =>
     AXES.map((_, i) => {
       const [x, y] = pt(i, t);
       return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
@@ -178,7 +196,7 @@ export function CrossSourceRadar({ profiles = [] }) {
               p.avail.length >= 2
                 ? p.avail
                     .map((i) => {
-                      const [x, y] = pt(i, p.norm[AXES[i].key]);
+                      const [x, y] = pt(i, p.norm[AXES[i].key]!);
                       return `${p.avail[0] === i ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
                     })
                     .join(" ") + " Z"
@@ -192,7 +210,7 @@ export function CrossSourceRadar({ profiles = [] }) {
               >
                 {/* spoke：从中心到每个可用轴顶点 */}
                 {p.avail.map((i) => {
-                  const [x, y] = pt(i, p.norm[AXES[i].key]);
+                  const [x, y] = pt(i, p.norm[AXES[i].key]!);
                   return (
                     <line
                       key={`s${i}`}
@@ -217,7 +235,7 @@ export function CrossSourceRadar({ profiles = [] }) {
                   />
                 )}
                 {p.avail.map((i) => {
-                  const [x, y] = pt(i, p.norm[AXES[i].key]);
+                  const [x, y] = pt(i, p.norm[AXES[i].key]!);
                   return <circle key={`c${i}`} cx={x} cy={y} r={isHover ? 3.2 : 2.4} fill={p.color} />;
                 })}
               </g>

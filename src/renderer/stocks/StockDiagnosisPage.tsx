@@ -10,9 +10,9 @@ import { ExportDiagnosisButton } from "./diagnosis/ExportDiagnosisButton.tsx";
 import { AddToCompareButton } from "./AddToCompareButton.tsx";
 import { StockSearchInput } from "./StockSearchInput.tsx";
 
-const RATING_LABEL = (s) => (s == null ? "数据不足" : s >= 7.5 ? "强烈" : s >= 6 ? "中性偏强" : s >= 4 ? "中性" : "偏弱");
+const RATING_LABEL = (s: any) => (s == null ? "数据不足" : s >= 7.5 ? "强烈" : s >= 6 ? "中性偏强" : s >= 4 ? "中性" : "偏弱");
 
-export function StockDiagnosisPage({ api }) {
+export function StockDiagnosisPage({ api }: { api: any }) {
   const code = stockDiagnosisCode.value;
   const state = diagnosisState.value;
   const stock = diagnosisStock.value || { code };
@@ -47,7 +47,7 @@ export function StockDiagnosisPage({ api }) {
           </div>
         )}
         {state.status === "ready" && (
-          <ExportDiagnosisButton api={api} code={code} stockName={stock?.name} />
+          <ExportDiagnosisButton api={api} code={code ?? ""} stockName={stock?.name ?? ""} />
         )}
       </div>
       {state.status === "ready" && (

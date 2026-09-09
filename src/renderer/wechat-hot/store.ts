@@ -17,16 +17,16 @@ import type { DataSource, DataState } from "../../shared/data-state.ts";
 
 const COOLDOWN_MS = 15000;
 
-export const wechatHotItems = signal([]);
+export const wechatHotItems = signal<any[]>([]);
 export const wechatHotLoaded = signal(false);
 export const wechatHotLoading = signal(false);
-export const wechatHotError = signal(null);
+export const wechatHotError = signal<string | null>(null);
 export const wechatHotDataState = signal<DataState<any[]>>(createDataState([]));
 export const wechatHotLastFetched = signal(0);
 export const wechatHotLastRefreshAt = signal(0);
-export const wechatHotUpdatedUnsub = signal(null);
-export const wechatHotReadIds = signal({});
-export const wechatHotNewIds = signal({});
+export const wechatHotUpdatedUnsub = signal<(() => void) | null>(null);
+export const wechatHotReadIds = signal<Record<string, any>>({});
+export const wechatHotNewIds = signal<Record<string, any>>({});
 /**
  * SideNav 未读角标 (I6 v2) — 本 session 新增且未读的热搜词数.
  * 派生自 wechatHotNewIds: 点行 (markWechatHotRead) → -1; refresh 新词 → +N; 重启 → 归 0.
@@ -110,9 +110,10 @@ export function subscribeWechatHotUpdates() {
 }
 
 export function cleanupWechatHotUpdates() {
-  if (wechatHotUpdatedUnsub.value) {
+  const unsub = wechatHotUpdatedUnsub.value;
+  if (unsub) {
     try {
-      wechatHotUpdatedUnsub.value();
+      unsub();
     } catch {
       /* noop */
     }
@@ -159,5 +160,5 @@ const REASON_MAP = {
   ipc_unavailable: "系统通信异常，请重启应用",
 };
 function mapReason(reason: any) {
-  return REASON_MAP[reason] || reason || "刷新失败";
+  return REASON_MAP[reason as keyof typeof REASON_MAP] || reason || "刷新失败";
 }

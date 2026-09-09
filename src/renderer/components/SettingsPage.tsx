@@ -32,7 +32,7 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
-import type { SelfUpdateState, ThemeMode } from "../../shared/ipc-contracts";
+import type { SelfUpdateState, ThemeMode, RecentActivityEntry, Reminder } from "../../shared/ipc-contracts";
 import {
   loadGithubSettings,
   downloadGithubBackup, pickGithubBackupFile, githubProjects,
@@ -78,11 +78,11 @@ function themeSummary() {
 }
 
 /* ─── 最近活动 + 提醒 (异步加载) ──────────────────────────────── */
-const recentEntries = signal([]); // RecentActivityEntry[]
-const reminders = signal([]); // Reminder[]
+const recentEntries = signal<RecentActivityEntry[]>([]);
+const reminders = signal<Reminder[]>([]);
 const dataBusy = signal(false); // 导出/导入按钮 loading
 
-function _humanizeTs(ts) {
+function _humanizeTs(ts: number | undefined) {
   if (!ts || typeof ts !== "number") return "";
   const diff = Date.now() - ts;
   if (diff < 60_000) return "刚刚";
@@ -112,6 +112,15 @@ const RECENT_KIND_LABEL = {
 
 const REPEAT_LABEL = { once: "一次性", daily: "每日", weekdays: "工作日", weekly: "每周" };
 
+/** 从 unknown catch 值提取消息。 */
+function diagMsg(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return String(err);
+}
+
 async function reloadRecent() {
   try {
     const r = await window.api.recentList();
@@ -130,7 +139,7 @@ async function reloadReminders() {
   }
 }
 
-async function handleMarkDone(id) {
+async function handleMarkDone(id: string) {
   const r = await window.api.remindersMarkDone(id);
   if (r && r.ok) {
     showToast("已标记完成", "success", 1500);
@@ -140,7 +149,7 @@ async function handleMarkDone(id) {
   }
 }
 
-async function handleRemove(id) {
+async function handleRemove(id: string) {
   const r = await window.api.remindersRemove(id);
   if (r && r.ok) {
     showToast("已删除", "success", 1500);
@@ -363,7 +372,7 @@ function GithubSettingsSection() {
         );
       }
     } catch (err: any) {
-      showToast(`保存失败: ${err && err.message}`, "error", 3200);
+      showToast(`保存失败: ${diagMsg(err)}`, "error", 3200);
     }
   };
   const onClear = async () => {
@@ -377,10 +386,10 @@ function GithubSettingsSection() {
         showToast("清除失败", "error", 3000);
       }
     } catch (err: any) {
-      showToast(`清除失败: ${err && err.message}`, "error", 3000);
+      showToast(`清除失败: ${diagMsg(err)}`, "error", 3000);
     }
   };
-  const openTokens = (e) => {
+  const openTokens = (e: Event) => {
     e.preventDefault();
     if (typeof window !== "undefined" && window.api && window.api.openUrl) {
       window.api.openUrl("https://github.com/settings/tokens");
@@ -393,7 +402,7 @@ function GithubSettingsSection() {
       const n = githubProjects.value.length;
       showToast(`已导出 ${n} 个项目到备份文件`, "success", 3000);
     } catch (err) {
-      showToast(`导出失败: ${err && err.message}`, "error", 3000);
+      showToast(`导出失败: ${diagMsg(err)}`, "error", 3000);
     }
   };
   const handleImport = async () => {
@@ -406,7 +415,7 @@ function GithubSettingsSection() {
       }
       showToast(`已导入 ${r.imported} 个，跳过 ${r.skipped} 个已存在`, "success", 4000);
     } catch (err) {
-      showToast(`导入失败: ${err && err.message}`, "error", 3000);
+      showToast(`导入失败: ${diagMsg(err)}`, "error", 3000);
     }
   };
 
@@ -630,7 +639,7 @@ function PulseAboutSection() {
         showToast(`检查失败: ${response.error || response.reason || "未知错误"}`, "error", 3000);
       }
     } catch (err) {
-      showToast(`检查失败: ${err && err.message ? err.message : "未知错误"}`, "error", 3000);
+      showToast(`检查失败: ${diagMsg(err) || "未知错误"}`, "error", 3000);
     } finally {
       setChecking(false);
     }
@@ -644,7 +653,7 @@ function PulseAboutSection() {
         window.alert(`退出并安装失败: ${response.error || response.reason || "未知错误"}`);
       }
     } catch (err) {
-      window.alert(`退出并安装失败: ${err && err.message ? err.message : "未知错误"}`);
+      window.alert(`退出并安装失败: ${diagMsg(err) || "未知错误"}`);
     }
   }
 
@@ -835,7 +844,7 @@ export function SettingsPage() {
                       <ul class="settings-list">
                         {recent.map((e, i) => (
                           <li key={`${e.ts}-${i}`} class="settings-list__item">
-                            <span class="settings-list__kind">{RECENT_KIND_LABEL[e.kind] || e.kind}</span>
+                            <span class="settings-list__kind">{(RECENT_KIND_LABEL as Record<string, string>)[e.kind] || e.kind}</span>
                             <span class="settings-list__label">{e.label}</span>
                             {typeof e.count === "number" && e.count > 1 && <span class="settings-list__count">×{e.count}</span>}
                             <span class="settings-list__time">{_humanizeTs(e.ts)}</span>

@@ -6,7 +6,7 @@ import { ModuleCard } from "./ModuleCard.tsx";
 // (与 diagnosis-scorer.js 的 aggregateNewsSentiment 一致).
 const SENTIMENT_LABEL = { positive: "偏多", negative: "偏空", neutral: "中性" };
 
-function aggregateSentiment(items) {
+function aggregateSentiment(items: any) {
   let pos = 0;
   let neg = 0;
   for (const it of items) {
@@ -19,7 +19,11 @@ function aggregateSentiment(items) {
 }
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard.
-export function NewsCard({ data, angle = null, onRefresh = null }) {
+export function NewsCard({ data, angle = null, onRefresh = null }: {
+  data: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   const items = Array.isArray(d?.items) ? d.items : null;
   return (

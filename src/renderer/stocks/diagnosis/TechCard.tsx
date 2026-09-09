@@ -1,7 +1,11 @@
 import { ModuleCard } from "./ModuleCard.tsx";
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard.
-export function TechCard({ data, angle = null, onRefresh = null }) {
+export function TechCard({ data, angle = null, onRefresh = null }: {
+  data: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   return (
     <ModuleCard

@@ -9,13 +9,13 @@ import { normalizeArticleSummary } from "./NewsArticleSummary.tsx";
 const MAX_SUMMARY_CHARS = 300;
 const MAX_KEYWORDS = 5;
 
-function truncate(text, max) {
+function truncate(text: string, max: number) {
   if (!text) return "";
   if (text.length <= max) return text;
   return text.slice(0, max) + "...";
 }
 
-function formatShareCardTime(pubDate) {
+function formatShareCardTime(pubDate: any) {
   if (!pubDate) return "";
   const d = new Date(pubDate);
   if (Number.isNaN(d.getTime())) return "";
@@ -32,7 +32,7 @@ function formatShareCardTime(pubDate) {
   return `${mm}-${dd} ${hm}`;
 }
 
-export function NewsShareCard({ article, summary }) {
+export function NewsShareCard({ article, summary }: { article: any; summary: any }) {
   if (!article) return null;
   const fields = normalizeArticleSummary(summary);
   const truncated = truncate(fields.abstract, MAX_SUMMARY_CHARS);

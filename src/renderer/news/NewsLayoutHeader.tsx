@@ -56,7 +56,7 @@ const ITHOME_VIEW_TABS = [
   { key: "favorites", label: "收藏" },
 ];
 
-function formatTs(ts) {
+function formatTs(ts: number) {
   if (!ts) return "尚未刷新";
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return "";
@@ -75,6 +75,11 @@ export function NewsLayoutHeader({
   onSubTabChange,
   search,
   onSearchChange,
+}: {
+  subTab: string;
+  onSubTabChange: (key: string) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
 }) {
   const now = useNowTick(1000);
 

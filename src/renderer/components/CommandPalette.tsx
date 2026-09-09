@@ -56,7 +56,7 @@ export function CommandPalette() {
     if (!open) return undefined;
     inputRef.current && inputRef.current.focus();
 
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         closePalette();
         e.preventDefault();
@@ -83,7 +83,7 @@ export function CommandPalette() {
   }, [open, results, selected]);
 
   useEffect(() => {
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         paletteOpen.value = !paletteOpen.value;
         e.preventDefault();

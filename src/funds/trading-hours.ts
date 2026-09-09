@@ -70,7 +70,7 @@ function shanghaiParts(d: any) {
     parts[p.type] = p.value;
   }
   // weekday: short → "Mon" / "Sun" / ...
-  const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const day = weekdayMap[parts.weekday] != null ? weekdayMap[parts.weekday] : d.getDay();
   const hour = parseInt(parts.hour, 10) % 24;  // 24:00 防 0
   return {

@@ -10,20 +10,28 @@
  */
 import { useEffect, useRef } from "preact/hooks";
 
-export function AIDrawerShell({ open, onClose, title, subtitle, children }) {
-  const cardRef = useRef(null);
+type AIDrawerShellProps = {
+  open: boolean;
+  onClose: () => void;
+  title?: any;
+  subtitle?: any;
+  children?: any;
+};
+
+export function AIDrawerShell({ open, onClose, title, subtitle, children }: AIDrawerShellProps) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return undefined;
 
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         onClose();
         return;
       }
       // 简易 focus trap
       if (e.key === "Tab" && cardRef.current) {
-        const focusable = cardRef.current.querySelectorAll(
+        const focusable = cardRef.current.querySelectorAll<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
         if (focusable.length === 0) return;
@@ -37,8 +45,8 @@ export function AIDrawerShell({ open, onClose, title, subtitle, children }) {
       }
     }
 
-    function onDocDown(e) {
-      if (cardRef.current && cardRef.current.contains(e.target)) return;
+    function onDocDown(e: MouseEvent) {
+      if (cardRef.current && cardRef.current.contains(e.target as Node)) return;
       onClose();
     }
 

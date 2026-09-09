@@ -18,7 +18,7 @@ export function VirtualCardGrid({ names }: { names: string[] }) {
   const allNames = names;
 
   useEffect(() => {
-    const el = scrollRef.current;
+    const el = scrollRef.current!;
     if (!el) return undefined;
     function onScroll() { setScrollTop(el.scrollTop); }
     function onResize() { setContainerHeight(el.clientHeight); }

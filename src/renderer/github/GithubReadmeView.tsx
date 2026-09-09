@@ -8,7 +8,7 @@
 
 import { GithubMarkdown } from "./GithubMarkdown.tsx";
 
-export function GithubReadmeView({ markdown, loading }) {
+export function GithubReadmeView({ markdown, loading }: { markdown: string; loading: boolean }) {
   if (loading) {
     return <GithubReadmeSkeleton />;
   }

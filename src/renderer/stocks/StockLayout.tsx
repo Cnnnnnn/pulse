@@ -57,11 +57,11 @@ import { api } from "../api.ts";
 //
 // 2026-07-13: StockContent 不再渲染 subtab 控件, 此函数保留供 InvestLayoutHeader (Task 4)
 //   主级 subtab 接管时复用 (R2/N1).
-function onSubtabKeyDown(e, currentIdx) {
-  const tab = e.currentTarget || e.target;
+function onSubtabKeyDown(e: KeyboardEvent, currentIdx: number) {
+  const tab = (e.currentTarget || e.target) as HTMLElement;
   const list = (tab && tab.closest) ? tab.closest('[role="tablist"]') : null;
   if (!list) return;
-  const tabs = list.querySelectorAll('[role="tab"]');
+  const tabs = Array.from(list.querySelectorAll<HTMLElement>('[role="tab"]'));
   let next = currentIdx;
   if (e.key === "ArrowRight") next = (currentIdx + 1) % tabs.length;
   else if (e.key === "ArrowLeft") next = (currentIdx - 1 + tabs.length) % tabs.length;
@@ -79,7 +79,7 @@ function onSubtabKeyDown(e, currentIdx) {
 // ponytail: 导出 onSubtabKeyDown 给 Task 14 (键盘导航) 复用.
 export { onSubtabKeyDown };
 
-function fmtTime(ts) {
+function fmtTime(ts: any) {
   if (!ts) return "—";
   const d = new Date(ts);
   return `${String(d.getHours()).padStart(2, "0")}:${String(

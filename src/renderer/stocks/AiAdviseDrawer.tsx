@@ -38,7 +38,7 @@ const ERROR_REASON_TEXT = {
   no_api: "AI 通道未就绪",
 };
 
-export function AiAdviseDrawer({ api }) {
+export function AiAdviseDrawer({ api }: { api: any }) {
   const open = aiAdviseOpen.value;
   const state = aiAdvise.value;
   const [selectedChip, setSelectedChip] = useState(PRESET_CHIPS[0].id);
@@ -119,7 +119,7 @@ export function AiAdviseDrawer({ api }) {
           <div class="stock-advise-error">
             <div class="stock-advise-error-title"><IconAlert size={14} /> 出错了</div>
             <div class="stock-advise-error-sub">
-              {ERROR_REASON_TEXT[state.reason] || state.error || state.reason || "未知错误"}
+              {ERROR_REASON_TEXT[state.reason as keyof typeof ERROR_REASON_TEXT] || state.error || state.reason || "未知错误"}
             </div>
             <button
               type="button"
@@ -161,7 +161,7 @@ export function AiAdviseDrawer({ api }) {
   );
 }
 
-function PreviewBlock({ result, fromCache }) {
+function PreviewBlock({ result, fromCache }: { result: any; fromCache: boolean }) {
   const c = result.criteria || {};
   const items = [];
   if (c.peMin != null || c.peMax != null) {
@@ -177,7 +177,8 @@ function PreviewBlock({ result, fromCache }) {
   }
   if (c.change5dMin != null) items.push(`近5日 ≥ ${c.change5dMin}%`);
   if (c.marketCapTier && c.marketCapTier !== "all") {
-    const label = { large: "大盘", mid: "中盘", small: "小盘" }[c.marketCapTier] || c.marketCapTier;
+    const tierLabel: Record<string, string> = { large: "大盘", mid: "中盘", small: "小盘" };
+    const label = tierLabel[c.marketCapTier] || c.marketCapTier;
     items.push(`市值 ${label}`);
   }
   if (Array.isArray(c.industries) && c.industries.length > 0) {
@@ -208,8 +209,8 @@ function PreviewBlock({ result, fromCache }) {
   );
 }
 
-function labelOfSort(key) {
-  const map = {
+function labelOfSort(key: string): string {
+  const map: Record<string, string> = {
     roe: "ROE", pe: "PE", pb: "PB", changePct: "涨跌%", marketCap: "市值",
     turnover: "换手率", price: "现价", name: "名称", industry: "行业",
   };

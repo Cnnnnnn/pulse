@@ -1,6 +1,6 @@
 import { ModuleCard } from "./ModuleCard.tsx";
 
-export function RiskCard({ risks }) {
+export function RiskCard({ risks }: { risks?: any }) {
   const list = Array.isArray(risks) ? risks : [];
   return (
     <ModuleCard

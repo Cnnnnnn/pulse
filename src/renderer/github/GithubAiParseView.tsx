@@ -8,7 +8,7 @@
 import { IconRefresh } from "../components/icons.tsx";
 import { githubReasonText } from "../store/github-projects-store.ts";
 
-function escapeHtml(s) {
+function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -16,7 +16,7 @@ function escapeHtml(s) {
 }
 
 // 把带 `code` 与换行的纯文本渲染为安全 HTML
-function renderUsage(text) {
+function renderUsage(text: string) {
   const escaped = escapeHtml(text || "");
   const withCode = escaped.replace(/`([^`]+)`/g, "<code>$1</code>");
   return (
@@ -27,7 +27,23 @@ function renderUsage(text) {
   );
 }
 
-export function GithubAiParseView({ result, loading, error, onRetry }) {
+export function GithubAiParseView({
+  result,
+  loading,
+  error,
+  onRetry,
+}: {
+  result: {
+    summary?: string;
+    usage?: string;
+    features?: string[];
+    scenarios?: string[];
+    tags?: string[];
+  } | null;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+}) {
   if (loading) {
     return <GithubAiParseSkeleton />;
   }

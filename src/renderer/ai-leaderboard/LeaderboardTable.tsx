@@ -111,7 +111,9 @@ export function LeaderboardTable({ rows, view, board, dim, lb }: {
   // 票数列最大值（内联条形归一化用，独立于主指标，仅 Arena 视角有意义）。
   let votesMax = 0;
   if (v === "arena") {
-    const bm = ARENA_BOARDS[b] || ARENA_BOARDS.text;
+    const bm =
+      (ARENA_BOARDS as Record<string, { key: string; label: string; category: string }>)[b] ||
+      ARENA_BOARDS.text;
     for (const m of list) {
       const s = m && m.arena && m.arena[bm.key];
       if (s && typeof s.votes === "number") votesMax = Math.max(votesMax, s.votes);
@@ -248,7 +250,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }: {
       </tr>
     );
 
-  const renderRow = (index, model) => (
+  const renderRow = (index: number, model: any) => (
     <ModelRow
       model={model}
       rank={index + 1}

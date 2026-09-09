@@ -39,7 +39,7 @@ export function StateRecoveredBanner() {
 
   function dismiss() {
     try {
-      localStorage.setItem('state-banner:dismissed', String(evt.ts));
+      localStorage.setItem('state-banner:dismissed', String(evt!.ts));
     } catch { /* ignore */ }
     stateRecoveredSignal.value = null;
   }

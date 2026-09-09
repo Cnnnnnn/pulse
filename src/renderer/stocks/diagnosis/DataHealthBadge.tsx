@@ -15,11 +15,15 @@ const STATUS_TEXT = {
   failed: "失败",
 };
 
-export function DataHealthBadge({ perAngleData, angles = ALL_ANGLES, now = Date.now() }) {
+export function DataHealthBadge({ perAngleData, angles = ALL_ANGLES, now = Date.now() }: {
+  perAngleData: Record<string, any>;
+  angles?: string[];
+  now?: number;
+}) {
   if (!perAngleData || Object.keys(perAngleData).length === 0) return null;
   const rows = angles.map((k) => ({
     key: k,
-    label: ANGLE_LABELS[k] || k,
+    label: ANGLE_LABELS[k as keyof typeof ANGLE_LABELS] || k,
     status: deriveAngleStatus(perAngleData[k], now),
     angle: perAngleData[k],
   }));
@@ -35,7 +39,7 @@ export function DataHealthBadge({ perAngleData, angles = ALL_ANGLES, now = Date.
       : r.status === "stale" && r.angle.lastSuccessAt
         ? ` — 上次 ${new Date(r.angle.lastSuccessAt).toLocaleDateString("zh-CN")}`
         : "";
-    return `${r.label}: ${STATUS_TEXT[r.status]}${detail}`;
+    return `${r.label}: ${STATUS_TEXT[r.status as keyof typeof STATUS_TEXT]}${detail}`;
   });
   return (
     <span

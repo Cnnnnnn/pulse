@@ -12,7 +12,10 @@ import { bootstrapIthomeTab } from "./store.ts";
 import { NewsSidebar } from "./NewsSidebar.tsx";
 import { NewsView } from "./NewsView.tsx";
 
-export function IthomeContent({ search = "", onRefresh }) {
+export function IthomeContent({ search = "", onRefresh }: {
+  search?: string;
+  onRefresh?: () => void;
+}) {
   useEffect(() => {
     bootstrapIthomeTab();
   }, []);

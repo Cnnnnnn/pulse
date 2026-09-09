@@ -61,7 +61,7 @@ export function GithubProjectPanel({ projectId, initialTab = "overview", onClose
   const [tab, setTab] = useState<GithubPanelTab>(normalizeTab(initialTab));
   const [parseLoading, setParseLoading] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const project = githubProjects.value.find((item: any) => item.id === projectId) || null;
+  const project = (githubProjects.value.find((item: any) => item.id === projectId) as any) || null;
 
   useEffect(() => {
     if (project) markGithubProjectViewed(project.id);

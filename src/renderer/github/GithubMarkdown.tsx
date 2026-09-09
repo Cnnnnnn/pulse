@@ -14,7 +14,7 @@ import DOMPurify from "dompurify";
 
 marked.setOptions({ gfm: true, breaks: false });
 
-function escapeHtml(s) {
+function escapeHtml(s: string) {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -26,7 +26,7 @@ function escapeHtml(s) {
  * @param {string} props.markdown 原始 markdown 文本
  * @param {string} [props.className] 附加到容器的 class（如 "github-rel-notes"）
  */
-export function GithubMarkdown({ markdown, className = "" }) {
+export function GithubMarkdown({ markdown, className = "" }: { markdown: string; className?: string }) {
   if (!markdown || !markdown.trim()) {
     return <div class={`readme-content ${className}`.trim()} />;
   }

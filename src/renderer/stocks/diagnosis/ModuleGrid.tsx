@@ -14,7 +14,7 @@ import { computeBasicRisks } from "../../../stocks/diagnosis-scorer.ts";
 // ponytail: 2026-07-07 — peer_compare 现在独立成 PeerCompareCard (用户反馈"看不到同业对比").
 // 还在 FundamentalsCard / ValuationCard 留 sub-section (本股 PE/PB / ROE/毛利率 vs 行业中位,
 //  跟具体 card 的上下文相关). peerCompare 拿不到时 (failed) 两张 card 退化为无对比条.
-function extractPeerCompare(perAngleData) {
+function extractPeerCompare(perAngleData: any) {
   const e = perAngleData && perAngleData.peer_compare;
   if (!e || e.status !== "ok") return null;
   return e.data || null;
@@ -23,7 +23,7 @@ function extractPeerCompare(perAngleData) {
 // ponytail: 2026-07-07 — AI 解读改手动后, RiskCard 不再等 LLM. 基础风险清单由
 // computeBasicRisks 规则版给出 (估值/资金/业绩/舆情/解禁); AI 跑了之后再把 aiResult.risks
 // 合并 (去重), 避免 LLM 重复出基础项. 都没信号 → 空 (走老 "暂无明显风险信号" 兜底).
-function mergeRisks(basic, ai) {
+function mergeRisks(basic: any[], ai: any) {
   const aiRisks = Array.isArray(ai) ? ai : [];
   if (aiRisks.length === 0) return basic;
   // 简单去重: 包含子串算重复. LLM 通常用词比规则版长, 包含关系是常见形态.
@@ -44,14 +44,30 @@ function mergeRisks(basic, ai) {
 // ponytail 2026-07-18 P0-1 T8: 9 张诊断卡统一传 angle (= perAngleData[k]) +
 //   onRefresh (= () => onRefreshAngle(k)). ModuleCard 已经接这两 prop,
 //   DataHealthPill 会自动渲 4 态 + failed retry 按钮. 改 keep 不新增 prop 总数.
-export function ModuleGrid({ perAngleData, aiResult, api, scores, onRefreshAngle, refreshing, failed }) {
+export function ModuleGrid({
+  perAngleData,
+  aiResult,
+  api,
+  scores,
+  onRefreshAngle,
+  refreshing,
+  failed,
+}: {
+  perAngleData: Record<string, any>;
+  aiResult: any;
+  api: any;
+  scores: any;
+  onRefreshAngle: (k: string) => void;
+  refreshing: Set<string>;
+  failed: Set<string>;
+}) {
   const basicRisks = computeBasicRisks(perAngleData || {});
   const risks = mergeRisks(basicRisks, aiResult?.risks);
   const perAngle = (aiResult && aiResult.perAngle) || {};
   const aiReady = !!aiResult;
-  const busy = refreshing || new Set();
-  const failedSet = failed || new Set();
-  const makeRefresh = (k) => onRefreshAngle ? () => onRefreshAngle(k) : null;
+  const busy = refreshing || new Set<string>();
+  const failedSet = failed || new Set<string>();
+  const makeRefresh = (k: string) => onRefreshAngle ? () => onRefreshAngle(k) : undefined;
   const peerCompare = extractPeerCompare(perAngleData);
   return (
     <div class="module-grid">

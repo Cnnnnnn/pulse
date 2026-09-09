@@ -77,7 +77,8 @@ function _aiModel(cfg: AiSessionsConfig | null, providerId: string | null) {
   if (!cfg || !providerId) return null;
   const cloud = cfg.cloud || {};
   if (typeof cloud.model === "string" && cloud.model) return cloud.model;
-  return DEFAULT_MODELS[providerId] || null;
+  if (!(providerId in DEFAULT_MODELS)) return null;
+  return DEFAULT_MODELS[providerId as keyof typeof DEFAULT_MODELS] || null;
 }
 
 export function isAiReadyLocal() {

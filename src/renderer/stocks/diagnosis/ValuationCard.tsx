@@ -5,7 +5,12 @@ import { IndustryCompareBar } from "./IndustryCompareBar.tsx";
 //          card 拿 d.price 显出来, 避免 "数据不足" 出现但用户知道当前股价.
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard.
-export function ValuationCard({ data, peerCompare, angle = null, onRefresh = null }) {
+export function ValuationCard({ data, peerCompare, angle = null, onRefresh = null }: {
+  data: any;
+  peerCompare?: any;
+  angle?: any;
+  onRefresh?: (() => void) | null;
+}) {
   const d = data?.status === "ok" ? data.data : null;
   const fetchedAt = data?.status === "ok" ? data.fetchedAt : null;
   const pePct = peerCompare?.pePercentile;

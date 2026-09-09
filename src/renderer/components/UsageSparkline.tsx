@@ -16,19 +16,20 @@ const PAD_X = 4;
 const PAD_TOP = 6;
 const PAD_BOTTOM = 2;
 
-/**
- * @param {object} props
- * @param {{days: Array<{date: string, percent: number, used?: number|null}>}} props.history
- * @param {number} [props.days=7]
- * @param {number} [props.height=56]
- * @param {boolean} [props.anomalyToday=false]
- */
+type SparklineDay = { date: string; percent: number; used?: number | null };
+type UsageSparklineProps = {
+  history: { days: SparklineDay[] };
+  days?: number;
+  height?: number;
+  anomalyToday?: boolean;
+};
+
 export function UsageSparkline({
   history,
   days = DEFAULT_DAYS,
   height = 56,
   anomalyToday = false,
-}) {
+}: UsageSparklineProps) {
   const [hoverIdx, setHoverIdx] = useState(-1);
 
   const data = useMemo(
@@ -42,11 +43,11 @@ export function UsageSparkline({
 
   // 数值 → y 坐标. percent 范围 0-100.
   const max = 100;
-  const xAt = (i) => {
+  const xAt = (i: number) => {
     if (data.series.length <= 1) return PAD_X + (W - 2 * PAD_X) / 2;
     return PAD_X + (i * (W - 2 * PAD_X)) / (data.series.length - 1);
   };
-  const yAt = (v) => {
+  const yAt = (v: number) => {
     const norm = Math.max(0, Math.min(1, v / max));
     return H - PAD_BOTTOM - norm * innerH;
   };
@@ -156,7 +157,7 @@ export function UsageSparkline({
   );
 }
 
-function formatTooltip(p) {
+function formatTooltip(p: SparklineDay) {
   const dateLabel = formatDateLabel(p.date);
   if (typeof p.percent !== "number" || p.percent === 0) {
     return `${dateLabel}: 无数据`;
@@ -167,7 +168,7 @@ function formatTooltip(p) {
   return `${dateLabel}: 已用 ${p.percent}%`;
 }
 
-function formatDateLabel(yyyyMmDd) {
+function formatDateLabel(yyyyMmDd: string) {
   const [, m, d] = yyyyMmDd.split("-");
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }

@@ -21,11 +21,13 @@ import { ModalShell } from "./ModalShell.tsx";
 
 const SEGMENT_LABELS = TRAY_SEGMENTS;
 
+type SegmentPrefs = Record<string, boolean>;
+
 export function TrayMenuConfigModal() {
   const open = trayConfigOpen.value;
   const [phase, setPhase] = useState("loading"); // "loading" | "ready" | "error"
-  const [original, setOriginal] = useState(null);
-  const [draft, setDraft] = useState(null);
+  const [original, setOriginal] = useState<SegmentPrefs | null>(null);
+  const [draft, setDraft] = useState<SegmentPrefs | null>(null);
   const [saving, setSaving] = useState(false);
 
   // mount: 拉 prefs
@@ -54,8 +56,8 @@ export function TrayMenuConfigModal() {
     return () => { cancelled = true; };
   }, []);
 
-  function toggle(key) {
-    setDraft((d) => ({ ...d, [key]: !d[key] }));
+  function toggle(key: string) {
+    setDraft((d) => (d ? { ...d, [key]: !d[key] } : d));
   }
 
   function isDirty() {
@@ -67,7 +69,7 @@ export function TrayMenuConfigModal() {
   }
 
   async function handleSave() {
-    if (!isDirty() || saving) return;
+    if (!isDirty() || saving || !draft) return;
     setSaving(true);
     try {
       const trayApi = window.pulse && window.pulse.tray;

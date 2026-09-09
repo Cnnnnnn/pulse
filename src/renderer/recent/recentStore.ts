@@ -17,7 +17,7 @@ import {
 import type { RecentListResponse } from "../../shared/ipc-contracts.ts";
 import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.ts";
 
-export const recent = signal([]); // RecentActivityEntry[]
+export const recent = signal<any[]>([]); // RecentActivityEntry[]
 export const recentLoaded = signal(false);
 export const recentOpen = signal(false);
 export const recentFilter = signal("all"); // 'all' | kind

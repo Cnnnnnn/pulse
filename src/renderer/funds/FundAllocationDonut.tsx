@@ -3,19 +3,19 @@ import { categoryAllocation, rowsWithMetrics } from './fundStore.ts';
 import { computeConcentration } from '../../funds/concentration.ts';
 
 export const CATEGORY_ORDER = ['stock', 'bond', 'money', 'qdii', 'other'];
-const CAT_LABEL = { stock: '股票', bond: '债券', money: '货币', qdii: 'QDII', other: '其他' };
+const CAT_LABEL: Record<string, string> = { stock: '股票', bond: '债券', money: '货币', qdii: 'QDII', other: '其他' };
 
-export function polar(cx, cy, r, deg) {
+export function polar(cx: number, cy: number, r: number, deg: number) {
   const a = (deg - 90) * Math.PI / 180;
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
 }
-export function describeArc(cx, cy, r, start, end) {
+export function describeArc(cx: number, cy: number, r: number, start: number, end: number) {
   const [sx, sy] = polar(cx, cy, r, end);
   const [ex, ey] = polar(cx, cy, r, start);
   const large = end - start <= 180 ? 0 : 1;
   return `M ${sx} ${sy} A ${r} ${r} 0 ${large} 0 ${ex} ${ey}`;
 }
-export function buildSegments(byCat, total) {
+export function buildSegments(byCat: Record<string, any>, total: number) {
   const segs = [];
   let cursor = 0;
   for (const cat of CATEGORY_ORDER) {
@@ -48,8 +48,8 @@ export function FundAllocationDonut() {
   const topCat = legendEntries.length > 0 ? legendEntries[0].cat : null;
   // 2026-07-15: hover 高亮 — 鼠标移到某根扇区/legend 项, 突出该 cat, 其他半透明
   //   ponytail: useState 而非 signal (本组件局部状态, 不跨组件共享)
-  const [hoverCat, setHoverCat] = useState(null);
-  const dim = (cat) => hoverCat && hoverCat !== cat ? 'fund-donut-dim' : '';
+  const [hoverCat, setHoverCat] = useState<string | null>(null);
+  const dim = (cat: string) => hoverCat && hoverCat !== cat ? 'fund-donut-dim' : '';
   return (
     <div class="fund-donut" role="img" aria-label={`配置占比 donut, 总市值 ${total}`}>
       <svg viewBox="0 0 100 100" class="fund-donut-svg" aria-hidden="true">

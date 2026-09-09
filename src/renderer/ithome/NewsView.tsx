@@ -33,7 +33,7 @@ import { NewsReader } from "./NewsReader.tsx";
 import { markIthomeRead } from "./store.ts";
 import { PinIcon, IconRefresh, IconNews } from "../components/icons.tsx";
 
-function articleSearchText(article, summary) {
+function articleSearchText(article: any, summary: any) {
   return [
     article?.title,
     article?.excerpt,
@@ -52,7 +52,7 @@ function articleSearchText(article, summary) {
     .toLowerCase();
 }
 
-export function NewsView({ search = "", onRefresh }) {
+export function NewsView({ search = "", onRefresh }: { search?: string; onRefresh?: () => void }) {
   const externalPick = ithomeSelectedArticleId.value;
   const [selectedArticleId, setSelectedArticleId] = useState("");
   const loaded = ithomeNewsLoaded.value;
@@ -90,7 +90,7 @@ export function NewsView({ search = "", onRefresh }) {
     }
   }, [articleIds, dateKey, mode, selectedArticleId, articles, externalPick]);
 
-  function handleSelectArticle(article) {
+  function handleSelectArticle(article: any) {
     if (!article) return;
     setSelectedArticleId(article.id);
     void markIthomeRead(article.id);

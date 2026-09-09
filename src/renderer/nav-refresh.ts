@@ -70,7 +70,7 @@ export const REFRESHABLE_NAV_KEYS = new Set(Object.keys(REGISTRY));
  * @returns {NavRefreshEntry | null}
  */
 export function getRefreshEntry(navKey: string): { fn: () => any; label: string } | null {
-  return REGISTRY[navKey] || null;
+  return REGISTRY[navKey as keyof typeof REGISTRY] || null;
 }
 
 /**

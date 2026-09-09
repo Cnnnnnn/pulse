@@ -19,6 +19,7 @@ import { TabList, Tab } from "../components/TabList.tsx";
 import { PanelEmpty } from "../components/EmptyState.tsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.tsx";
 import { IconClock, RecentActivityIcon, IconX } from "../components/icons.tsx";
+import type { RecentActivityEntry } from "../../shared/ipc-contracts.ts";
 
 const KIND_META = {
   "app-upgrade": { label: "升级" },
@@ -73,7 +74,7 @@ const FILTERS = [
 ];
 
 /** 找 kind 对应的 nav 目标 (点跳过去) */
-function navForKind(kind) {
+function navForKind(kind: string) {
   if (
     kind === "fund-view" ||
     kind === "fund-add" ||
@@ -92,7 +93,7 @@ function navForKind(kind) {
   return null;
 }
 
-function relTime(ts, now) {
+function relTime(ts: number, now: number) {
   if (typeof ts !== "number") return "";
   const diff = now - ts;
   const abs = Math.abs(diff);
@@ -104,12 +105,16 @@ function relTime(ts, now) {
   if (abs < day) return `${Math.round(abs / hour)} 小时前`;
   if (abs < 7 * day) return `${Math.round(abs / day)} 天前`;
   const d = new Date(ts);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function RecentRow({ e, now, onClick }) {
-  const meta = KIND_META[e.kind] || { label: e.kind };
+function RecentRow({ e, now, onClick }: {
+  e: RecentActivityEntry;
+  now: number;
+  onClick?: (e: RecentActivityEntry) => void;
+}) {
+  const meta = KIND_META[e.kind as keyof typeof KIND_META] || { label: e.kind };
   const count = typeof e.count === "number" && e.count > 1 ? e.count : null;
   return (
     <div
@@ -131,7 +136,7 @@ function RecentRow({ e, now, onClick }) {
 
 export function RecentActivityModal() {
   const open = recentOpen.value;
-  const list = recent.value;
+  const list = recent.value as RecentActivityEntry[];
   const loaded = recentLoaded.value;
   const loadState = recentDataState.value;
   const loading = loadState.phase === "loading";
@@ -157,7 +162,7 @@ export function RecentActivityModal() {
     recentOpen.value = false;
   }
 
-  function onRowClick(e) {
+  function onRowClick(e: RecentActivityEntry) {
     const target = navForKind(e.kind);
     if (target) {
       setActiveNav(target);
@@ -239,7 +244,7 @@ export function RecentActivityModal() {
   );
 }
 
-function useNowTick(active) {
+function useNowTick(active: boolean) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!active) return;

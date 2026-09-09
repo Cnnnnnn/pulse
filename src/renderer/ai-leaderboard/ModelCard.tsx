@@ -16,7 +16,7 @@ import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 const FIELDS = {
   arena: [
     { key: "elo", label: "ELO 分数", fmt: fmtScore },
-    { key: "ci", label: "置信区间", fmt: (v) => (v != null ? `±${Math.round(v)}` : "—") },
+    { key: "ci", label: "置信区间", fmt: (v: any) => (v != null ? `±${Math.round(v)}` : "—") },
     { key: "votes", label: "票数", fmt: fmtVotes },
     { key: "context", label: "上下文", fmt: fmtContext },
   ],
@@ -42,15 +42,25 @@ const FIELDS = {
   ],
 };
 
-function ModelCard({ m, rank, view, primaryKey }) {
+function ModelCard({
+  m,
+  rank,
+  view,
+  primaryKey,
+}: {
+  m: any;
+  rank: number;
+  view: keyof typeof FIELDS;
+  primaryKey: string;
+}) {
   const fields = FIELDS[view] || [];
-  const primary = fields.find((f) => f.key === primaryKey) || fields[0];
+  const primary = fields.find((f: any) => f.key === primaryKey) || fields[0];
   const pval = columnValue(m, view, primaryKey);
-  const others = fields.filter((f) => f.key !== primaryKey);
+  const others = fields.filter((f: any) => f.key !== primaryKey);
 
   const inCompare = compareList.value.includes(m.id);
   const disabled = !inCompare && compareList.value.length >= 3;
-  const vendorLabel = (VENDOR_META[m.vendor] && VENDOR_META[m.vendor].label) || m.vendor || "—";
+  const vendorLabel = (VENDOR_META[m.vendor as keyof typeof VENDOR_META] && VENDOR_META[m.vendor as keyof typeof VENDOR_META].label) || m.vendor || "—";
   const licKind = licenseKind(m.license);
   const licBadge = licKind !== "unknown" ? (
     <span class={`ai-lb-license ai-lb-license--${licKind}`} title={m.license ? `许可：${m.license}` : "许可未知"}>
@@ -98,7 +108,7 @@ function ModelCard({ m, rank, view, primaryKey }) {
       </div>
 
       <div class="ai-lb-card__grid">
-        {others.map((f) => (
+        {others.map((f: any) => (
           <div class="ai-lb-card__cell" key={f.key}>
             <span class="ai-lb-card__clabel">{f.label}</span>
             <span class="ai-lb-card__cval">{f.fmt(columnValue(m, view, f.key))}</span>
@@ -126,7 +136,7 @@ export function ModelCardList({ rows, view, primaryKey }: {
   const list = rows || [];
   return (
     <div class="ai-lb-cards">
-      {list.map((m, i) => (
+      {list.map((m: any, i: number) => (
         <ModelCard key={m.id} m={m} rank={i + 1} view={view} primaryKey={primaryKey} />
       ))}
     </div>

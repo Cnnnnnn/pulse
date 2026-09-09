@@ -74,7 +74,7 @@ export function createGithubReadmeService(deps: GithubReadmeServiceDeps) {
     deps.setBusyId(id);
     try {
       const response = await deps.parseReadme({
-        projectName: project.name,
+        projectName: project.name ?? "",
         description: project.description,
         readme,
       });

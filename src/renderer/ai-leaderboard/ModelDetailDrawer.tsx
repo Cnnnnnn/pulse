@@ -19,7 +19,8 @@ const SOURCE_LABELS = {
   livebench: "LiveBench",
   modelsdev: "Models.dev",
 };
-const SLICE_KEYS = ["arena", "aa", "openrouter", "livebench", "modelsdev"];
+const SLICE_KEYS = ["arena", "aa", "openrouter", "livebench", "modelsdev"] as const;
+type SliceKey = (typeof SLICE_KEYS)[number];
 
 function findDetailModel() {
   const id = detailId.value;
@@ -33,7 +34,7 @@ export function ModelDetailDrawer() {
 
   useEffect(() => {
     if (!model) return undefined;
-    function onKeyDown(event) {
+    function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") closeModelDetail();
     }
     window.addEventListener("keydown", onKeyDown);
@@ -47,7 +48,10 @@ export function ModelDetailDrawer() {
 
   if (!model) return null;
 
-  const vendorLabel = (VENDOR_META[model.vendor] || {}).label || model.vendor || "—";
+  const vendorLabel =
+    (VENDOR_META[model.vendor as keyof typeof VENDOR_META] || {}).label ||
+    model.vendor ||
+    "—";
   const inCompare = compareList.value.includes(model.id);
   const compareDisabled = !inCompare && compareList.value.length >= 3;
 
@@ -165,7 +169,19 @@ export function ModelDetailDrawer() {
   );
 }
 
-function SliceGroup({ sourceKey, label, slice, source, url }) {
+function SliceGroup({
+  sourceKey,
+  label,
+  slice,
+  source,
+  url,
+}: {
+  sourceKey: any;
+  label: any;
+  slice: any;
+  source: any;
+  url: any;
+}) {
   const entries = slice && typeof slice === "object"
     ? Object.entries(slice).filter(([, value]) => value != null && value !== "")
     : [];

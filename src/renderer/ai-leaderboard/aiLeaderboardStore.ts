@@ -51,6 +51,7 @@ import {
   normalizeBoardResult,
 } from "./types.ts";
 import { primaryValue, licenseKind, computeTrendingScore } from "./format.ts";
+import type { AiLeaderboardItem, AiRateBudget } from "../../shared/ipc-contracts.ts";
 
 /**
  * ponytail: HF 视角 base_model 衍生数 (v2.79.6+) — 一次扫描, 算同 base_model 出现次数.
@@ -100,7 +101,7 @@ export const activeTextCat = signal(TEXT_CATEGORY_DEFAULT);
 export const activeCodeCat = signal(CODE_CATEGORY_DEFAULT);
 
 /** 模型对比列表（最多 3 个 id）。 */
-export const compareList = signal([]);
+export const compareList = signal<string[]>([]);
 
 /** 模型详情抽屉：当前展示的模型 id（null = 关闭）。 */
 export const detailId = signal(null);
@@ -195,7 +196,7 @@ export async function loadCrossSource(force: any) {
   }
 }
 
-export const items = signal([]);
+export const items = signal<AiLeaderboardItem[]>([]);
 /** 文本榜子榜明细是否可用 — HF 主源数据带 categories map；wulong 快照兜底没有。
  *  不可用时 UI 隐藏子榜切换（读取端对缺 categories 已自动回退 overall 值），
  *  避免用户切到"代码/数学"等子榜却看到综合数据的误导展示。 */
@@ -221,7 +222,7 @@ export const fetchedAt = signal(null);
 export const sourceDate = signal(null);
 export const isSample = signal(false);
 /** AA 今日速率预算快照（best-effort；失败时保持上次值或默认 0/1000）。 */
-export const rateBudget = signal({ used: 0, limit: 1000, remaining: 1000, dayResetsAt: null, lastAcquireAt: null });
+export const rateBudget = signal<AiRateBudget>({ used: 0, limit: 1000, remaining: 1000, dayResetsAt: null, lastAcquireAt: null });
 
 function boardTimestamp(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -272,10 +273,10 @@ export function loadPrefs() {
   if (!raw) return;
   try {
     const o = JSON.parse(raw);
-    if (o && VIEWS[o.view]) activeView.value = o.view;
-    if (o && ARENA_BOARDS[o.board]) activeBoard.value = o.board;
-    if (o && AA_DIMENSIONS[o.dim]) activeDim.value = o.dim;
-    if (o && LIVE_DIMENSIONS[o.lb]) activeLB.value = o.lb;
+    if (o && VIEWS[o.view as keyof typeof VIEWS]) activeView.value = o.view;
+    if (o && ARENA_BOARDS[o.board as keyof typeof ARENA_BOARDS]) activeBoard.value = o.board;
+    if (o && AA_DIMENSIONS[o.dim as keyof typeof AA_DIMENSIONS]) activeDim.value = o.dim;
+    if (o && LIVE_DIMENSIONS[o.lb as keyof typeof LIVE_DIMENSIONS]) activeLB.value = o.lb;
     if (o && typeof o.vendor === "string") activeVendor.value = o.vendor;
     if (o && ["all", "open", "proprietary"].includes(o.license)) licenseFilter.value = o.license;
     if (o && (o.sortDir === "asc" || o.sortDir === "desc")) sortDir.value = o.sortDir;
@@ -400,23 +401,23 @@ export function refresh() {
 
 /** 切换视角（arena ↔ aa ↔ huggingface）→ 重新请求。 */
 export function setView(v: any) {
-  if (!VIEWS[v] || v === activeView.value) return undefined;
+  if (!VIEWS[v as keyof typeof VIEWS] || v === activeView.value) return undefined;
   activeView.value = v;
   activeVendor.value = "all";
   compareList.value = [];
   sortKey.value = null;
   sortDir.value = "desc";
   // ponytail: HF 视角 (v2.79.5+) — 切到 HF 时重置 activeDim 到 hf_downloads 兜底.
-  if (v === "huggingface" && !HF_DIMENSIONS[activeDim.value]) activeDim.value = "hf_downloads";
+  if (v === "huggingface" && !HF_DIMENSIONS[activeDim.value as keyof typeof HF_DIMENSIONS]) activeDim.value = "hf_downloads";
   // ponytail: 从 HF 切回 AA 时 activeDim 可能仍是 hf_*，须复位否则 getDisplayed 全空。
-  if (v === "aa" && !AA_DIMENSIONS[activeDim.value]) activeDim.value = "intelligence";
+  if (v === "aa" && !AA_DIMENSIONS[activeDim.value as keyof typeof AA_DIMENSIONS]) activeDim.value = "intelligence";
   persistPrefs();
   return loadLeaderboard();
 }
 
 /** Arena 视角：切 board → 重新请求。 */
 export function setBoard(b: any) {
-  if (!ARENA_BOARDS[b] || b === activeBoard.value) return undefined;
+  if (!ARENA_BOARDS[b as keyof typeof ARENA_BOARDS] || b === activeBoard.value) return undefined;
   activeBoard.value = b;
   activeVendor.value = "all";
   sortKey.value = null;
@@ -437,13 +438,13 @@ export function setCategory(cat: any) {
   if (!boards.length) return undefined;
   const cur = activeBoard.value;
   // 当前 board 已属该 UI 大类 → 仅切选中态，不重发请求
-  if (uiCategoryOfBoard(cur) === cat) return undefined;
+  if (uiCategoryOfBoard(cur as keyof typeof ARENA_BOARDS) === cat) return undefined;
   return setBoard(boards[0]);
 }
 
 /** 当前激活的 UI 大类 key（由 activeBoard 派生，便于 FilterBar 渲染选中态）。 */
 export function activeCategory() {
-  return uiCategoryOfBoard(activeBoard.value);
+  return uiCategoryOfBoard(activeBoard.value as keyof typeof ARENA_BOARDS);
 }
 
 /** Agent 榜：切细分维度 → 纯本地重排（数据已加载，不触发 IPC）。
@@ -477,7 +478,7 @@ export function setCodeCat(cat: any) {
 
 /** AA 视角：切排序维度 → 重新请求。 */
 export function setDim(d: any) {
-  if (!AA_DIMENSIONS[d] || d === activeDim.value) return undefined;
+  if (!AA_DIMENSIONS[d as keyof typeof AA_DIMENSIONS] || d === activeDim.value) return undefined;
   activeDim.value = d;
   activeVendor.value = "all";
   sortKey.value = null;
@@ -488,7 +489,7 @@ export function setDim(d: any) {
 
 /** LiveBench 视角：切子维度 → 重新请求。全部 desc 默认, 不动 sortDir 现状。 */
 export function setLB(d: any) {
-  if (!LIVE_DIMENSIONS[d] || d === activeLB.value) return undefined;
+  if (!LIVE_DIMENSIONS[d as keyof typeof LIVE_DIMENSIONS] || d === activeLB.value) return undefined;
   activeLB.value = d;
   activeVendor.value = "all";
   sortKey.value = null;
@@ -498,7 +499,7 @@ export function setLB(d: any) {
 
 /** 切厂商：纯本地派生。 */
 export function setVendor(v: any) {
-  const allowed = v === "all" || VENDOR_META[v];
+  const allowed = v === "all" || VENDOR_META[v as keyof typeof VENDOR_META];
   activeVendor.value = allowed ? v : "all";
   persistPrefs();
 }
@@ -534,7 +535,7 @@ export function setSortDir(dir: any) {
   persistPrefs();
 }
 
-let _searchTimer = null;
+let _searchTimer: ReturnType<typeof setTimeout> | null = null;
 export function setSearchQuery(v: any) {
   if (_searchTimer) clearTimeout(_searchTimer);
   _searchTimer = setTimeout(() => {
@@ -585,7 +586,7 @@ export function columnValue(model: any, view: any, key: any) {
   }
   if (view === "arena") {
     if (key === "elo" || key === "ci" || key === "votes") {
-      const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
+      const board = ARENA_BOARDS[activeBoard.value as keyof typeof ARENA_BOARDS] || ARENA_BOARDS.text;
       const slice = model && model.arena && model.arena[board.key];
       if (!slice) return null;
       // ponytail: Agent 榜 6 维细分 (v2.8x) — elo/ci 读选中维度, votes 列复用为 sessions 体量.
@@ -637,7 +638,8 @@ export function columnValue(model: any, view: any, key: any) {
       const c = lb.cost && lb.cost.perSuccessfulTask;
       return typeof c === "number" ? c : null;
     }
-    const cat = { lb_coding: "Coding", lb_language: "Language", lb_instfollow: "IF", lb_reasoning: "Reasoning", lb_math: "Math" }[key];
+    const LB_LABELS: Record<string, string> = { lb_coding: "Coding", lb_language: "Language", lb_instfollow: "IF", lb_reasoning: "Reasoning", lb_math: "Math" };
+    const cat = LB_LABELS[key];
     if (cat) {
       const v = lb.byCategory && lb.byCategory[cat];
       return typeof v === "number" ? v : null;
@@ -690,7 +692,7 @@ export function sortValue(model: any) {
         ? slice.score
         : null;
     }
-    const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
+    const board = ARENA_BOARDS[activeBoard.value as keyof typeof ARENA_BOARDS] || ARENA_BOARDS.text;
     // ponytail: 直接读当前 board 切片（board.key），不走 CATEGORY_BOARD 映射——
     // 新 board（image-edit/image-to-video/video-edit/document/search）的 key 与
     // category→board 映射不一致，映射会错取 text-to-image/text-to-video 等导致排序失效。
@@ -710,7 +712,7 @@ export function sortValue(model: any) {
   }
   // ponytail: HF 视角 (v2.79.5+) — 主维度走 activeDim 复用 (HF_DIMENSIONS 校验)
   if (activeView.value === "huggingface") {
-    const dim = HF_DIMENSIONS[activeDim.value] ? activeDim.value : "hf_downloads";
+    const dim = HF_DIMENSIONS[activeDim.value as keyof typeof HF_DIMENSIONS] ? activeDim.value : "hf_downloads";
     return primaryValue(model, dim, "llm");
   }
   return primaryValue(model, activeDim.value, "llm");
@@ -732,10 +734,10 @@ export function toggleSort(key: any) {
     sortKey.value = key;
     sortDir.value = ASC_DEFAULT_COLS.has(key) ? "asc" : "desc";
     // ponytail: 与表头排序对齐偏好里的主维度，避免删掉工具栏下拉后刷新又回默认序
-    if (activeView.value === "aa" && AA_DIMENSIONS[key]) activeDim.value = key;
-    if (activeView.value === "livebench" && LIVE_DIMENSIONS[key]) activeLB.value = key;
+    if (activeView.value === "aa" && AA_DIMENSIONS[key as keyof typeof AA_DIMENSIONS]) activeDim.value = key;
+    if (activeView.value === "livebench" && LIVE_DIMENSIONS[key as keyof typeof LIVE_DIMENSIONS]) activeLB.value = key;
     // ponytail: HF 视角 (v2.79.5+) — 列头点选 hf_* 同步 activeDim 复用.
-    if (activeView.value === "huggingface" && HF_DIMENSIONS[key]) activeDim.value = key;
+    if (activeView.value === "huggingface" && HF_DIMENSIONS[key as keyof typeof HF_DIMENSIONS]) activeDim.value = key;
     persistPrefs();
   }
 }
@@ -769,7 +771,7 @@ export function filterBySearch(list: any, q: any) {
   const needle = (q || "").trim().toLowerCase();
   if (!needle) return list;
   return (Array.isArray(list) ? list : []).filter((it: any) => {
-    const vendorLabel = (VENDOR_META[it.vendor] || {}).label || "";
+    const vendorLabel = (VENDOR_META[it.vendor as keyof typeof VENDOR_META] || {}).label || "";
     const hay = [it.name, it.vendor, vendorLabel].filter(Boolean).join(" ").toLowerCase();
     return hay.includes(needle);
   });
@@ -780,7 +782,7 @@ export function getDisplayed() {
   let rows = items.value;
   // Arena 视角：仅保留有 ELO 分数的模型（排除 AA/OR 骨架）
   if (activeView.value === "arena") {
-    const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
+    const board = ARENA_BOARDS[activeBoard.value as keyof typeof ARENA_BOARDS] || ARENA_BOARDS.text;
     rows = rows.filter((it: any) => {
       const slice = it && it.arena && it.arena[board.key];
       if (!slice || typeof slice.score !== "number") return false;
