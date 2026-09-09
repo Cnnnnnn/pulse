@@ -101,6 +101,9 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
         preload: preloadPath,
         contextIsolation: true,
         nodeIntegration: false,
+        // P0 安全：preload 只用 contextBridge/ipcRenderer，可全沙箱。
+        // 限制 renderer 扩权面，配合 will-navigate / setWindowOpenHandler。
+        sandbox: true,
       },
       // 视觉选项走平台层 (mac: vibrancy + hiddenInset; win: acrylic + hidden)
       // 展开在末尾, 让 platform 返回值覆盖上面的同名字段 (如果有).
@@ -109,6 +112,40 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
 
     // 双保险: index.html <title> 也设了, 但 BrowserWindow 显式 title 优先生效
     mainWindow.loadFile(indexPath);
+
+    // P0 安全护栏：主窗口只应停在本地 index.html。
+    // 防 renderer 被注入后被导航到远程页 / file:// 任意文件。
+    mainWindow.webContents.on("will-navigate", (event, url) => {
+      try {
+        const { pathToFileURL } = require("node:url");
+        const allowed = pathToFileURL(indexPath).href;
+        // 允许同文件 hash/query 重载；其余一律拦截
+        if (url === allowed || url.startsWith(allowed + "#") || url.startsWith(allowed + "?")) {
+          return;
+        }
+      } catch { /* fall through to deny */ }
+      try {
+        const { mainLog } = require("./log.ts");
+        mainLog.warn(`[window] blocked will-navigate → ${url}`);
+      } catch { /* noop */ }
+      event.preventDefault();
+    });
+
+    // 弹窗 / target=_blank / window.open：一律 deny；http(s) 改走系统浏览器。
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+      try {
+        const { isSafeExternalUrl } = require("./security/open-targets.ts");
+        if (isSafeExternalUrl(url)) {
+          const { shell } = require("electron");
+          shell.openExternal(url);
+        } else {
+          const { mainLog } = require("./log.ts");
+          mainLog.warn(`[window] blocked window.open → ${url}`);
+        }
+      } catch { /* noop */ }
+      return { action: "deny" };
+    });
+
     if (process.env.NODE_ENV === 'development') {
       stopRendererAutoReload = installRendererAutoReload({
         rendererDir: path.join(__dirname, '..', '..', 'renderer-dist'),

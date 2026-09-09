@@ -92,4 +92,44 @@ describe('window.js uses platform.getWindowOptions', () => {
     expect(opts).toHaveProperty('backgroundMaterial');
     expect(opts).toHaveProperty('skipTaskbar');
   });
+
+  it('P0 安全：sandbox + will-navigate 锁 + setWindowOpenHandler deny', () => {
+    // 主窗全沙箱（preload 只用 contextBridge/ipcRenderer）
+    expect(windowSource).toMatch(/sandbox:\s*true/);
+    // 导航只允许本地 index.html
+    expect(windowSource).toContain("will-navigate");
+    expect(windowSource).toContain("pathToFileURL(indexPath)");
+    expect(windowSource).toContain("event.preventDefault()");
+    // 弹窗一律 deny；http(s) 才 openExternal
+    expect(windowSource).toContain("setWindowOpenHandler");
+    expect(windowSource).toContain('action: "deny"');
+    expect(windowSource).toContain("isSafeExternalUrl");
+  });
+});
+
+describe('index.html CSP + FOUC 外置', () => {
+  const indexHtml = fs.readFileSync(
+    path.join(__dirname, '../../index.html'),
+    'utf-8',
+  );
+  const foucJs = fs.readFileSync(
+    path.join(__dirname, '../../fouc.js'),
+    'utf-8',
+  );
+
+  it('有 CSP meta：default-src self + script 无 inline', () => {
+    expect(indexHtml).toMatch(/Content-Security-Policy/);
+    expect(indexHtml).toContain("default-src 'self'");
+    expect(indexHtml).toContain("script-src 'self'");
+    // 远程图片（新闻封面/电影海报）显式放行；网络走 IPC
+    expect(indexHtml).toContain("img-src 'self' data: blob: https:");
+    expect(indexHtml).toContain("connect-src 'none'");
+  });
+
+  it('FOUC 脚本外置为 fouc.js，不再内联（配合 script-src self）', () => {
+    expect(indexHtml).toContain('<script src="fouc.js"></script>');
+    expect(indexHtml).not.toContain('app-theme-preference');
+    expect(foucJs).toContain('app-theme-preference');
+    expect(foucJs).toContain('data-theme');
+  });
 });
