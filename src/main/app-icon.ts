@@ -225,3 +225,7 @@ function convertIcnsToPngWithDeps(icnsPath: string, deps: ConvertDeps): Buffer |
   }
 }
 
+
+// ponytail: Phase 7b — 保留 module.exports。tests/platform/macos.test.ts 用
+// `ai.getAppIcon = spy` monkey-patch，纯 ESM 互操作下 export 是 getter-only。
+module.exports = { getAppIcon, findIcnsPath, _clearIconCache };
