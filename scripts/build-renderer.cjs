@@ -73,6 +73,40 @@ function cleanMergedChunkCss() {
   return n;
 }
 
+/**
+ * esbuild 默认把 import "./x.css" 抽成 chunk-*.css，再由 merge-renderer-css
+ * 全量塞进 index.css — 启动就预载全部业务样式（~500KB）。
+ *
+ * P1 CSS 分层：改成 JS 注入。CSS 变成同 chunk 的 side-effect 模块，懒路由
+ * （LazyNavPanel dynamic import）加载 JS 时才挂 <style>；首屏只吃
+ * tokens.css + styles.css + 入口模块 CSS。
+ */
+function injectCssPlugin() {
+  return {
+    name: "inject-css",
+    setup(build) {
+      build.onLoad({ filter: /\.css$/ }, (args) => {
+        const css = fs.readFileSync(args.path, "utf8");
+        const key = path.relative(rootDir, args.path).split(path.sep).join("/");
+        return {
+          contents: `
+const __css = ${JSON.stringify(css)};
+const __key = ${JSON.stringify(key)};
+if (typeof document !== "undefined" && !document.querySelector('style[data-pulse-css="' + __key + '"]')) {
+  const __el = document.createElement("style");
+  __el.setAttribute("data-pulse-css", __key);
+  __el.textContent = __css;
+  document.head.appendChild(__el);
+}
+export default __css;
+`,
+          loader: "js",
+        };
+      });
+    },
+  };
+}
+
 async function main() {
   const cleanRendererCssChunks = require("./clean-renderer-css-chunks.cjs");
   cleanRendererCssChunks();
@@ -88,6 +122,7 @@ async function main() {
     entryNames: "[name]",
     chunkNames: "chunk-[hash]",
     logLevel: "info",
+    plugins: [injectCssPlugin()],
   });
 
   await esbuild.build({
@@ -99,10 +134,16 @@ async function main() {
     format: "iife",
     outfile: path.join(rendererOutDir, "news-share-card.bundle.js"),
     logLevel: "info",
+    plugins: [injectCssPlugin()],
   });
 
-  const mergeRendererCss = require("./merge-renderer-css.cjs");
-  mergeRendererCss();
+  // inject-css 后一般不再产出 chunk-*.css；若仍有残留，merge 进 index.css 兜底。
+  try {
+    const mergeRendererCss = require("./merge-renderer-css.cjs");
+    mergeRendererCss();
+  } catch (err) {
+    console.warn("[build-renderer] merge-renderer-css skipped:", err && err.message);
+  }
   cleanMergedChunkCss();
 }
 

@@ -18,7 +18,9 @@ const MERGE_MARKER = "\n/* --- merged ";
 
 function mergeRendererCss() {
   if (!fs.existsSync(indexPath)) {
-    throw new Error(`[merge-renderer-css] missing ${indexPath}`);
+    // inject-css 模式下 esbuild 不再产出 index.css（业务 CSS 内联进 JS chunk）。
+    console.log("[merge-renderer-css] no index.css (inject-css mode), skip");
+    return;
   }
 
   const chunks = fs

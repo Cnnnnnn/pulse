@@ -10,7 +10,8 @@
   <script src="fouc.js"></script>
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="renderer-dist/index.css">
+  <!-- 业务 CSS 由 JS chunk 按需注入（scripts/build-renderer.cjs inject-css）；
+       不再预载 renderer-dist/index.css。 -->
 </head>
 <body>
   <!-- 拖拽区域 (macOS title bar) -->
