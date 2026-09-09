@@ -199,7 +199,7 @@ export function registerAiHandlers(ctx: any) {
     { logMeta: (_evt: unknown, payload: any) => ({ providerId: payload && payload.providerId }) },
   );
 
-  ipcMain.handle(
+  safeHandle(
     "ai-sessions:has-key",
     async (
       _event: IpcMainInvokeEvent,
@@ -228,7 +228,7 @@ export function registerAiHandlers(ctx: any) {
     },
   );
 
-  ipcMain.handle(
+  safeHandle(
     "ai-sessions:healthcheck",
     async (
       _event: IpcMainInvokeEvent,

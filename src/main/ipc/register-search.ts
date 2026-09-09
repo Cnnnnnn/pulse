@@ -16,10 +16,30 @@
 import type { IpcMain, IpcMainInvokeEvent } from "electron";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
-export function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; stateStore: any }) {
+export function registerSearchIpc(deps: {
+  ipcMain: IpcMain;
+  searchIndex: any;
+  stateStore: any;
+  safeHandle?: (
+    channel: string,
+    fn: (...args: any[]) => any,
+  ) => void;
+}) {
   const { ipcMain, searchIndex, stateStore } = deps;
+  // 有 ctx.safeHandle 就用主进程统一实现；否则本地兜底（必须 ipcMain.handle，不能自引用）
+  const safeHandle =
+    deps.safeHandle ||
+    ((channel: string, fn: (...args: any[]) => any) => {
+      ipcMain.handle(channel, async (...args: any[]) => {
+        try {
+          return await fn(...args);
+        } catch {
+          return { ok: false, reason: "threw" };
+        }
+      });
+    });
 
-  ipcMain.handle(
+  safeHandle(
     'search:query',
     async (
       _event: IpcMainInvokeEvent,
@@ -34,7 +54,7 @@ export function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; st
     },
   );
 
-  ipcMain.handle(
+  safeHandle(
     'search:upsert',
     async (
       _event: IpcMainInvokeEvent,
@@ -48,7 +68,7 @@ export function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; st
     },
   );
 
-  ipcMain.handle('search:rebuild', async () => {
+  safeHandle('search:rebuild', async () => {
     try {
       const state = (stateStore && typeof stateStore.load === 'function') ? stateStore.load() : null;
       searchIndex.buildFromState(state);

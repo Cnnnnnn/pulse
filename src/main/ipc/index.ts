@@ -53,7 +53,7 @@ import { registerVaultHandlers } from "./register-vault";
 export function registerIpcHandlers(deps: Record<string, unknown>) {
   const ctx = createIpcContext(deps);
   registerCoreHandlers(ctx);
-  registerAppInfoHandlers();
+  registerAppInfoHandlers(ctx);
   registerTrayConfigHandlers(ctx); // Phase v1: tray 菜单配置
   registerOpenUrlHandlers(ctx);
   registerRemindersRecentHandlers(ctx);

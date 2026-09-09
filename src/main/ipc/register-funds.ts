@@ -87,13 +87,13 @@ export function registerFundsHandlers(ctx: any) {
     },
   );
 
-  ipcMain.handle("funds:nav:fetch", async () => {
+  safeHandle("funds:nav:fetch", async () => {
     const sched = fundScheduler();
     if (!sched) return { ok: false, reason: "no_scheduler" };
     return sched.fetchNow();
   });
 
-  ipcMain.handle("funds:nav:state", () => {
+  safeHandle("funds:nav:state", () => {
     const sched = fundScheduler();
     if (!sched)
       return {
