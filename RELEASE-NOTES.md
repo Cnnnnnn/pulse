@@ -2,6 +2,30 @@
 
 ---
 
+## v2.84.0 (🧱 ESM 收敛 + IPC 安全 + 缓存 GC) — 2026-09-09
+
+**🧱 Phase 7b ESM：dual-export 197 → 22**
+- 四批 strip 冗余 `module.exports`（约 −700 行手动同步债）：`src/ai` / `src/config` / `ai-leaderboard` / `bootstrap` / `concerts` / `finance` / `funds` / `ipc/*` / `ithome` / `movies` / `search` / `vault` / `wechat-hot` / `stocks/detail-fetchers` 等
+- PARTIAL 文件先补 `export { … }` 再删 dual-export
+- 保留 22 个：10 个测试 monkey-patch 例外（`shared-llm` / `fetcher-arena` / `tray` / `github` 等）+ 4 个 Phase 3 CJS bridge + platform 3 + 入口 + 4 个无法 export 的符号
+- `electron-adapters.test.ts` 的 `topLevelExports` 同时解析 ESM `export` 与 `module.exports`
+
+**🔒 IPC 裸 handle 全量迁 safeHandle**
+- `register-core` / `reminders-recent` / `search` / `theme` / `funds` / `ai` / `tray-config` / `app-info` 共约 35 个裸 `ipcMain.handle` 收到 `ctx.safeHandle`
+- 统一 try/catch + `mainLog.warn` + `{ ok:false, reason:'threw' }` 返回形状
+- `ipcMain.on` 事件订阅（tray 配置）不适用，保持原样
+
+**📦 userData 缓存统一 GC**
+- 启动 30s 后 best-effort：Chromium `Cache` / `Service Worker` / `Code Cache` / `GPUCache` 超龄 14 天删除
+- `football-value-cache`（v2.80 世界杯下线残留）整目录清理
+- `ai-leaderboard-cache` 超龄 30 天兜底
+- 明确不动 `state.json` / `vault` / `ai-keys` / `finance_*.json`
+
+**🔧 工程**
+- `@types/node` 补为直依，修 CI typecheck 在 pnpm 严格安装下 `TS2688`
+- vitest 4.1.11 + stylelint 17.15 / colord override，清掉剩余 moderate
+- AGENTS.md 入口描述精简
+
 ## v2.83.1 (🔒 js-yaml 安全修复) — 2026-09-09
 
 **🔒 js-yaml 4.3.2** (GHSA-2883-xcg3-v3hh, high):
