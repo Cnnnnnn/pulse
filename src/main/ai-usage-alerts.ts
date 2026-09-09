@@ -191,10 +191,3 @@ export async function checkAiUsageAlerts(deps: any): Promise<any> {
   };
 }
 
-module.exports = {
-  DEFAULT_ALERT_PREFS,
-  normalizeAlertPrefs,
-  checkAiUsageAlertsPure,
-  checkAiUsageAlerts,
-  topTasksByMsgCount,
-};

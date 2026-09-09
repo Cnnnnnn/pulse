@@ -347,4 +347,3 @@ export function runCheckQueued(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
   return job;
 }
 
-module.exports = { runCheck, runCheckQueued, cancelCheck };

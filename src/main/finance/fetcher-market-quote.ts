@@ -227,15 +227,3 @@ export function normalize(raw: any): any {
   return { indices, fx, errors: (raw && raw.errors) || {} };
 }
 
-module.exports = {
-  id,
-  label,
-  INDEX_SYMBOLS,
-  FX_SYMBOLS,
-  safeDecode,
-  parseSinaBlock,
-  parseIndexLine,
-  parseFxLine,
-  fetch,
-  normalize,
-};

@@ -65,4 +65,3 @@ export function _clearIconCache(): void {
   _inflight.clear();
 }
 
-module.exports = { getAppIcon, _clearIconCache };

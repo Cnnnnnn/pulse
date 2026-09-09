@@ -225,8 +225,3 @@ export function primeLLMCacheFromDisk(deps: any) {
   }
 }
 
-module.exports = {
-  loadCategoryConfig,
-  classifyUnmappedAppsByLLM,
-  primeLLMCacheFromDisk,
-};

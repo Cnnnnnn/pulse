@@ -24,4 +24,3 @@ export function getTrayManager() {
   return _trayMgr;
 }
 
-module.exports = { setTrayManager, getTrayManager };

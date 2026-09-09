@@ -42,4 +42,3 @@ export const label = f.label;
 export const fetch = f.fetch;
 export const normalize = f.normalize;
 
-module.exports = { id, label, fetch, normalize };

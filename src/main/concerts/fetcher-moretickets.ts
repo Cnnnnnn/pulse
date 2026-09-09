@@ -250,9 +250,3 @@ export function normalizeMoreticketsSearchHits(list: any[]): MoreticketsSearchHi
   return out;
 }
 
-module.exports = {
-  fetchMoreticketsTour,
-  searchMoreticketsShows,
-  normalizeMoreticketsSessions,
-  normalizeMoreticketsSearchHits,
-};

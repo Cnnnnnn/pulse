@@ -225,4 +225,3 @@ function convertIcnsToPngWithDeps(icnsPath: string, deps: ConvertDeps): Buffer |
   }
 }
 
-module.exports = { getAppIcon, findIcnsPath, _clearIconCache };

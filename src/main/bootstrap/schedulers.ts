@@ -743,19 +743,6 @@ export function makeRefreshLastOpenedAfterCheck(deps: any) {
   };
 }
 
-module.exports = {
-  decideAutoCheck,
-  checkOnce,
-  __resetForTest,
-  startFundScheduler,
-  startRemindersScheduler,
-  wireRecentActivityListener,
-  startAutoCheckTimer,
-  makeRefreshLastOpenedAfterCheck,
-  startSelfUpdateTimer,
-  makeSelfUpdateController,
-  startLeaderboardScheduler,
-};
 
 /**
  * AI 榜单每日同步调度（graceful；失败不阻断启动）。

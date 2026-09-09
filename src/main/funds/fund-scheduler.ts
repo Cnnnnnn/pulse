@@ -271,4 +271,3 @@ export class FundScheduler extends EventEmitter {
   }
 }
 
-module.exports = { FundScheduler };

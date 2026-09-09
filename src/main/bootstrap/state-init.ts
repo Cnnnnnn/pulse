@@ -47,4 +47,3 @@ export function takeRecoveryEvent() {
   return stateStore.getLastRecoveryEvent();
 }
 
-module.exports = { initStateRecovery, takeRecoveryEvent };

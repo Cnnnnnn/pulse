@@ -30,4 +30,3 @@ export function installErrorGuardBridge(sendToRenderer: any) {
   mainLog.info("error guard installed");
 }
 
-module.exports = { createSender, installErrorGuardBridge };

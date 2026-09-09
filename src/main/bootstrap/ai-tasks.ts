@@ -45,4 +45,3 @@ export function initAiTasksWiring(deps: any) {
   }
 }
 
-module.exports = { initAiTasksWiring };

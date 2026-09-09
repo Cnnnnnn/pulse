@@ -150,14 +150,3 @@ export function saveIndexHistory(symbol: string, series: any, statePath: any): b
   return true;
 }
 
-module.exports = {
-  loadSnapshots,
-
-  recordFromNavMap,
-  pickTradeDate,
-  loadNavHistory,
-  saveNavHistory,
-  isNavCacheSufficient,
-  loadIndexHistory,
-  saveIndexHistory,
-};
