@@ -499,16 +499,10 @@ function initMetalsTray() {
     mainLog.info("metals tray initialized (live quoteCache)");
 
     const METALS_TRAY_REFRESH_MS = 60 * 1000;
-    const metalsTrayTimer = setInterval(
-      pushMetalsToTray,
-      METALS_TRAY_REFRESH_MS,
-    );
-    app.once("before-quit", () => {
-      try {
-        clearInterval(metalsTrayTimer);
-      } catch {
-        /* noop */
-      }
+    // timer-registry：before-quit clearAllManaged 统一回收
+    const { setManagedInterval } = require("./timer-registry.ts");
+    setManagedInterval(pushMetalsToTray, METALS_TRAY_REFRESH_MS, {
+      label: "metals-tray",
     });
   } catch (err: any) {
     mainLog.warn(`metals tray init failed: ${errMsg(err)}`);
@@ -862,6 +856,12 @@ if (app && typeof app.whenReady === "function") {
       });
 
     app.once("before-quit", () => {
+      try {
+        const { stopAllJobs } = require("./scheduler.ts");
+        stopAllJobs();
+      } catch {
+        /* scheduler 模块可选 */
+      }
       try {
         const cleared = clearAllManaged();
         if (cleared > 0) {

@@ -16,6 +16,8 @@ import { PROVIDERS } from "./ai-usage-cache";
 import { inQuietHours } from "./notification-policy";
 import { Notification as ElectronNotification } from "electron";
 
+const { setManagedInterval, clearManaged } = require("./timer-registry.ts");
+
 export function createAiUsageRefreshScheduler(opts: any = {}): any {
   const trayMgr = opts.trayMgr;
   const deps = opts.deps;
@@ -136,15 +138,15 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
     } else {
       run();
     }
-    intervalHandle = setInterval(() => {
+    intervalHandle = setManagedInterval(() => {
       moduleObj.refreshOnce();
-    }, intervalMs);
+    }, intervalMs, { label: "ai-usage-refresh" });
   };
   moduleObj.stop = function stop() {
     stopped = true;
     if (intervalHandle) {
       try {
-        clearInterval(intervalHandle);
+        clearManaged(intervalHandle);
       } catch {
         /* noop */
       }

@@ -28,6 +28,7 @@ import * as crypto from "crypto";
 import * as stateStore from "./state-store";
 import * as recentActivity from "./recent-activity";
 import { mainLog } from "./log";
+const { setManagedInterval, clearManaged } = require("./timer-registry.ts");
 
 const VALID_REPEATS = ["once", "daily", "weekdays", "weekly"] as const;
 type Repeat = (typeof VALID_REPEATS)[number];
@@ -482,22 +483,19 @@ export function startScheduler(opts: StartSchedulerOpts = { onFire: () => {} }):
       msg: err && err.message,
     });
   }
-  _sweepTimer = setInterval(() => {
+  // 走 timer-registry：before-quit clearAllManaged 统一回收
+  _sweepTimer = setManagedInterval(() => {
     try {
       _sweepOnce(Date.now(), _sweepStatePath || undefined);
     } catch (err: any) {
       mainLog.warn("[reminders] sweep failed", { msg: err && err.message });
     }
-  }, SWEEP_INTERVAL_MS);
-  // unref 防止阻塞 process exit
-  if (_sweepTimer && typeof _sweepTimer.unref === "function") {
-    _sweepTimer.unref();
-  }
+  }, SWEEP_INTERVAL_MS, { label: "reminders-sweep" }) as any;
 }
 
 export function stopScheduler(): void {
   if (_sweepTimer) {
-    clearInterval(_sweepTimer);
+    clearManaged(_sweepTimer);
     _sweepTimer = null;
   }
   _onFire = null;
