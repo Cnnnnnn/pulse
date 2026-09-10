@@ -22,6 +22,8 @@ const path: typeof pathType = require("node:path");
 
 /** Chromium 缓存文件保留天数 */
 export const CHROMIUM_CACHE_MAX_AGE_DAYS = 14;
+/** Chromium 缓存总大小上限（mtime 之外的硬顶，防高频浏览把 Cache 撑到百 MB） */
+export const CHROMIUM_CACHE_MAX_BYTES = 80 * 1024 * 1024;
 /** ai-leaderboard 缓存文件保留天数（与 scheduler pruneOldCache 对齐，这里做兜底） */
 export const LEADERBOARD_CACHE_MAX_AGE_DAYS = 30;
 /** 已下线模块残留目录（相对 userData） */
@@ -110,19 +112,82 @@ function pruneByMtime(dir: string, cutoffMs: number): { removed: number; freed: 
   return { removed, freed };
 }
 
+type FileStat = { path: string; size: number; mtimeMs: number };
+
+function listFilesRecursive(dir: string, out: FileStat[] = []): FileStat[] {
+  let entries: fsType.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const e of entries) {
+    const fp = path.join(dir, e.name);
+    try {
+      if (e.isDirectory()) listFilesRecursive(fp, out);
+      else if (e.isFile()) {
+        const st = fs.statSync(fp);
+        out.push({ path: fp, size: st.size, mtimeMs: st.mtimeMs });
+      }
+    } catch {
+      /* race — skip */
+    }
+  }
+  return out;
+}
+
+/**
+ * 目录总大小超过 maxBytes 时，按 mtime 从旧到新删，直到 ≤ maxBytes。
+ * 用于 Chromium Cache：mtime 窗口内的高频访问仍可能把体积撑爆。
+ */
+function enforceSizeCap(
+  dir: string,
+  maxBytes: number,
+): { removed: number; freed: number } {
+  let files: FileStat[];
+  try {
+    files = listFilesRecursive(dir);
+  } catch {
+    return { removed: 0, freed: 0 };
+  }
+  let total = files.reduce((s, f) => s + f.size, 0);
+  if (total <= maxBytes) return { removed: 0, freed: 0 };
+  files.sort((a, b) => a.mtimeMs - b.mtimeMs);
+  let removed = 0;
+  let freed = 0;
+  for (const f of files) {
+    if (total <= maxBytes) break;
+    try {
+      fs.unlinkSync(f.path);
+      total -= f.size;
+      freed += f.size;
+      removed += 1;
+    } catch {
+      /* race — skip */
+    }
+  }
+  return { removed, freed };
+}
+
 /**
  * @param opts.userData  Electron app.getPath('userData')
  * @param opts.now       测试注入时间
  * @param opts.logger    mainLog
+ * @param opts.chromiumMaxBytes  覆盖默认 Chromium 缓存总大小上限（测试用）
  */
 export function runCacheGc(opts: {
   userData: string;
   now?: number | Date;
   logger?: GcLogger;
+  chromiumMaxBytes?: number;
 }): CacheGcResult {
   const userData = opts.userData;
   const nowMs = opts.now instanceof Date ? opts.now.getTime() : (opts.now || Date.now());
   const log = opts.logger;
+  const chromiumMaxBytes =
+    typeof opts.chromiumMaxBytes === "number"
+      ? opts.chromiumMaxBytes
+      : CHROMIUM_CACHE_MAX_BYTES;
   const result: CacheGcResult = {
     removedFiles: 0,
     removedDirs: 0,
@@ -134,7 +199,7 @@ export function runCacheGc(opts: {
     return result;
   }
 
-  // 1) Chromium 缓存
+  // 1) Chromium 缓存：先 mtime 超龄删，再总大小硬顶（按 mtime 从旧到新）
   const chromiumDirs = ["Cache", "Service Worker", "Code Cache", "GPUCache"];
   const chromiumCutoff = nowMs - CHROMIUM_CACHE_MAX_AGE_DAYS * 86400_000;
   for (const name of chromiumDirs) {
@@ -143,6 +208,9 @@ export function runCacheGc(opts: {
     const r = pruneByMtime(dir, chromiumCutoff);
     result.removedFiles += r.removed;
     result.freedBytes += r.freed;
+    const cap = enforceSizeCap(dir, chromiumMaxBytes);
+    result.removedFiles += cap.removed;
+    result.freedBytes += cap.freed;
   }
 
   // 2) 死目录
@@ -197,4 +265,4 @@ export function scheduleCacheGc(opts: {
   return () => clearTimeout(timer);
 }
 
-export { dirSize as _dirSize, pruneByMtime as _pruneByMtime };
+export { dirSize as _dirSize, pruneByMtime as _pruneByMtime, enforceSizeCap as _enforceSizeCap };
