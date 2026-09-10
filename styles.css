@@ -11923,3 +11923,411 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   background: color-mix(in oklch, #ef4444 10%, transparent);
 }
 .ai-memory-list__remove:disabled { opacity: 0.5; cursor: default; }
+
+
+/* =========================================================
+ * Shared shell layout — 从 stocks.css 移回（懒注入回归修复）
+ * PageHeader / PageActionsBar / ViewSwitcher / MergedFilterChip /
+ * CommandPalette / TopBar / AppCard / VirtualCardGrid / KPICard /
+ * Overview / AIDrawerShell 由非 stocks 页面共用，必须始终加载。
+ * 误进 stocks.css 后，懒 CSS 注入导致应用库工具栏无 flex 布局。
+ * ========================================================= */
+/* === versions PageHeader (Phase v2: 5-view overhaul) === */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+  gap: 16px;
+}
+.page-header-text { min-width: 0; }
+.page-header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+.page-header-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+.page-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* PageActionsBar icon button (Phase 32 重构后漏的样式, 2026-06-28 补回).
+   跟检查更新主按钮同行右侧, 透明背景 + 0 边框 + hover 加浅背景.
+   没有这条样式时浏览器 default <button> border 会露出灰边框. */
+.page-action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.page-action-icon-btn:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+  color: var(--text-primary);
+}
+.page-action-icon-btn:active { transform: scale(0.94); }
+.page-action-icon-btn:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+}
+
+/* PageActionsBar overflow menu (Phase 32 重构后漏的样式, 2026-06-28 补回).
+   portal 渲染到 document.body, 用 fixed 定位 (top/right 由 inline style 注入).
+   没有这条样式时 ul 是默认 position:static, inline top/right 失效, 菜单
+   落到 document.body 流末尾看不见 → 用户以为点了没反应. */
+.page-action-overflow { position: relative; }
+.page-action-menu {
+  position: fixed;       /* 配合 portal 到 body 的渲染, fixed 才能让 inline top/right 生效 */
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  min-width: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+}
+.page-action-menu li { margin: 0; padding: 0; }
+.page-action-menu button[role="menuitem"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-system);
+  transition: background 0.1s;
+}
+.page-action-menu button[role="menuitem"]:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+}
+.page-action-menu-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border, rgba(0, 0, 0, 0.08));
+  list-style: none;
+}
+
+.command-palette-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 15vh;
+  animation: command-palette-fade 0.12s ease-out;
+}
+@keyframes command-palette-fade { from { opacity: 0; } to { opacity: 1; } }
+.command-palette {
+  width: min(560px, 90vw);
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+.command-palette-input-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+  color: var(--text-tertiary);
+}
+.command-palette-input {
+  flex: 1; border: 0; outline: 0; background: transparent;
+  font-size: 14px; color: var(--text-primary);
+}
+.command-palette-list {
+  list-style: none; margin: 0; padding: 4px;
+  max-height: 360px; overflow-y: auto;
+}
+.command-palette-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 6px;
+  cursor: pointer; font-size: 13px;
+  color: var(--text-primary);
+}
+.command-palette-item.selected { background: var(--accent-primary); color: #fff; }
+.command-palette-kind {
+  font-size: 10px; padding: 2px 6px; border-radius: 8px;
+  background: var(--bg-elevated); color: var(--text-tertiary);
+  font-weight: 600; text-transform: uppercase;
+}
+.command-palette-item.selected .command-palette-kind { background: rgba(255,255,255,0.25); color: #fff; }
+.command-palette-empty {
+  padding: 20px; text-align: center;
+  color: var(--text-tertiary); font-size: 12px;
+}
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 12px;
+  height: 32px; padding: 0 12px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.topbar-left { flex-shrink: 0; }
+.topbar-logo {
+  font-size: 14px; font-weight: 700;
+  color: var(--accent-primary);
+  background: none; border: none; cursor: pointer;
+  padding: 0; font-family: inherit;
+}
+.topbar-logo:hover { opacity: 0.8; }
+.topbar-logo:disabled { opacity: 0.5; pointer-events: none; }
+.topbar-center { flex: 1; display: flex; justify-content: center; }
+.topbar-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px; min-width: 280px;
+  background: var(--bg-elevated);
+  border: 1px solid transparent; border-radius: 6px;
+  color: var(--text-tertiary); font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.topbar-search:hover { border-color: var(--border, rgba(0,0,0,0.16)); }
+.topbar-search kbd {
+  margin-left: auto;
+  font-family: monospace; font-size: 10px;
+  padding: 1px var(--space-1q); border-radius: 3px;
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.topbar-right { display: flex; align-items: center; gap: 4px; }
+.topbar-icon-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: transparent; border: 0; border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.topbar-icon-btn:hover { background: var(--bg-elevated); }
+.topbar-icon-btn:disabled { opacity: 0.5; pointer-events: none; cursor: default; }
+/* 检查更新中: 图标旋转, 直观反馈 (aria-busy=true 时) */
+.topbar-icon-btn[aria-busy="true"] svg { animation: topbar-spin 0.9s linear infinite; }
+@keyframes topbar-spin { to { transform: rotate(360deg); } }
+.topbar-ai { color: var(--accent-primary); }
+.topbar-badge {
+  position: absolute; top: 2px; right: 2px;
+  min-width: 14px; height: 14px; padding: 0 4px;
+  background: var(--accent-red); color: #fff;
+  border-radius: 8px;
+  font-size: 9px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.topbar-overflow { position: relative; }
+.topbar-menu {
+  position: absolute; top: calc(100% + 4px); right: 0;
+  list-style: none; margin: 0; padding: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  z-index: 200;
+}
+.topbar-menu li { margin: 0; }
+.topbar-menu button {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 6px 10px;
+  background: transparent; border: 0; border-radius: 4px;
+  font-size: 12px; color: var(--text-primary);
+  text-align: left; cursor: pointer;
+}
+.topbar-menu button:hover { background: var(--bg-elevated); }
+.topbar-menu-divider {
+  height: 1px; margin: 4px 0;
+  background: var(--border, rgba(0,0,0,0.08));
+}
+.view-switcher {
+  display: inline-flex; gap: 2px;
+  padding: 2px; border-radius: 6px;
+  background: var(--bg-elevated);
+}
+.view-switcher-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 24px;
+  background: transparent; border: 0; border-radius: 4px;
+  color: var(--text-secondary); cursor: pointer;
+  transition: background 0.15s ease;
+}
+.view-switcher-btn:hover { color: var(--text-primary); }
+.view-switcher-btn.active {
+  background: var(--bg-card); color: var(--accent-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* AppCard — Library Card 视图单卡 + 网格 */
+.app-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px; padding: 16px 20px;
+}
+.app-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.app-card:hover { border-color: var(--accent-primary); }
+.app-card--pending { opacity: 0.6; }
+.app-card-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.app-card-versions {
+  font-size: 12px; color: var(--text-secondary);
+  display: flex; align-items: center; gap: 6px;
+}
+.app-card-update-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 8px;
+  background: var(--accent-orange); color: #fff;
+}
+.app-card-status { font-size: 12px; color: var(--text-tertiary); }
+
+/* MergedFilterChip — search + status chip + category chip + reset, 单行紧凑布局 */
+.merged-filter {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.merged-filter-search {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px; min-width: 200px;
+  background: var(--bg-elevated); border-radius: 6px;
+  color: var(--text-tertiary);
+}
+.merged-filter-search input {
+  flex: 1; border: 0; outline: 0; background: transparent;
+  font-size: 12px; color: var(--text-primary);
+}
+.merged-filter-clear {
+  background: transparent; border: 0; color: var(--text-tertiary);
+  cursor: pointer; padding: 0 4px; font-size: 14px;
+}
+.merged-filter-chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.merged-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  font-size: 11px; color: var(--text-secondary);
+  cursor: pointer; transition: all 0.15s ease;
+}
+.merged-filter-chip:hover { border-color: var(--accent-primary); }
+.merged-filter-chip.active {
+  background: var(--accent-primary); color: #fff; border-color: var(--accent-primary);
+}
+.merged-filter-count {
+  font-size: 10px; opacity: 0.7;
+}
+.merged-filter-reset {
+  background: transparent; border: 0; color: var(--accent-primary);
+  font-size: 11px; cursor: pointer; padding: 4px 8px;
+}
+
+/* VirtualCardGrid — 窗口化滚动容器 */
+.virtual-card-scroll {
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding: 0 20px;
+}
+.virtual-card-spacer { position: relative; }
+.virtual-card-spacer .app-card-grid { padding: 0; }
+
+/* KPICard + TrendSparkline — Task 16 Overview 顶部 4 列指标 */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  padding: 20px;
+}
+.kpi-card {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  border-left: 4px solid var(--text-tertiary);
+}
+.kpi-card--warning { border-left-color: var(--accent-orange); }
+.kpi-card--success { border-left-color: var(--accent-green); }
+.kpi-card--danger  { border-left-color: var(--accent-red); }
+.kpi-card--default { border-left-color: var(--accent-primary); }
+.kpi-card--neutral { border-left-color: var(--text-tertiary); }
+.kpi-card-value {
+  font-size: 28px; font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1; margin-bottom: 6px;
+}
+.kpi-card-label {
+  font-size: 12px; color: var(--text-secondary);
+}
+.trend-sparkline {
+  display: inline-block; color: var(--accent-primary);
+}
+
+/* OverviewPage — Task 18 整合 layout */
+.overview-page { padding: 0; }
+.overview-section { padding: 0 20px 16px; }
+.overview-section-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+.overview-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 0 20px 16px;
+}
+
+/* AIDrawerShell — 共享 AI 抽屉外壳 (Task 20) */
+/* ponytail: overlay 半透明黑 (0.35 alpha) 覆盖全视口, 让用户视觉聚焦右侧 drawer,
+   不挤压底层布局 (drawer 是 fixed 浮层). 点击 mask 关闭 (由 AIDrawerShell 的
+   click-outside 处理). */
+.ai-drawer-overlay {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex; align-items: stretch; justify-content: flex-end;
+  animation: ai-drawer-overlay-fade 0.15s ease-out;
+}
+.ai-drawer-overlay > .ai-drawer-shell { pointer-events: auto; }
+.ai-drawer-shell {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(480px, 90vw);
+  background: var(--bg-card);
+  border-left: 1px solid var(--border, rgba(0,0,0,0.08));
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column;
+  animation: ai-drawer-slide 0.18s ease-out;
+}
+@keyframes ai-drawer-overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ai-drawer-slide {
+  from { transform: translateX(8px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.ai-drawer-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.ai-drawer-title-block { display: flex; flex-direction: column; gap: 2px; }
+.ai-drawer-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.ai-drawer-subtitle { font-size: 11px; color: var(--text-tertiary); }
+.ai-drawer-close {
+  width: 28px; height: 28px;
+  background: transparent; border: 0; border-radius: 4px;
+  font-size: 20px; color: var(--text-tertiary); cursor: pointer;
+}
+.ai-drawer-close:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.ai-drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+
