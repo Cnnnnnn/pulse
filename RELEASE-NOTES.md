@@ -2,6 +2,28 @@
 
 ---
 
+## v2.85.0 (⏱ Scheduler 服务化 + CSS 懒注入 + 缓存硬顶) — 2026-09-10
+
+**⏱ Scheduler 服务化**
+- 新增 `src/main/scheduler.ts`：按 name `startJob` / `stopJob` / `restartJob` / `listJobs` / `stopAllJobs`，支持 `initialDelayMs` + `jitterMs` 错峰
+- 任务抛错 / rejected Promise 不拖垮调度循环
+- 裸 `setInterval` 清零：reminders sweep、ai-usage-refresh、digest daily-summary、metals tray、fund heartbeat 全部迁 `timer-registry`
+- `before-quit`：`stopAllJobs` + `clearAllManaged` 统一回收
+
+**🎨 CSS 懒路由注入**
+- 懒加载路由的 CSS 按需注入，不再全量 merge 进 `index.css`（启动解析体积下降）
+- inject-css 压缩产物空白，满足行数护栏
+- 设计 token 抽出 `tokens.css`；清理 worldcup 等死样式
+
+**📦 Chromium 缓存总大小硬顶 80MB**
+- mtime 14 天之外再加硬顶：`Cache` / `Service Worker` / `Code Cache` / `GPUCache` 超 80MB 时按 mtime 从旧到新删到上限
+- 防高频浏览把 Cache 撑到百 MB 级（实测曾 ~195MB）
+
+**🧪 工程**
+- v8 coverage 接入
+- vault / funds / concerts IPC 运行时契约测试
+- preload-contract 适配 inject-css 产物（不再要求 index.css）
+
 ## v2.84.0 (🧱 ESM 收敛 + IPC 安全 + 缓存 GC) — 2026-09-09
 
 **🧱 Phase 7b ESM：dual-export 197 → 22**
