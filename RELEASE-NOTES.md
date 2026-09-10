@@ -2,6 +2,13 @@
 
 ---
 
+## v2.85.1 (🚑 应用库工具栏布局修复) — 2026-09-10
+
+**🚑 修 v2.85.0 懒 CSS 注入回归**
+- PageHeader / MergedFilterChip / ViewSwitcher / CommandPalette / TopBar / AppCard / KPICard / AIDrawerShell 的 flex 布局误留在 `stocks.css`（懒加载），应用库页工具栏塌成竖排
+- 约 400 行共享 shell 样式移回始终加载的 `styles.css`
+- 新增 `shared-layout-css` 回归测试，防止再被抽进模块 CSS
+
 ## v2.85.0 (⏱ Scheduler 服务化 + CSS 懒注入 + 缓存硬顶) — 2026-09-10
 
 **⏱ Scheduler 服务化**
