@@ -20,6 +20,7 @@
 import { DIGEST_UI_TITLE } from "../../shared/digest-labels";
 import { inQuietHours } from "../notification-policy";
 import { aggregate as defaultAggregate } from "./aggregate";
+const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
 const {
   resolvePrompt: defaultResolvePrompt,
 } = require("../../ai/prompt-registry.js");
@@ -203,21 +204,21 @@ export function startDailySummaryJob(deps: any): { stop: () => void; triggerNow:
     );
   }
   if (_handle.interval) {
-    clearInterval(_handle.interval);
+    clearManaged(_handle.interval);
   }
   _handle.deps = deps;
-  _handle.interval = setInterval(() => {
+  _handle.interval = setManagedInterval(() => {
     try {
       checkAndPush(_handle.deps);
     } catch {
       /* swallow — never let timer callback crash */
     }
-  }, 60_000);
+  }, 60_000, { label: "digest-daily-summary" });
 
   return {
     stop: () => {
       if (_handle.interval) {
-        clearInterval(_handle.interval);
+        clearManaged(_handle.interval);
         _handle.interval = null;
       }
     },
@@ -227,7 +228,7 @@ export function startDailySummaryJob(deps: any): { stop: () => void; triggerNow:
 
 export function __resetForTest(): void {
   if (_handle.interval) {
-    clearInterval(_handle.interval);
+    clearManaged(_handle.interval);
     _handle.interval = null;
   }
   _handle.deps = null;

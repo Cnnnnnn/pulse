@@ -23,6 +23,7 @@
 import { EventEmitter } from "node:events";
 import { fetchFundNavBatch } from "../../funds/fund-fetcher";
 import { pickEffectiveNavNumber } from "../../funds/fund-nav-merge";
+const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
 import { NavSourceHealth } from "../../funds/nav-source-health";
 const {
   getTradingStatus,
@@ -110,7 +111,7 @@ export class FundScheduler extends EventEmitter {
     } else {
       this._tick();
     }
-    this._heartbeatTimer = setInterval(() => {
+    this._heartbeatTimer = setManagedInterval(() => {
       if (this._stopped) return;
       const now = this._now();
       const trading = getTradingStatus(now);
@@ -127,7 +128,7 @@ export class FundScheduler extends EventEmitter {
         this._status = newStatus;
         this._emitState();
       }
-    }, 60 * 1000);
+    }, 60 * 1000, { label: "fund-heartbeat" }) as any;
   }
 
   stop(): void {
@@ -137,7 +138,7 @@ export class FundScheduler extends EventEmitter {
       this._timer = null;
     }
     if (this._heartbeatTimer) {
-      clearInterval(this._heartbeatTimer);
+      clearManaged(this._heartbeatTimer);
       this._heartbeatTimer = null;
     }
   }

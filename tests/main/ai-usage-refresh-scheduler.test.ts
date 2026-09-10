@@ -99,9 +99,8 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     expect(mockSetAiUsage).toHaveBeenCalledTimes(1);  // tray 仍推 (cache 返 last-known)
   });
 
-  it("start/stop: setInterval + clearInterval 控制 lifecycle", async () => {
+  it("start/stop: setManagedInterval + clearManaged 控制 lifecycle", async () => {
     installStubs();
-    vi.useFakeTimers();
     const cache = requireMain("ai-usage-cache");
     vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
       getTraySummary: () => ({ status: "ok", percent: 50, remainLabel: "1h" }),
@@ -110,15 +109,17 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     const helper = createAiUsageRefreshScheduler({ trayMgr: mockTrayMgr, deps: {} });
     const refreshSpy = vi.spyOn(helper, "refreshOnce").mockResolvedValue();
 
-    helper.start({ intervalMs: 1000 });
-    // 立即 fire 1 次 + 2500ms 内 setInterval 1000ms 周期 fire 2 次 → 3 次
-    vi.advanceTimersByTime(2500);
-    expect(refreshSpy).toHaveBeenCalledTimes(3);
+    // 真实短 interval（timer-registry 走 node:timers，fake timers 钩不住）
+    // 默认 deferInitial=true → 首跑走 setImmediate
+    helper.start({ intervalMs: 25 });
+    await new Promise((r) => setImmediate(r));
+    expect(refreshSpy).toHaveBeenCalledTimes(1); // 首跑
+    await new Promise((r) => setTimeout(r, 80));
+    expect(refreshSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
 
     helper.stop();
-    vi.advanceTimersByTime(3000);
-    expect(refreshSpy).toHaveBeenCalledTimes(3);  // 停止后不再调用
-
-    vi.useRealTimers();
+    const n = refreshSpy.mock.calls.length;
+    await new Promise((r) => setTimeout(r, 60));
+    expect(refreshSpy.mock.calls.length).toBe(n); // 停止后不再调用
   });
 });
