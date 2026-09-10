@@ -10,9 +10,12 @@ import os from "os";
 import path from "path";
 const { requireMain } = require("../_setup/require-main.cjs");
 
-const { runCacheGc, DEAD_DIRS, CHROMIUM_CACHE_MAX_AGE_DAYS } = requireMain(
-  "cache-gc",
-);
+const {
+  runCacheGc,
+  DEAD_DIRS,
+  CHROMIUM_CACHE_MAX_AGE_DAYS,
+  CHROMIUM_CACHE_MAX_BYTES,
+} = requireMain("cache-gc");
 
 let tmp: string;
 
@@ -83,5 +86,28 @@ describe("runCacheGc", () => {
       fs.existsSync(path.join(tmp, "ai-leaderboard-cache", "fresh.json.gz")),
     ).toBe(true);
     expect(r.removedFiles).toBeGreaterThanOrEqual(1);
+  });
+
+  it("Chromium Cache 总大小超限时按 mtime 从旧到新删到上限", () => {
+    // 3 个 60KB 文件，上限 100KB → 最旧 2 个被删，最新 1 个留下
+    const cap = 100 * 1024;
+    const body = "x".repeat(60 * 1024);
+    writeAged(path.join(tmp, "Cache", "oldest"), 5, body);
+    writeAged(path.join(tmp, "Cache", "mid"), 3, body);
+    writeAged(path.join(tmp, "Cache", "newest"), 1, body);
+    const r = runCacheGc({ userData: tmp, chromiumMaxBytes: cap });
+    expect(fs.existsSync(path.join(tmp, "Cache", "oldest"))).toBe(false);
+    expect(fs.existsSync(path.join(tmp, "Cache", "mid"))).toBe(false);
+    expect(fs.existsSync(path.join(tmp, "Cache", "newest"))).toBe(true);
+    expect(r.removedFiles).toBeGreaterThanOrEqual(2);
+    expect(CHROMIUM_CACHE_MAX_BYTES).toBeGreaterThan(0);
+  });
+
+  it("未超大小上限时不做 size-cap 删除", () => {
+    writeAged(path.join(tmp, "Cache", "a"), 1, "small");
+    writeAged(path.join(tmp, "Cache", "b"), 1, "small");
+    runCacheGc({ userData: tmp, chromiumMaxBytes: 10 * 1024 * 1024 });
+    expect(fs.existsSync(path.join(tmp, "Cache", "a"))).toBe(true);
+    expect(fs.existsSync(path.join(tmp, "Cache", "b"))).toBe(true);
   });
 });
