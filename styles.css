@@ -12393,3 +12393,46 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   color: var(--text-tertiary);
   border-color: var(--border, rgba(0,0,0,.06));
 }
+
+
+/* ── 设置页 GitHub Token / TMDB Key 输入（共享，从 github.css 移回） ──
+   SettingsPage 在非 github 路由也用这些 class；懒注入 github.css
+   时设置页输入框无样式（v2.86 回归，同 library toolbar 问题）。 */
+.github-token-actions {
+  align-items: center;
+}
+.github-token-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 220px;
+}
+.github-token-input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.github-token-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 18%, transparent);
+}
+.github-token-reveal {
+  flex-shrink: 0;
+}
+.settings-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+.settings-link:hover {
+  text-decoration: underline;
+}
+

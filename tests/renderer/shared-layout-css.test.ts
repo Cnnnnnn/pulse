@@ -27,6 +27,11 @@ const REQUIRED_SELECTORS = [
   ".app-card",
   ".kpi-card",
   ".ai-drawer-shell",
+  // Settings 页 TMDB / GitHub Token 输入（误进 github.css 懒注入时设置页无样式）
+  ".github-token-input-wrap",
+  ".github-token-input",
+  ".github-token-reveal",
+  ".settings-link",
 ];
 
 describe("shared layout CSS stays in styles.css", () => {
