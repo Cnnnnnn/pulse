@@ -17,6 +17,7 @@ function errMsg(err: unknown): string {
 }
 
 import { fetchUpgradeAdvice } from "../../ai/upgrade-advice";
+import { fetchChangelogRisk } from "../../ai/changelog-risk";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerUpgradeAdviceHandlers(ctx: any) {
@@ -31,6 +32,20 @@ export function registerUpgradeAdviceHandlers(ctx: any) {
     ) => {
     try {
       return await fetchUpgradeAdvice(opts || {});
+    } catch (err: any) {
+      return { ok: false, reason: "threw", error: errMsg(err) };
+    }
+    },
+  );
+
+  safeHandle(
+    "changelog-risk:fetch",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["changelog-risk:fetch"]["args"][0],
+    ) => {
+    try {
+      return await fetchChangelogRisk(opts || {});
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }

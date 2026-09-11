@@ -299,6 +299,7 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     aiPromptsSave: pick(overrides, "aiPromptsSave"),
     aiPromptsReset: pick(overrides, "aiPromptsReset"),
     upgradeAdviceFetch: pick(overrides, "upgradeAdviceFetch"),
+    changelogRiskFetch: pick(overrides, "changelogRiskFetch"),
     changelogSummaryFetch: pick(overrides, "changelogSummaryFetch"),
     feedbackRecord: pick(overrides, "feedbackRecord"),
     feedbackExport: pick(overrides, "feedbackExport"),

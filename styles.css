@@ -12331,3 +12331,65 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 .ai-drawer-close:hover { background: var(--bg-elevated); color: var(--text-primary); }
 .ai-drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
 
+
+/* ChangelogRiskBadge — 更新风险标签（应用库行内） */
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  cursor: default;
+  vertical-align: middle;
+}
+.risk-badge--idle {
+  cursor: pointer;
+  background: var(--bg-elevated, rgba(0,0,0,.04));
+  color: var(--text-tertiary);
+  border-color: var(--border, rgba(0,0,0,.08));
+  font-weight: 500;
+}
+.risk-badge--idle:hover {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+.risk-badge--loading {
+  background: var(--bg-elevated, rgba(0,0,0,.04));
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.risk-badge--security {
+  background: color-mix(in srgb, var(--accent-red, #ff3b30) 14%, transparent);
+  color: var(--accent-red, #d70015);
+  border-color: color-mix(in srgb, var(--accent-red, #ff3b30) 28%, transparent);
+}
+.risk-badge--breaking {
+  background: color-mix(in srgb, var(--accent-orange, #f59e0b) 16%, transparent);
+  color: #b45309;
+  border-color: color-mix(in srgb, var(--accent-orange, #f59e0b) 32%, transparent);
+}
+.risk-badge--mixed {
+  background: color-mix(in srgb, var(--accent-primary, #007aff) 12%, transparent);
+  color: var(--accent-primary, #007aff);
+  border-color: color-mix(in srgb, var(--accent-primary, #007aff) 24%, transparent);
+}
+.risk-badge--feature {
+  background: color-mix(in srgb, var(--accent-blue, #007aff) 10%, transparent);
+  color: var(--text-secondary);
+  border-color: var(--border, rgba(0,0,0,.1));
+}
+.risk-badge--bugfix {
+  background: var(--bg-elevated, rgba(0,0,0,.04));
+  color: var(--text-tertiary);
+  border-color: var(--border, rgba(0,0,0,.06));
+}
+.risk-badge--unknown {
+  background: var(--bg-elevated, rgba(0,0,0,.04));
+  color: var(--text-tertiary);
+  border-color: var(--border, rgba(0,0,0,.06));
+}
