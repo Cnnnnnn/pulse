@@ -179,6 +179,7 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     assistantMemoryList: pick(overrides, "assistantMemoryList"),
     assistantMemoryRemove: pick(overrides, "assistantMemoryRemove"),
     assistantMemoryClear: pick(overrides, "assistantMemoryClear"),
+    assistantMemoryAutoExtract: pick(overrides, "assistantMemoryAutoExtract"),
     // v2.10+ 基金管理
     fundsList: pick(overrides, "fundsList"),
     fundsAdd: pick(overrides, "fundsAdd"),
