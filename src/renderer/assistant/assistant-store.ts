@@ -173,9 +173,14 @@ export function hydrateChatHistory() {
 
 export function refreshProactiveState() {
   chatProactiveHint.value = buildProactiveHint();
-  const synced = injectProactiveSystemMessage(chatMessages.value);
-  const before = JSON.stringify(chatMessages.value);
-  if (JSON.stringify(synced) !== before) {
+  const before = chatMessages.value;
+  const synced = injectProactiveSystemMessage(before);
+  // 只比长度 + 首条 system proactive 内容，避免整段 JSON.stringify（长对话开销大）
+  if (
+    synced.length !== before.length ||
+    synced[0]?.content !== before[0]?.content ||
+    synced[0]?.role !== before[0]?.role
+  ) {
     chatMessages.value = synced;
     persistActiveThread();
   }
@@ -892,16 +897,30 @@ export async function sendChatMessage(
   let unsubDelta: (() => void) | null = null;
   let unsubStatus: (() => void) | null = null;
   let unsubToolResults: (() => void) | null = null;
+  // 流式 delta 节流：可变 buffer 累积，~50ms 批量刷一次 signal，
+  // 避免每个 token 都 map 重建整段 chatMessages（长回复 GC 压力）。
+  let deltaBuf = "";
+  let deltaFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  const flushDeltas = () => {
+    deltaFlushTimer = null;
+    if (!deltaBuf) return;
+    const chunk = deltaBuf;
+    deltaBuf = "";
+    chatMessages.value = chatMessages.value.map((m, idx) =>
+      idx === assistantIndex
+        ? { ...m, content: (m.content || "") + chunk }
+        : m,
+    );
+  };
   if (typeof api.onAiChatDelta === "function") {
     unsubDelta = api.onAiChatDelta((payload) => {
       if (!payload || typeof payload.delta !== "string") return;
       chatStreaming.value = true;
       chatStatus.value = null;
-      chatMessages.value = chatMessages.value.map((m, idx) =>
-        idx === assistantIndex
-          ? { ...m, content: (m.content || "") + payload.delta }
-          : m,
-      );
+      deltaBuf += payload.delta;
+      if (!deltaFlushTimer) {
+        deltaFlushTimer = setTimeout(flushDeltas, 50);
+      }
     });
   }
   if (typeof api.onAiChatStatus === "function") {
@@ -1039,6 +1058,20 @@ export async function sendChatMessage(
     chatMessages.value = nextHistory;
     persistActiveThread();
   } finally {
+    // 收尾冲掉未 flush 的 delta buffer
+    if (deltaFlushTimer) {
+      clearTimeout(deltaFlushTimer);
+      deltaFlushTimer = null;
+    }
+    if (deltaBuf) {
+      const chunk = deltaBuf;
+      deltaBuf = "";
+      chatMessages.value = chatMessages.value.map((m, idx) =>
+        idx === assistantIndex
+          ? { ...m, content: (m.content || "") + chunk }
+          : m,
+      );
+    }
     if (unsubDelta) unsubDelta();
     if (unsubStatus) unsubStatus();
     if (unsubToolResults) unsubToolResults();
