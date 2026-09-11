@@ -2443,7 +2443,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .digest-drawer__hero {
   padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
   background: var(--bg-elevated, var(--bg-modal));
   position: relative;
 }
@@ -2518,9 +2518,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .digest-drawer__sections > .digest-section {
   margin-bottom: 10px;
   padding: 11px 14px;
-  border: 1px solid var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg-primary);
+  background: var(--bg-modal);
 }
 .digest-drawer__sections > .digest-section .digest-section__header {
   display: flex;
@@ -2559,7 +2559,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   left: 4px; top: 11px;
   width: 4px; height: 4px;
   border-radius: 50%;
-  background: var(--text-tertiary);
+  background: var(--accent-primary);
+  opacity: 0.7;
 }
 
 /* skeleton (loading) */
@@ -2622,8 +2623,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 20px;
-  border-top: 1px solid var(--bg-secondary);
+  border-top: 1px solid var(--border);
   background: var(--bg-elevated, var(--bg-primary));
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.18);
+}
+/* ponytail: light theme 下 footer 不需要 shadow, top border 已足够区分 */
+.digest-drawer__footer { box-shadow: none; }
+[data-theme="dark"] .digest-drawer__footer {
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.18);
 }
 .digest-drawer__btn {
@@ -12544,7 +12550,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   gap: 16px;
   padding: 16px 18px 14px;
   margin: 0 -18px 14px; /* v3.0.2: 让 head 贴卡片边 */
-  border-bottom: 1px solid var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
   background: var(--bg-elevated, var(--bg-modal));
 }
 .briefing-settings__head-text { flex: 1; min-width: 0; }
@@ -12603,7 +12609,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   gap: 8px;
 }
 .briefing-settings__fieldset:not(:first-child) {
-  border-top: 1px solid var(--bg-secondary);
+  border-top: 1px solid var(--border);
   padding-top: 10px;
 }
 .briefing-settings__fieldset legend {
@@ -12645,9 +12651,9 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 .briefing-settings__input {
   padding: 6px 10px;
   font-size: 13px;
-  border: 1px solid var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--bg-primary);
+  background: var(--bg-modal);
   color: var(--text-primary);
   font-family: inherit;
   outline: none;
@@ -12669,8 +12675,8 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   gap: 7px;
   padding: 5px 11px 5px 9px;
   border-radius: 14px;
-  background: var(--bg-primary);
-  border: 1px solid var(--bg-secondary);
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
   font-size: 12.5px;
   cursor: pointer;
   color: var(--text-secondary);

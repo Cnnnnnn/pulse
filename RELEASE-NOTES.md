@@ -2,6 +2,30 @@
 
 ---
 
+## v3.0.3 (🎨 Light theme 适配) — 2026-09-12
+
+**🎨 Light theme 下 Drawer / 设置页可见性修复**
+
+v3.0.2 只验证了 dark theme。Light theme 下：
+- section card border 用 `var(--bg-secondary)` 跟背景几乎同色，看不见 → 改用 `var(--border)`，浅灰边框清晰可见
+- footer shadow 在浅背景下不可见，反而像脏点 → light theme 下取消 shadow，靠 top border 区分
+- 列表 bullet 用 `var(--text-tertiary)` 浅灰 → 换成 `var(--accent-primary)` + 70% opacity，浅背景下也能定位
+- 设置页 chip / input / toggle / fieldset border 统一改 `var(--border)`，背景统一改 `var(--bg-modal)`
+
+**影响范围**：Hero / Section / Footer / List bullet / Fieldset / Chip / Input / Toggle 全部 token 修正。无功能改动。
+
+## v3.0.2 (🎨 视觉精修) — 2026-09-11
+
+**🎨 Drawer 精修**
+- Hero 从透明渐变换成实色 `bg-elevated` + 底部 accent hairline，header 边界更扎实
+- Footer 加 `bg-elevated` + 顶部 box-shadow，跟 body 拉开，sticky 感强
+- Section card icon 14px → 22px 圆角 6px，列表 bullet 改 4px 圆点
+
+**🎨 设置页精修**
+- 头部从 body 色换成 `bg-elevated`，跟下面内容区分
+- Fieldset 紧凑化（legend 间距 14px → 10px）
+- Chip dot 选中时加 28% 透明外圈 ring，更易识别选中态
+
 ## v3.0.1 (🎨 早报 UI 重设计) — 2026-09-11
 
 **🎨 早报 Drawer 视觉重设计**
