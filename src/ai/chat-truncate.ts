@@ -81,20 +81,26 @@ export function computeTrimStart<T extends { role: string; content: unknown }>(
   messages: T[],
 ): number {
   if (!Array.isArray(messages) || messages.length === 0) return 0;
-  const totalTokens = estimateMessagesTokens(messages);
-  if (messages.length <= MAX_LLM_MESSAGES && totalTokens <= MAX_LLM_TOKENS) {
+  const n = messages.length;
+  if (n <= MAX_LLM_MESSAGES && estimateMessagesTokens(messages) <= MAX_LLM_TOKENS) {
     return 0;
   }
-  let start = 0;
-  const maxStart = messages.length - 1; // 至少保留最后 1 条
-  while (start < maxStart) {
-    const rest = messages.slice(start);
-    const countOk = rest.length <= KEEP_RECENT_MESSAGES;
-    const tokensOk = estimateMessagesTokens(rest) <= MAX_LLM_TOKENS;
-    if (countOk && tokensOk) break;
-    start++;
+  // 从尾部一次遍历累加 token，避免 O(n²) 反复 slice+estimate
+  let tokens = 0;
+  let count = 0;
+  let i = n - 1;
+  while (i >= 0) {
+    const m = messages[i];
+    const add = (m && m.content ? estimateTokens(textContentOf(m.content)) : 0) + 4;
+    if (count > 0 && (count + 1 > KEEP_RECENT_MESSAGES || tokens + add > MAX_LLM_TOKENS)) {
+      break;
+    }
+    tokens += add;
+    count += 1;
+    i -= 1;
   }
-  return start;
+  // i 指向「不纳入 rest」的最后一条；rest 从 i+1 开始；至少保留最后 1 条
+  return Math.min(i + 1, n - 1);
 }
 
 export function trimMessagesForLlm<T extends { role: string; content: unknown }>(

@@ -108,13 +108,14 @@ export function defaultRetryable(r: RetryableResult): boolean {
  */
 export async function withRetryBackoff<T>(
   fn: () => Promise<T>,
-  opts: RetryBackoffOpts,
+  opts: RetryBackoffOpts & { isAborted?: () => boolean },
 ): Promise<T> {
   const base = opts.baseDelayMs ?? 500;
   const maxDelay = opts.maxDelayMs ?? 4000;
   const isRetryable = opts.isRetryable ?? defaultRetryable;
   let last: T;
   for (let attempt = 0; attempt < opts.attempts; attempt++) {
+    if (opts.isAborted?.()) break;
     last = await fn();
     if (attempt === opts.attempts - 1) break;
     if (!isRetryable(last as unknown as RetryableResult)) return last;

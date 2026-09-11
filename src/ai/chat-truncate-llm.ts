@@ -15,6 +15,8 @@ import {
 export const LLM_SUMMARY_MIN_OMITTED = 4;
 export const LLM_SUMMARY_TRANSCRIPT_CHARS = 6000;
 export const LLM_SUMMARY_MAX_CHARS = 500;
+/** LLM 摘要硬超时 — 超时直接用抽取式，不拖长「思考中」 */
+export const LLM_SUMMARY_TIMEOUT_MS = 4000;
 
 const SUMMARY_SYSTEM_PROMPT =
   "你是 Pulse 助手会话摘要器。用简体中文输出 3-6 条要点（· 开头），概括：用户意图、已查询/已打开的内容、待办、关键结论。不要编造，不要复述最近几条 verbatim。最多 400 字。";
@@ -62,13 +64,24 @@ export async function summarizeOmittedTurnsWithLlm<
   const transcript = formatTranscript(omitted);
   if (!transcript.trim()) return null;
 
-  const llm = await chatCompletion(
-    [
-      { role: "system", content: SUMMARY_SYSTEM_PROMPT },
-      { role: "user", content: transcript },
-    ],
-    { model },
-  );
+  const llm = await Promise.race([
+    chatCompletion(
+      [
+        { role: "system", content: SUMMARY_SYSTEM_PROMPT },
+        { role: "user", content: transcript },
+      ],
+      { model },
+    ),
+    new Promise<{ ok: false; reason: string }>((resolve) => {
+      const t = setTimeout(
+        () => resolve({ ok: false, reason: "summary_timeout" }),
+        LLM_SUMMARY_TIMEOUT_MS,
+      );
+      if (t && typeof (t as { unref?: () => void }).unref === "function") {
+        (t as { unref: () => void }).unref();
+      }
+    }),
+  ]);
 
   if (!llm.ok || !llm.text?.trim()) return null;
   return llm.text.trim().slice(0, LLM_SUMMARY_MAX_CHARS);

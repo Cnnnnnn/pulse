@@ -183,6 +183,12 @@ async function callLlmRound0(
     return { ok: false, reason: "cancelled", actions: [] };
   }
 
+  // 仅 unsupported_provider 才降级 XML。llm_failed / timeout / circuit_open /
+  // budget_exceeded / cancelled 再发一遍纯文本大概率同样失败，还多计费一次。
+  if (fc.reason !== "unsupported_provider") {
+    return { ok: false, reason: fc.reason, error: fc.error, actions: [] };
+  }
+
   // FC 请求失败 → 降级纯文本协议：换回 <action> XML 版 system prompt。
   // 沿用 FC 版 prompt 的话模型只有 FC 说明却没有 tools 参数可发，
   // 只会回一句"好的，我帮你查…"式的开场白然后无路可走。
@@ -240,6 +246,11 @@ async function callLlmFollowupRound(
 
   if (deps.isAborted?.()) {
     return { ok: false, reason: "cancelled", actions: [] };
+  }
+
+  // 同 round0：仅 unsupported_provider 降级，其余错误直接透出
+  if (fc.reason !== "unsupported_provider") {
+    return { ok: false, reason: fc.reason, error: fc.error, actions: [] };
   }
 
   const llm = deps.onDelta
