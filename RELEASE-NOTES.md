@@ -2,6 +2,13 @@
 
 ---
 
+## v2.86.1 (🚑 设置页 TMDB/GitHub Token 布局修复) — 2026-09-11
+
+**🚑 修 v2.86.0 懒 CSS 注入又一处回归**
+- Settings 页 TMDB / GitHub Token 输入框复用 `github-token-input*`，但样式在懒加载的 `github.css`
+- 未打开 GitHub 页时输入框无布局（按钮挤压、宽度异常）
+- 规则移回 `styles.css`；回归测试锁死选择器
+
 ## v2.86.0 (🏷 更新风险标签 + 📋 Tray Quick Look) — 2026-09-11
 
 **🏷 更新风险标签（changelog-risk）**
