@@ -188,6 +188,66 @@ export interface DiagnosticsApiContract {
   onErrorAppended(cb: Callback<ErrorAppendedPayload>): Unsubscribe;
 }
 
+// v3.0 alpha: 升级路径诊断
+import type {
+  UpgradeDiagnosticsResponse,
+  UpgradeStats,
+  UpgradeRow,
+} from "./upgrades-types";
+
+// v3.0 alpha: 早报 (briefing) 类型
+import type {
+  DailyDigestConfig,
+  DigestConfigResponse,
+  DigestPreviewResponse,
+  BriefingSnapshot,
+} from "./digest-types";
+
+export interface UpgradeDiagnosticsApiContract {
+  upgradeDiagnosticsFetch(): Promise<UpgradeDiagnosticsResponse>;
+}
+
+export interface BriefingApiContract {
+  briefingFetchConfig(): Promise<DigestConfigResponse>;
+  briefingSaveConfig(
+    patch: Partial<DailyDigestConfig>,
+  ): Promise<DigestConfigResponse>;
+  briefingPreview(): Promise<DigestPreviewResponse>;
+  briefingSnapshotFetch(): Promise<BriefingSnapshotResponse>;
+  briefingExport(opts?: { regenerate?: boolean }): Promise<BriefingExportResponse>;
+  briefingShowInFolder(opts: { path: string }): Promise<BriefingShowInFolderResponse>;
+}
+
+export type BriefingSnapshotResponse = {
+  ok: boolean;
+  snapshot?: BriefingSnapshot | null;
+  reason?: string;
+  error?: string;
+};
+
+export type BriefingExportResponse = {
+  ok: boolean;
+  path?: string;
+  filename?: string;
+  snapshot?: BriefingSnapshot;
+  reason?: string;
+  error?: string;
+};
+
+export type BriefingShowInFolderResponse = {
+  ok: boolean;
+  reason?: string;
+  error?: string;
+};
+
+export type { UpgradeDiagnosticsResponse, UpgradeStats, UpgradeRow };
+export type {
+  DailyDigestConfig,
+  DigestConfigResponse,
+  DigestPreviewResponse,
+  BriefingSnapshot,
+};
+
 export type SelfUpdateStatus =
   | "idle"
   | "checking"
@@ -2848,6 +2908,34 @@ export interface IpcChannelMap {
   "token-budget:get": { args: []; result: TokenBudgetGetResponse };
   "token-budget:set": { args: [config: TokenBudgetConfig]; result: TokenBudgetSetResponse };
   "upgrade-advice:fetch": { args: [opts: AiUpgradeAdviceOptions]; result: AiUpgradeAdviceResponse };
+  "upgrade-diagnostics:fetch": {
+    args: [opts?: Record<string, unknown> | undefined];
+    result: UpgradeDiagnosticsResponse;
+  };
+  "briefing:fetch-config": {
+    args: [opts?: Record<string, unknown> | undefined];
+    result: DigestConfigResponse;
+  };
+  "briefing:save-config": {
+    args: [patch: Partial<DailyDigestConfig>];
+    result: DigestConfigResponse;
+  };
+  "briefing:preview": {
+    args: [opts?: Record<string, unknown> | undefined];
+    result: DigestPreviewResponse;
+  };
+  "briefing:snapshot:fetch": {
+    args: [opts?: Record<string, unknown> | undefined];
+    result: BriefingSnapshotResponse;
+  };
+  "briefing:export": {
+    args: [opts?: { regenerate?: boolean } | undefined];
+    result: BriefingExportResponse;
+  };
+  "briefing:show-in-folder": {
+    args: [opts: { path: string }];
+    result: BriefingShowInFolderResponse;
+  };
   "changelog-summary:fetch": { args: [opts: AiChangelogSummaryOptions]; result: AiChangelogSummaryResponse };
   "changelog-risk:fetch": { args: [opts: AiChangelogRiskOptions]; result: AiChangelogRiskResponse };
   "check-updates": { args: []; result: CheckUpdatesResponse };

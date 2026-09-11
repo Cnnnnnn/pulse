@@ -29,6 +29,17 @@ vi.mock("../../src/renderer/api.ts", () => ({
     selfUpdateGetState: vi.fn(),
     selfUpdateCheck: vi.fn(),
     selfUpdateInstall: vi.fn(),
+    // v3.0 alpha: 升级诊断 (UpgradeDiagnosticsPanel 子组件调用)
+    upgradeDiagnosticsFetch: vi.fn(async () => ({
+      ok: true,
+      stats: { upgradable: 0, autoPathable: 0, success30d: 0, failed30d: 0 },
+      rows: [],
+    })),
+    // v3.0 alpha: 早报 (SettingsPage 子组件调用)
+    briefingFetchConfig: vi.fn(async () => ({ ok: true, config: {} })),
+    briefingSnapshotFetch: vi.fn(async () => ({ ok: true, snapshot: null })),
+    briefingExport: vi.fn(async () => ({ ok: false, reason: "empty_snapshot" })),
+    briefingShowInFolder: vi.fn(async () => ({ ok: false, reason: "noop" })),
   },
 }));
 import { api } from "../../src/renderer/api.ts";
@@ -88,6 +99,16 @@ beforeEach(() => {
   api.selfUpdateGetState.mockResolvedValue({ ok: true, state: null });
   api.selfUpdateCheck.mockResolvedValue({ ok: true });
   api.selfUpdateInstall.mockResolvedValue({ ok: true });
+  // v3.0 alpha+beta: 子组件调用, 给个默认 ok 响应避免 unhandled rejection
+  api.upgradeDiagnosticsFetch.mockResolvedValue({
+    ok: true,
+    stats: { upgradable: 0, autoPathable: 0, success30d: 0, failed30d: 0 },
+    rows: [],
+  });
+  api.briefingFetchConfig.mockResolvedValue({ ok: true, config: {} });
+  api.briefingSnapshotFetch.mockResolvedValue({ ok: true, snapshot: null });
+  api.briefingExport.mockResolvedValue({ ok: false, reason: "empty_snapshot" });
+  api.briefingShowInFolder.mockResolvedValue({ ok: false, reason: "noop" });
 });
 
 afterEach(() => {

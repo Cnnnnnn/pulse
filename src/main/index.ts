@@ -637,6 +637,16 @@ function registerAllIpc(selfUpdateHandle: any) {
           );
         }
       },
+      // v3.0 beta: 推送后落盘 BriefingSnapshot
+      saveBriefingSnapshot: (entry: any) => {
+        try {
+          stateStore.saveBriefingSnapshot(entry);
+        } catch (err: any) {
+          mainLog.warn(
+            `[digest] saveBriefingSnapshot failed: ${errMsg(err)}`,
+          );
+        }
+      },
     });
     mainLog.info("daily digest job started");
   } catch (err: any) {

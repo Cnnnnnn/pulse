@@ -297,6 +297,8 @@ const PRESERVE_FIELDS = [
   { key: "overviewCache", kind: "object", notArray: true }, // Task 15: overview AI summary cache { text, fetchedAt }
   { key: "metals", kind: "object", notArray: true }, // 贵金属: watchedIds / holdings / historyMap / lastBackfillAt (metal-ipc 写入)
   { key: "last_active_nav", kind: "string" },  // P-N: HomeGrid 落点
+  { key: "upgrade_diagnostics", kind: "object" }, // v3.0 alpha: 升级路径诊断 attempts 环形缓冲 (按 appId 分桶)
+  { key: "briefing_snapshot", kind: "object" }, // v3.0 beta: 每日早报最后一次推送的 snapshot (给 Drawer 离线打开)
 ];
 const PRESERVE_KEYS = new Set(PRESERVE_FIELDS.map((spec: any) => spec.key));
 const RETIRED_KEYS = new Set([
@@ -1168,6 +1170,137 @@ export function loadDailyDigest(statePath = defaultPath()) {
   };
 }
 
+// ─── v3.0 alpha: digest 完整配置 (含模块订阅 + LLM 改写开关) ──────
+const DIGEST_SECTIONS_DEFAULT = ["updates", "hot", "news", "funds", "ai_usage"];
+const VALID_HHMM = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+function _normalizeDigestConfig(raw: any) {
+  const out = {
+    enabled: true,
+    time: "08:30",
+    quiet_hours_start: null,
+    quiet_hours_end: null,
+    subscribed_sections: [...DIGEST_SECTIONS_DEFAULT],
+    llm_rewrite_enabled: false,
+    last_push_date: null,
+  };
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  if (raw.enabled === false) out.enabled = false;
+  if (typeof raw.time === "string" && VALID_HHMM.test(raw.time)) out.time = raw.time;
+  if (typeof raw.quiet_hours_start === "string" && VALID_HHMM.test(raw.quiet_hours_start)) {
+    out.quiet_hours_start = raw.quiet_hours_start;
+  }
+  if (typeof raw.quiet_hours_end === "string" && VALID_HHMM.test(raw.quiet_hours_end)) {
+    out.quiet_hours_end = raw.quiet_hours_end;
+  }
+  if (Array.isArray(raw.subscribed_sections)) {
+    const valid = raw.subscribed_sections.filter(
+      (k: unknown): k is string =>
+        typeof k === "string" && DIGEST_SECTIONS_DEFAULT.includes(k),
+    );
+    if (valid.length > 0) out.subscribed_sections = valid;
+  }
+  if (raw.llm_rewrite_enabled === true) out.llm_rewrite_enabled = true;
+  if (typeof raw.last_push_date === "string") out.last_push_date = raw.last_push_date;
+  return out;
+}
+
+/**
+ * 读 daily_digest 完整配置 (v3 alpha). 老 state.json 缺字段 → 走默认.
+ * @param {string} [statePath]
+ * @returns {object} normalized DailyDigestConfig
+ */
+export function loadDailyDigestConfig(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (
+    !s ||
+    !s.daily_digest ||
+    typeof s.daily_digest !== "object" ||
+    Array.isArray(s.daily_digest)
+  ) {
+    return _normalizeDigestConfig(null);
+  }
+  return _normalizeDigestConfig(s.daily_digest);
+}
+
+/**
+ * 写 daily_digest 完整配置 (v3 alpha). patchState 自动 preserve.
+ * @param {object} patch   任意字段子集, 未传字段保留旧值
+ * @param {string} [statePath]
+ * @returns {object} normalized DailyDigestConfig  (写盘后的最终值)
+ */
+export function saveDailyDigestConfig(patch: any, statePath = defaultPath()) {
+  if (patch != null && (typeof patch !== "object" || Array.isArray(patch))) {
+    throw new TypeError("saveDailyDigestConfig: patch must be plain object");
+  }
+  return patchState((next: any, existing: any) => {
+    const merged = _normalizeDigestConfig({
+      ...(existing.daily_digest || {}),
+      ...(patch || {}),
+    });
+    next.daily_digest = merged;
+  }, statePath);
+}
+
+// ─── v3.0 beta: BriefingSnapshot 持久化 ─────────────────────
+//
+// 用途: 每日早报推送后, 把当次 sections + lines + rewritten 标志落盘.
+//   - Drawer 离线打开时优先用这个快照 (避免空白屏)
+//   - tray quick look "今日早报" 行也读这个
+//
+// 只保留最近 1 份 snapshot; 不做历史 (保持 state.json 体积).
+
+/**
+ * 读最近一次推送的早报 snapshot. 老 state.json 无 briefing_snapshot → null.
+ * @param {string} [statePath]
+ * @returns {object|null}
+ */
+export function loadBriefingSnapshot(statePath = defaultPath()) {
+  const s = load(statePath);
+  const snap = s && s.briefing_snapshot;
+  if (!snap || typeof snap !== "object" || Array.isArray(snap)) return null;
+  const { date, generatedAt, sections, lines, rewritten } = snap as any;
+  if (typeof date !== "string" || typeof generatedAt !== "number") return null;
+  if (!Array.isArray(sections) || !Array.isArray(lines)) return null;
+  return {
+    date,
+    generatedAt,
+    sections,
+    lines,
+    rewritten: rewritten === true,
+  };
+}
+
+/**
+ * 写最近一次推送的早报 snapshot. patchState 自动 preserve.
+ * @param {{date: string, generatedAt: number, sections: any[], lines: string[], rewritten?: boolean}} entry
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+export function saveBriefingSnapshot(entry: any, statePath = defaultPath()) {
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    typeof entry.date !== "string" ||
+    typeof entry.generatedAt !== "number" ||
+    !Array.isArray(entry.sections) ||
+    !Array.isArray(entry.lines)
+  ) {
+    throw new TypeError(
+      "saveBriefingSnapshot: entry must have date, generatedAt, sections[], lines[]",
+    );
+  }
+  return patchState((next: any) => {
+    next.briefing_snapshot = {
+      date: entry.date,
+      generatedAt: entry.generatedAt,
+      sections: entry.sections,
+      lines: entry.lines,
+      rewritten: entry.rewritten === true,
+    };
+  }, statePath);
+}
+
 // ─── AI 配额快照 (ai_usage) ───────────────────────────────────
 //
 // 用途: 缓存 minimax coding plan 配额快照, 用于:
@@ -1991,6 +2124,12 @@ module.exports = {
   // Phase I5: daily digest sub-state
   saveDailyDigest,
   loadDailyDigest,
+  // v3.0 alpha: daily digest 完整配置 (含模块订阅 + LLM 改写)
+  saveDailyDigestConfig,
+  loadDailyDigestConfig,
+  // v3.0 beta: briefing snapshot 持久化 + 读
+  saveBriefingSnapshot,
+  loadBriefingSnapshot,
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,

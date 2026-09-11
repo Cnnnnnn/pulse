@@ -156,10 +156,19 @@ type AggregateResult = {
  * Pure aggregator.
  * @param state  shape: {apps, wechatHot, ithome_news, funds, ai_usage}
  * @param opts
+ * @param opts.subscribed  v3.0 alpha: subset of SECTION_ORDER. undefined/empty → 全选 (向后兼容)
  */
-export function aggregate(state: any, opts: { now?: Date } = {}): AggregateResult {
+export function aggregate(
+  state: any,
+  opts: { now?: Date; subscribed?: readonly string[] } = {},
+): AggregateResult {
   const now = opts.now instanceof Date ? opts.now : new Date();
   const s = state || {};
+
+  const subscribed =
+    Array.isArray(opts.subscribed) && opts.subscribed.length > 0
+      ? new Set(opts.subscribed)
+      : null;
 
   const builders = [
     () => sectionUpdates(s.apps),
@@ -171,8 +180,10 @@ export function aggregate(state: any, opts: { now?: Date } = {}): AggregateResul
 
   const sections: Section[] = [];
   for (const build of builders) {
-    const section = safe(build as any, null);
-    if (section) sections.push(section);
+    const section = safe(build as () => Section | null, null);
+    if (!section) continue;
+    if (subscribed && !subscribed.has(section.kind)) continue;
+    sections.push(section);
   }
 
   const lines: string[] = [];

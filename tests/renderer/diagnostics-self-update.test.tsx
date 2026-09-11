@@ -21,6 +21,16 @@ const api = vi.hoisted(() => ({
   errorFetchEntries: vi.fn(async () => ({ ok: true, entries: [], stats: { byLevel: {} } })),
   diagnosticsFetch: vi.fn(async () => ({ ok: true, startup: null, metrics: {}, topFailures: [] })),
   diagnosticsFetchSamples: vi.fn(async () => ({ ok: true, samples: [] })),
+  // v3.0 alpha+beta: 升级诊断 + 早报 (DiagnosticsPage / SettingsPage 子组件会调)
+  upgradeDiagnosticsFetch: vi.fn(async () => ({
+    ok: true,
+    stats: { upgradable: 0, autoPathable: 0, success30d: 0, failed30d: 0 },
+    rows: [],
+  })),
+  briefingFetchConfig: vi.fn(async () => ({ ok: true, config: {} })),
+  briefingSnapshotFetch: vi.fn(async () => ({ ok: true, snapshot: null })),
+  briefingExport: vi.fn(async () => ({ ok: false, reason: "empty_snapshot" })),
+  briefingShowInFolder: vi.fn(async () => ({ ok: false, reason: "noop" })),
 }));
 
 vi.mock("../../src/renderer/api.ts", () => ({ api }));

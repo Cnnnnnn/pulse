@@ -51,6 +51,8 @@ const FIELD_SPECS: Record<string, { kind: string; required?: boolean }> = {
   stockDetailCache:   { kind: 'object' },
   overviewCache:      { kind: 'object' },
   metals:             { kind: 'object' },
+  upgrade_diagnostics: { kind: 'object' }, // v3.0 alpha: per-app attempts ring buffer
+  briefing_snapshot: { kind: 'object' }, // v3.0 beta: 最近一次推送的早报快照
 };
 
 function isObject(v: any): boolean {

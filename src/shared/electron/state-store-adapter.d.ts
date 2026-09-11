@@ -171,6 +171,48 @@ export interface StateStoreAdapter {
     last_push_date: string | null;
   };
 
+  // v3.0 alpha — daily digest 完整配置 (含模块订阅 + LLM 改写开关)
+  loadDailyDigestConfig(statePath?: string): {
+    enabled: boolean;
+    time: string;
+    quiet_hours_start: string | null;
+    quiet_hours_end: string | null;
+    subscribed_sections: string[];
+    llm_rewrite_enabled: boolean;
+    last_push_date: string | null;
+  };
+  saveDailyDigestConfig(
+    patch: Partial<{
+      enabled: boolean;
+      time: string;
+      quiet_hours_start: string | null;
+      quiet_hours_end: string | null;
+      subscribed_sections: string[];
+      llm_rewrite_enabled: boolean;
+      last_push_date: string | null;
+    }>,
+    statePath?: string,
+  ): StateRecord;
+
+  // v3.0 beta — briefing snapshot 持久化
+  loadBriefingSnapshot(statePath?: string): {
+    date: string;
+    generatedAt: number;
+    sections: Array<{ kind: string; title?: string; items: unknown[] }>;
+    lines: string[];
+    rewritten: boolean;
+  } | null;
+  saveBriefingSnapshot(
+    entry: {
+      date: string;
+      generatedAt: number;
+      sections: Array<{ kind: string; title?: string; items: unknown[] }>;
+      lines: string[];
+      rewritten?: boolean;
+    },
+    statePath?: string,
+  ): StateRecord;
+
   // Phase v1 — tray menu prefs
   loadTrayMenuPrefs(statePath?: string): {
     version: number;

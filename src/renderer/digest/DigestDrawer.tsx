@@ -14,6 +14,7 @@ import {
   digestLoading,
 } from './digest-store.ts';
 import { api } from '../api.ts';
+import { showToast } from '../store.ts';
 import { DigestSection } from './DigestSection.tsx';
 import { DrawerShell } from '../components/DrawerShell.tsx';
 import { DrawerEmpty } from '../components/EmptyState.tsx';
@@ -29,7 +30,27 @@ export function DigestDrawer() {
     digestLoading.value = true;
     const result = api.digestFetchSections();
     const p = (result && typeof result.then === 'function') ? result : Promise.resolve(null);
-    p.then((resp) => {
+    p.then(async (resp) => {
+      // v3.0 beta: 离线 / 无网络时, fetch sections 失败 → 退到盘上的 snapshot
+      if (resp && resp.ok && (resp.sections?.length || 0) > 0) {
+        digestSections.value = resp.sections || [];
+        digestLines.value = resp.lines || [];
+        digestDate.value = resp.date || null;
+        return;
+      }
+      try {
+        const snap = await api.briefingSnapshotFetch();
+        if (snap && snap.ok && snap.snapshot && (snap.snapshot.sections?.length || 0) > 0) {
+          digestSections.value = snap.snapshot.sections as any;
+          digestLines.value = snap.snapshot.lines || [];
+          digestDate.value = snap.snapshot.date || null;
+          showToast('离线模式：显示最近推送的早报快照', 'info');
+          return;
+        }
+      } catch {
+        /* fallthrough */
+      }
+      // 都没有: 保留空 (渲染空状态)
       if (resp && resp.ok) {
         digestSections.value = resp.sections || [];
         digestLines.value = resp.lines || [];

@@ -217,6 +217,25 @@ export const api = {
     invokeChannel("ai-prompts:reset", key),
   upgradeAdviceFetch: (opts: IpcChannelMap["upgrade-advice:fetch"]["args"][0]) =>
     invokeChannel("upgrade-advice:fetch", opts),
+  // v3.0 alpha: 升级路径诊断
+  upgradeDiagnosticsFetch: () =>
+    invokeChannel("upgrade-diagnostics:fetch", undefined),
+  // v3.0 alpha: 早报设置 + 预览
+  briefingFetchConfig: () =>
+    invokeChannel("briefing:fetch-config", undefined),
+  briefingSaveConfig: (
+    patch: IpcChannelMap["briefing:save-config"]["args"][0],
+  ) => invokeChannel("briefing:save-config", patch),
+  briefingPreview: () => invokeChannel("briefing:preview", undefined),
+  // v3.0 beta: snapshot + 导出
+  briefingSnapshotFetch: () =>
+    invokeChannel("briefing:snapshot:fetch", undefined),
+  briefingExport: (
+    opts: IpcChannelMap["briefing:export"]["args"][0],
+  ) => invokeChannel("briefing:export", opts),
+  briefingShowInFolder: (
+    opts: IpcChannelMap["briefing:show-in-folder"]["args"][0],
+  ) => invokeChannel("briefing:show-in-folder", opts),
   changelogRiskFetch: (opts: IpcChannelMap["changelog-risk:fetch"]["args"][0]) =>
     invokeChannel("changelog-risk:fetch", opts),
   changelogSummaryFetch: (

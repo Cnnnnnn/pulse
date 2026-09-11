@@ -17,6 +17,8 @@ import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.tsx";
 import { SubtabList } from "./SubtabList.tsx";
 import { AISettingsScene } from "./AISettingsScene.tsx";
+// v3.0 alpha: 每日早报设置
+import { BriefingSettings } from "../briefing/BriefingSettings.tsx";
 import {
   IconBell,
   IconClock,
@@ -901,6 +903,9 @@ export function SettingsPage() {
                 </div>
               </div>
             </section>
+
+            {/* v3.0 alpha: 每日早报设置 (模块订阅 + 时间窗 + LLM 改写开关) */}
+            <BriefingSettings />
           </>
         ) : (
           /* ── GitHub 收录 (token 配置) ── */

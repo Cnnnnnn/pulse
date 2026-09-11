@@ -42,6 +42,8 @@ import { KPICard } from "./KPICard.tsx";
 import { StatusBadge } from "./Badge.tsx";
 import { IconCheck } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
+// v3.0 alpha: 升级路径诊断面板 (挂在诊断页底部, 跟错误诊断共存)
+import { UpgradeDiagnosticsPanel } from "../upgrade-diagnostics/UpgradeDiagnosticsPanel.tsx";
 import type { SelfUpdateState } from "../../shared/ipc-contracts";
 
 function fmtTs(ts: number | string | undefined) {
@@ -585,6 +587,15 @@ export function DiagnosticsPage() {
                 清理 &gt; 30 天
               </button>
             </div>
+          </div>
+        </section>
+
+        <section class="diag-card diag-card--upgrade-path">
+          <div class="diag-card__header">
+            <span class="diag-card__title">升级路径诊断 (v3.0 alpha)</span>
+          </div>
+          <div class="diag-card__body">
+            <UpgradeDiagnosticsPanel />
           </div>
         </section>
       </div>

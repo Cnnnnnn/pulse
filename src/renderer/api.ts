@@ -37,6 +37,8 @@ import type {
   ConfigPortabilityApiContract,
   DigestApiContract,
   DiagnosticsApiContract,
+  UpgradeDiagnosticsApiContract,
+  BriefingApiContract,
   FinanceApiContract,
   FundsApiContract,
   RecentApiContract,
@@ -121,6 +123,8 @@ export type RendererApi =
   SearchApiContract &
   DigestApiContract &
   VaultApiContract &
+  UpgradeDiagnosticsApiContract &
+  BriefingApiContract &
   Record<string, any>;
 
 export function createApi(overrides: Record<string, any> = {}): RendererApi {
@@ -310,6 +314,16 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     configImportLoad: pick(overrides, "configImportLoad"),
     configImportApply: pick(overrides, "configImportApply"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
+    // v3.0 alpha: 升级路径诊断
+    upgradeDiagnosticsFetch: pick(overrides, "upgradeDiagnosticsFetch"),
+    // v3.0 alpha: 早报设置 + 预览
+    briefingFetchConfig: pick(overrides, "briefingFetchConfig"),
+    briefingSaveConfig: pick(overrides, "briefingSaveConfig"),
+    briefingPreview: pick(overrides, "briefingPreview"),
+    // v3.0 beta: snapshot + 导出
+    briefingSnapshotFetch: pick(overrides, "briefingSnapshotFetch"),
+    briefingExport: pick(overrides, "briefingExport"),
+    briefingShowInFolder: pick(overrides, "briefingShowInFolder"),
     // 选股分析 (阶段一): 筛选 + 搜索
     stocksScreen: pick(overrides, "stocksScreen"),
     stocksSearch: pick(overrides, "stocksSearch"),

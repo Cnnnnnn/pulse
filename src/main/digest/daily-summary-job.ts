@@ -74,9 +74,13 @@ async function checkAndPush(deps: any): Promise<any> {
   if (cfg.last_push_date === today) return { skipped: "already_pushed_today" };
 
   const aggregate = deps.aggregate || defaultAggregate;
+  // v3.0 alpha: 模块订阅过滤 — alpha 阶段 cfg.subscribed_sections 缺省则全选
+  const subscribed = Array.isArray(cfg.subscribed_sections)
+    ? cfg.subscribed_sections
+    : ["updates", "hot", "news", "funds", "ai_usage"];
   let result: any;
   try {
-    result = aggregate(state, { now });
+    result = aggregate(state, { now, subscribed });
   } catch (err: any) {
     return { skipped: "aggregate_threw", error: err && err.message };
   }
@@ -85,24 +89,34 @@ async function checkAndPush(deps: any): Promise<any> {
   }
 
   // A7 v3: LLM 改写 result.lines → bodyLines. 失败/超时回退原 lines, push 不破.
+  // v3.0 alpha: 走 cfg.llm_rewrite_enabled 开关.
+  //   - 老 state.json 无该字段 → 视为 true (保持 v2.86 行为, 不静默退化)
+  //   - 显式 false → 不改写
+  //   - 显式 true → 改写
+  const llmEnabled =
+    cfg.llm_rewrite_enabled === undefined
+      ? true
+      : cfg.llm_rewrite_enabled === true;
   let bodyLines = result.lines;
   let rewritten = false;
-  try {
-    const rewriteDeps = {
-      sharedLlm: deps.sharedLlm || defaultSharedLlm,
-      resolvePrompt: deps.resolvePrompt || defaultResolvePrompt,
-    };
-    const next = await tryRewriteSummary(
-      result.lines,
-      result.date,
-      rewriteDeps,
-    );
-    if (Array.isArray(next) && next.length > 0) {
-      bodyLines = next;
-      rewritten = next !== result.lines;
+  if (llmEnabled) {
+    try {
+      const rewriteDeps = {
+        sharedLlm: deps.sharedLlm || defaultSharedLlm,
+        resolvePrompt: deps.resolvePrompt || defaultResolvePrompt,
+      };
+      const next = await tryRewriteSummary(
+        result.lines,
+        result.date,
+        rewriteDeps,
+      );
+      if (Array.isArray(next) && next.length > 0) {
+        bodyLines = next;
+        rewritten = next !== result.lines;
+      }
+    } catch {
+      // swallow — push 走原 lines
     }
-  } catch {
-    // swallow — push 走原 lines
   }
 
   deps.sendNotification({
@@ -116,6 +130,21 @@ async function checkAndPush(deps: any): Promise<any> {
       last_push_date: today,
     },
   });
+
+  // v3.0 beta: 落盘 BriefingSnapshot, 给 Drawer 离线打开 + tray quick look 用
+  try {
+    if (typeof deps.saveBriefingSnapshot === "function") {
+      deps.saveBriefingSnapshot({
+        date: result.date,
+        generatedAt: Date.now(),
+        sections: result.sections,
+        lines: bodyLines,
+        rewritten,
+      });
+    }
+  } catch {
+    /* snapshot 落盘失败不影响 push */
+  }
 
   return { pushed: true, lines: result.lines.length, rewritten };
 }

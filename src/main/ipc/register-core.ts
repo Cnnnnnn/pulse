@@ -16,6 +16,8 @@ import { buildRunCheckDeps } from "../run-check-deps";
 import { runBulkUpgrade } from "../bulk-upgrade";
 import * as stateStore from "../state-store";
 import { aggregate } from "../digest/aggregate";
+// v3.0: 升级路径诊断 — bulk-upgrade onProgress 追写 attempt
+import { appendAttempt } from "../upgrade-diagnostics";
 import * as platform from "../../platform/index";
 import { mainLog } from "../log";
 import * as lastOpened from "../last-opened";
@@ -145,6 +147,33 @@ export function registerCoreHandlers(ctx: any) {
       items,
       signal: ctrl.signal,
       onProgress: (evt: any) => {
+        // v3.0: 把 attempt 写进 state.json (环形缓冲, 单 app max 200).
+        // 失败/成功/跳过 都写, 让诊断面板"上次结果"列填上.
+        try {
+          if (evt && typeof evt.id === "string") {
+            const result =
+              evt.status === "done"
+                ? "success"
+                : evt.status === "failed"
+                  ? "failed"
+                  : evt.status === "skipped"
+                    ? "skipped"
+                    : "skipped"; // running 时不写
+            if (evt.status !== "running") {
+              appendAttempt({
+                id: evt.id,
+                ts: Date.now(),
+                result,
+                action: evt.action || "none",
+                durationMs: typeof evt.durationMs === "number" ? evt.durationMs : undefined,
+                error: typeof evt.error === "string" ? evt.error : undefined,
+                output: typeof evt.output === "string" ? evt.output : undefined,
+              });
+            }
+          }
+        } catch {
+          /* 不让诊断写盘破坏升级流程 */
+        }
         sendToRenderer("bulk-upgrade:progress", evt);
       },
     })

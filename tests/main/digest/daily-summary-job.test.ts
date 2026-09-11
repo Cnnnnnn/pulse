@@ -146,6 +146,25 @@ describe("daily-summary-job", () => {
     handle.stop();
   });
 
+  // v3.0 alpha: llm_rewrite_enabled=false → 不调用 LLM, 直接走原 lines
+  it("llm_rewrite_enabled=false → 跳过 LLM, 用原 lines", async () => {
+    state.daily_digest.llm_rewrite_enabled = false;
+    let llmCalled = false;
+    deps.sharedLlm = {
+      chatCompletion: async () => {
+        llmCalled = true;
+        return { ok: true, text: "改写" };
+      },
+    };
+    deps.resolvePrompt = () => ({ system: "s", rules: "r", fewShot: "" });
+    const handle = startDailySummaryJob(deps);
+    const r = await handle.triggerNow();
+    expect(llmCalled).toBe(false);
+    expect(sentNotifications[0].body).toContain("Cursor");
+    expect(r.rewritten).toBe(false);
+    handle.stop();
+  });
+
   it("sharedLlm 返回 ok=false → 回退原 lines", async () => {
     deps.sharedLlm = {
       chatCompletion: async () => ({ ok: false, reason: "api_key_missing" }),
@@ -180,6 +199,37 @@ describe("daily-summary-job", () => {
     expect(sentNotifications).toHaveLength(1);
     expect(sentNotifications[0].body).toContain("Cursor");
     expect(r.rewritten).toBe(false);
+    handle.stop();
+  });
+
+  // v3.0 beta: 推送成功后, deps.saveBriefingSnapshot 被调用且 entry 字段齐全
+  it("pushes 后调用 saveBriefingSnapshot 写入 snapshot", async () => {
+    const saved = [];
+    deps.saveBriefingSnapshot = (entry) => {
+      saved.push(entry);
+    };
+    const handle = startDailySummaryJob(deps);
+    const r = await handle.triggerNow();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].date).toBe("2026-06-20");
+    expect(saved[0].sections).toEqual([
+      { kind: "updates", items: [{ name: "Cursor" }] },
+    ]);
+    expect(saved[0].lines.length).toBeGreaterThan(0);
+    expect(saved[0].rewritten).toBe(false);
+    expect(r.pushed).toBe(true);
+    handle.stop();
+  });
+
+  // v3.0 beta: saveBriefingSnapshot 抛错 → push 不受影响
+  it("saveBriefingSnapshot 抛错 → 推送仍成功 (catch 吞掉)", async () => {
+    deps.saveBriefingSnapshot = () => {
+      throw new Error("disk full");
+    };
+    const handle = startDailySummaryJob(deps);
+    const r = await handle.triggerNow();
+    expect(r.pushed).toBe(true);
+    expect(sentNotifications).toHaveLength(1);
     handle.stop();
   });
 });

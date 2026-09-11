@@ -27,6 +27,8 @@ import { registerMoviesHandlers } from "./register-movies";
 import { registerConcertsHandlers } from "./register-concerts";
 import { registerAiPromptsHandlers } from "./register-ai-prompts";
 import { registerUpgradeAdviceHandlers } from "./register-upgrade-advice";
+import { registerUpgradeDiagnosticsHandlers } from "./register-upgrade-diagnostics";
+import { registerBriefingHandlers } from "./register-briefing";
 const {
   registerChangelogSummaryHandlers,
 } = require("./register-changelog-summary.ts");
@@ -68,6 +70,8 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   registerConcertsHandlers(ctx); // 演出票监控：票牛 + 摩天轮场次票价
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
+  registerUpgradeDiagnosticsHandlers(ctx); // v3.0 alpha: 升级路径诊断
+  registerBriefingHandlers(ctx); // v3.0 alpha: 早报设置 + 预览
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
   registerAiFeedbackHandlers(ctx); // A8: AI 反馈闭环
   registerTokenBudgetHandlers(ctx); // P71: token 预算

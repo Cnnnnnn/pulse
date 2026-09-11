@@ -2,6 +2,26 @@
 
 ---
 
+## v3.0.0 (🛠️ 升级路径诊断 + 早报产品化) — 2026-09-11
+
+**🛠️ 升级路径诊断面板 (新)**
+- 「版本检查 → 升级诊断」区显示 4 个 KPI：可升级 / 自动路径 / 30 天成功 / 30 天失败
+- 升级明细表按 app 列出上次升级结果（成功 / 失败 / 跳过）+ 错误摘要
+- 单次升级尝试落盘到 `state.json` 的 `upgrade_diagnostics`，按 app 滚动保留最近 200 条
+- bulk-upgrade 每次尝试都触发记录 — 看板上能看到真实升级历史
+
+**🌅 每日早报产品化**
+- 设置 → 通用 → 每日早报：推送时间 / 免打扰 / 模块订阅 / LLM 改写开关
+- Drawer 离线打开：网络不通时显示最近一次推送的 snapshot
+- 导出 HTML 卡片：单文件可分享，内嵌 CSS 无外部依赖
+- 推送成功后落盘 `briefing_snapshot`，下次 Drawer 打开优先用 snapshot
+
+**🔧 内部变更**
+- `briefing:snapshot:fetch` / `briefing:export` / `briefing:show-in-folder` 新增 IPC
+- `upgrade-diagnostics:fetch` 仍存在，但 `appendAttempt` 已自动接 bulk-upgrade onProgress
+- 新文件：`src/main/digest/brief-html.ts`（HTML 渲染） / `src/main/upgrade-diagnostics.ts`（环形缓冲）
+- 新测试：`brief-html.test.ts` / `briefing-snapshot.test.ts` / `daily-summary-job.snapshot.test.ts`
+
 ## v2.87.0 (🧠 助手记忆自动沉淀) — 2026-09-11
 
 **🧠 记忆自动沉淀**
