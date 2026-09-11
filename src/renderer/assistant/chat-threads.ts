@@ -19,6 +19,8 @@ const THREADS_KEY = "pulse-assistant-threads-v2";
 const LEGACY_KEY = "pulse-assistant-chat-v1";
 const MAX_THREADS = 20;
 export const MAX_MESSAGES_PER_THREAD = 40;
+/** 单条 content 持久化上限 — 防 20 线程 × 40 条长回复撑爆 localStorage quota */
+export const MAX_CONTENT_CHARS = 8000;
 
 function newId(): string {
   return `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -42,9 +44,13 @@ function sanitizeMessages(raw: unknown): AiChatMessage[] {
     )
     .map((m) => {
       const msg = m as AiChatMessage;
+      let content = msg.content;
+      if (content.length > MAX_CONTENT_CHARS) {
+        content = `${content.slice(0, MAX_CONTENT_CHARS)}…`;
+      }
       const next: AiChatMessage = {
         role: msg.role,
-        content: msg.content,
+        content,
       };
       if (typeof msg.ts === "number") next.ts = msg.ts;
       if (msg.feedback === "up" || msg.feedback === "down") {

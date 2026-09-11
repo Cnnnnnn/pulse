@@ -17,6 +17,11 @@ import {
 } from "../funds/fundCalc";
 import { aggregate } from "../main/digest/aggregate";
 import { getLeaderboard } from "../main/ai-leaderboard/index";
+import {
+  getQueryCache,
+  queryCacheKey,
+  setQueryCache,
+} from "./assistant-query-cache";
 
 
 export type ToolCardItem = {
@@ -588,19 +593,27 @@ export async function executeMainTool(
   } = {},
 ): Promise<ToolResult | null> {
   if (!MAIN_PROCESS_TOOLS.has(action.tool)) return null;
+  const cached = (fn: () => ToolResult | null): ToolResult | null => {
+    const key = queryCacheKey(action.tool);
+    const hit = getQueryCache(key);
+    if (hit) return { ...hit, summary: `${hit.summary}（缓存）` };
+    const r = fn();
+    if (r) setQueryCache(key, r);
+    return r;
+  };
   switch (action.tool) {
     case "query_apps":
-      return summarizeApps();
+      return cached(() => summarizeApps());
     case "list_nav":
       return listNav();
     case "query_funds":
-      return summarizeFunds(deps.fundScheduler);
+      return cached(() => summarizeFunds(deps.fundScheduler));
     case "query_digest":
-      return summarizeDigest();
+      return cached(() => summarizeDigest());
     case "query_leaderboard":
       return summarizeLeaderboard(action.params);
     case "query_metals":
-      return summarizeMetals();
+      return cached(() => summarizeMetals());
     case "query_stocks":
       return summarizeStocks(action.params);
     case "search":
