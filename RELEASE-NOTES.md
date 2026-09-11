@@ -2,6 +2,27 @@
 
 ---
 
+## v3.0.1 (🎨 早报 UI 重设计) — 2026-09-11
+
+**🎨 早报 Drawer 视觉重设计**
+- 顶部 Hero：日期 eyebrow + 大标题 + 模块数 / 要点数 chip + 离线 pill
+- Loading skeleton (shimmer 动画) 替代 "加载中…" 灰字
+- Rich empty state (📭 + 标题 + 描述) 替代 "今天没有重要变化"
+- Section 卡化（padding + border + radius），更清晰
+- Sticky footer：主按钮「导出 HTML」+ ghost「关闭」
+
+**🎨 早报设置页视觉重设计**
+- 头部：标题区 + iOS-style 主开关（已启用/未启用）
+- 时间 / 免打扰：3 列 grid，label + 等宽 input
+- 模块订阅：chip + dot（带「已选 N / 5」hint）
+- LLM 改写：rich toggle（strong + 描述），不再是裸 checkbox
+- 操作栏：左 ghost 三按钮（预览 / 导出 / 打开 Drawer）+ 右主「保存设置」
+- 状态栏：pill（绿=已推送 / 灰=待推送）
+
+**🔧 内部变更**
+- `digest:fetch-sections` 接入 v3 `subscribed_sections` 过滤，跟设置页保持一致
+- 测试更新：`DigestDrawer` skeleton / 关闭按钮 / 空态文案匹配新 UI
+
 ## v3.0.0 (🛠️ 升级路径诊断 + 早报产品化) — 2026-09-11
 
 **🛠️ 升级路径诊断面板 (新)**
