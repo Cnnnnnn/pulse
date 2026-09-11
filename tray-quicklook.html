@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pulse</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none';" />
+  <style>
+    :root {
+      --bg: #f6f6f8;
+      --card: #fff;
+      --text: #1d1d1f;
+      --text-2: #6e6e73;
+      --text-3: #98989d;
+      --border: rgba(0,0,0,.08);
+      --accent: #007aff;
+      --accent-soft: rgba(0,122,255,.12);
+      --ok: #34c759;
+      --warn: #ff9500;
+      --danger: #ff3b30;
+      --radius: 10px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1e;
+        --card: #2c2c2e;
+        --text: #f2f2f7;
+        --text-2: #98989d;
+        --text-3: #6e6e73;
+        --border: rgba(255,255,255,.08);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 12px 12px 10px;
+      gap: 10px;
+    }
+    .head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      -webkit-app-region: drag;
+    }
+    .title { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+    .sub { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    .stats {
+      display: flex;
+      gap: 6px;
+    }
+    .stat {
+      flex: 1;
+      padding: 8px 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .stat-n { font-size: 18px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .stat-n.warn { color: var(--warn); }
+    .stat-n.ok { color: var(--ok); }
+    .stat-n.err { color: var(--danger); }
+    .stat-k { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+    .list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .row:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .row-name { font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-ver { font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--text-3);
+      font-size: 12px;
+      padding: 24px 12px;
+      text-align: center;
+    }
+    .empty-icon { font-size: 22px; opacity: .7; }
+    .actions {
+      display: flex;
+      gap: 6px;
+      padding-top: 2px;
+    }
+    .btn {
+      flex: 1;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn.primary:hover { filter: brightness(1.06); color: #fff; }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .foot {
+      font-size: 10px;
+      color: var(--text-3);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app">
+    <div class="head">
+      <span class="title">Pulse</span>
+      <span class="sub" id="sub">加载中…</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n warn" id="n-up">–</div><div class="stat-k">可升级</div></div>
+      <div class="stat"><div class="stat-n ok" id="n-ok">–</div><div class="stat-k">已最新</div></div>
+      <div class="stat"><div class="stat-n" id="n-all">–</div><div class="stat-k">监控中</div></div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="actions">
+      <button class="btn" id="btn-check" type="button">检查更新</button>
+      <button class="btn primary" id="btn-open" type="button">打开面板</button>
+    </div>
+    <div class="foot">右键托盘可看完整菜单</div>
+  </div>
+  <script src="tray-quicklook.js"></script>
+</body>
+</html>
