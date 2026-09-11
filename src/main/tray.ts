@@ -520,13 +520,73 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
   let lastSelfUpdateState: BuildMenuOpts["selfUpdateState"] = null;
   let lastTrayMenuPrefs: TrayPrefs = require("./tray-menu-prefs.ts").DEFAULT_PREFS;
   let lastThemeMode = "system"; // P10: 主进程内存, 由 renderer 同步
+  let lastMenu: any = null;
+  let lastCheckAt: number | null = null;
+  let quickLook: any = null;
+
+  function ensureQuickLook() {
+    if (quickLook) return quickLook;
+    const {
+      createTrayQuickLook,
+      buildQuickLookSnapshot,
+    } = require("./tray-quicklook.ts");
+    quickLook = createTrayQuickLook({
+      getSnapshot: () => buildQuickLookSnapshot(lastResults, lastCheckAt),
+      onOpenPanel: () => {
+        try {
+          if (quickLook) quickLook.hide();
+        } catch {
+          /* noop */
+        }
+        onOpenPanel();
+      },
+      onCheck: () => {
+        try {
+          if (quickLook) quickLook.hide();
+        } catch {
+          /* noop */
+        }
+        lastCheckAt = Date.now();
+        onCheck();
+      },
+      onFocusUpdate: (data: any) => {
+        try {
+          if (quickLook) quickLook.hide();
+        } catch {
+          /* noop */
+        }
+        onFocusUpdate(data);
+      },
+    });
+    return quickLook;
+  }
 
   function install() {
     let icon = loadTrayIcon();
     if (!icon) icon = loadFallbackIcon();
     tray = new Tray(icon);
     tray.setToolTip("Pulse");
-    tray.on("click", () => onOpenPanel());
+    // 左键 → Quick Look 迷你面板；右键 → 原 context menu。
+    // macOS 上若 setContextMenu，左键也会弹菜单，故改为 popUpContextMenu。
+    tray.on("click", () => {
+      try {
+        ensureQuickLook();
+        if (quickLook) quickLook.toggle();
+      } catch {
+        onOpenPanel();
+      }
+    });
+    tray.on("right-click", () => {
+      try {
+        if (tray && lastMenu) tray.popUpContextMenu(lastMenu);
+      } catch {
+        /* noop */
+      }
+    });
+    // Windows: 双击仍开主面板（习惯）
+    if (process.platform === "win32") {
+      tray.on("double-click", () => onOpenPanel());
+    }
     rebuildMenu();
 
     // P4: Windows 端监听主题变化, 切换亮/暗两套 ICO.
@@ -569,11 +629,13 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
         { label: "菜单栏配置...", click: () => onOpenTrayConfig() },
       );
     }
-    tray.setContextMenu(Menu.buildFromTemplate(template));
+    // 不 setContextMenu — macOS 会抢左键。右键 popUpContextMenu(lastMenu)。
+    lastMenu = Menu.buildFromTemplate(template);
   }
 
   function setResults(results: any, staleNames?: any) {
     lastResults = Array.isArray(results) ? results : [];
+    if (lastResults.length > 0) lastCheckAt = Date.now();
     if (Array.isArray(staleNames)) lastStaleNames = staleNames;
     scheduleRebuild();
   }
@@ -642,6 +704,12 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
   }
 
   function dispose() {
+    try {
+      if (quickLook) quickLook.dispose();
+    } catch {
+      /* noop */
+    }
+    quickLook = null;
     if (tray) {
       try {
         tray.destroy();
