@@ -2442,13 +2442,22 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   min-height: 0;
 }
 .digest-drawer__hero {
-  padding: 20px 20px 16px;
+  padding: 18px 20px 14px;
   border-bottom: 1px solid var(--bg-secondary);
+  background: var(--bg-elevated, var(--bg-modal));
+  position: relative;
+}
+.digest-drawer__hero::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
   background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--accent-primary) 6%, transparent) 0%,
-    transparent 100%
+    90deg,
+    var(--accent-primary) 0%,
+    transparent 60%
   );
+  opacity: 0.7;
 }
 .digest-drawer__hero-title { margin-bottom: 10px; }
 .digest-drawer__hero-eyebrow {
@@ -2478,7 +2487,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: 11px;
   font-weight: 500;
   border-radius: 10px;
-  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+  background: color-mix(in oklch, var(--accent-primary) 16%, transparent);
   color: var(--accent-primary);
 }
 .digest-drawer__chip--muted {
@@ -2507,11 +2516,50 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 16px 20px 20px;
 }
 .digest-drawer__sections > .digest-section {
-  margin-bottom: 14px;
-  padding: 12px 14px;
+  margin-bottom: 10px;
+  padding: 11px 14px;
   border: 1px solid var(--bg-secondary);
   border-radius: 10px;
   background: var(--bg-primary);
+}
+.digest-drawer__sections > .digest-section .digest-section__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.digest-drawer__sections > .digest-section .digest-section__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--accent-primary) 22%, transparent);
+  color: var(--accent-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.digest-drawer__sections > .digest-section .digest-section__items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.digest-drawer__sections > .digest-section .digest-section__items li {
+  padding: 2px 0 2px 14px;
+  position: relative;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.digest-drawer__sections > .digest-section .digest-section__items li::before {
+  content: "";
+  position: absolute;
+  left: 4px; top: 11px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
 }
 
 /* skeleton (loading) */
@@ -2575,7 +2623,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: 8px;
   padding: 12px 20px;
   border-top: 1px solid var(--bg-secondary);
-  background: var(--bg-primary);
+  background: var(--bg-elevated, var(--bg-primary));
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.18);
 }
 .digest-drawer__btn {
   padding: 6px 14px;
@@ -12493,8 +12542,10 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding-bottom: 12px;
+  padding: 16px 18px 14px;
+  margin: 0 -18px 14px; /* v3.0.2: 让 head 贴卡片边 */
   border-bottom: 1px solid var(--bg-secondary);
+  background: var(--bg-elevated, var(--bg-modal));
 }
 .briefing-settings__head-text { flex: 1; min-width: 0; }
 
@@ -12542,15 +12593,18 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   font-weight: 500;
 }
 
-/* Fieldset 容器 */
+/* Fieldset 容器 (v3.0.2: 紧贴内容, padding-top 从 14px 缩到 10px) */
 .briefing-settings__fieldset {
   border: 0;
-  border-top: 1px solid var(--bg-secondary);
-  margin: 0;
-  padding: 14px 0 0;
+  margin: 0 0 12px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+.briefing-settings__fieldset:not(:first-child) {
+  border-top: 1px solid var(--bg-secondary);
+  padding-top: 10px;
 }
 .briefing-settings__fieldset legend {
   font-size: 11px;
@@ -12558,7 +12612,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-tertiary);
-  padding: 0;
+  padding: 0 0 2px;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -12612,9 +12666,9 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 .briefing-settings__chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 16px;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 14px;
   background: var(--bg-primary);
   border: 1px solid var(--bg-secondary);
   font-size: 12.5px;
@@ -12626,18 +12680,20 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 .briefing-settings__chip-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
-  background: var(--bg-secondary);
-  transition: background 120ms ease;
+  background: var(--text-tertiary);
+  box-shadow: 0 0 0 2px transparent;
+  transition: all 120ms ease;
 }
 .briefing-settings__chip:hover { border-color: var(--accent-primary); }
 .briefing-settings__chip.is-on {
-  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
+  background: color-mix(in oklch, var(--accent-primary) 14%, transparent);
   border-color: var(--accent-primary);
   color: var(--accent-primary);
   font-weight: 500;
 }
 .briefing-settings__chip.is-on .briefing-settings__chip-dot {
   background: var(--accent-primary);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent-primary) 28%, transparent);
 }
 
 /* LLM 改写 toggle (rich) */
