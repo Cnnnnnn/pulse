@@ -42,12 +42,13 @@ function writeAiPrompts(prompts) {
 }
 
 describe("prompt-registry (A7)", () => {
-  it("PROMPT_KEYS 含 9 个 prompt (v2.80 删 worldcup_prematch/postmatch, 仍含 finance 类 2 个)", () => {
+  it("PROMPT_KEYS 含 10 个 prompt (v2.86 加 changelog_risk)", () => {
     expect(PROMPT_KEYS).toEqual(
       expect.arrayContaining([
         "ithome_summary",
         "upgrade_advice",
         "changelog_summary",
+        "changelog_risk",
         "category_classify",
         "daily_digest_summary",
         "stock_screener_advise",
@@ -56,7 +57,7 @@ describe("prompt-registry (A7)", () => {
         "finance_news_aggregate",
       ]),
     );
-    expect(PROMPT_KEYS).toHaveLength(9);
+    expect(PROMPT_KEYS).toHaveLength(10);
   });
 
   it("DEFAULT_PROMPTS 每个 prompt 有 system + rules", () => {
