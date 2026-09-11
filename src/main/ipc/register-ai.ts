@@ -488,6 +488,26 @@ export function registerAiHandlers(ctx: any) {
     },
     { log: false },
   );
+  // 自动沉淀：抽屉关闭时对最近 user 消息做一次轻量偏好抽取
+  safeHandle(
+    "assistant-memory:auto-extract",
+    async (_evt: unknown, payload: any) => {
+      const messages =
+        payload && Array.isArray(payload.messages) ? payload.messages : [];
+      const { autoExtractMemories } = require("../../ai/assistant-memory-auto");
+      try {
+        return await autoExtractMemories(messages);
+      } catch (err: any) {
+        return {
+          ok: false,
+          added: 0,
+          reason: "threw",
+          error: err && err.message,
+        };
+      }
+    },
+    { log: false },
+  );
 
   // P3-13: 当前页面截图 (供助手多模态附加)
   safeHandle("assistant:screenshot", async (event: any) => {

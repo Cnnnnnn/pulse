@@ -606,6 +606,15 @@ export interface AiChatApiContract {
     index?: number;
   }): Promise<{ ok: boolean; removed?: boolean; reason?: string }>;
   assistantMemoryClear(): Promise<{ ok: boolean; reason?: string }>;
+  assistantMemoryAutoExtract(payload: {
+    messages: Array<{ role?: string; content?: string }>;
+  }): Promise<{
+    ok: boolean;
+    added?: number;
+    facts?: string[];
+    reason?: string;
+    error?: string;
+  }>;
 }
 
 export interface AiSessionsApiContract {
@@ -2823,6 +2832,16 @@ export interface IpcChannelMap {
   "assistant-memory:list": { args: []; result: { ok: boolean; items?: Array<{ id: string; text: string; createdAt: number }>; reason?: string } };
   "assistant-memory:remove": { args: [payload: { id?: string; query?: string; index?: number }]; result: { ok: boolean; removed?: boolean; reason?: string } };
   "assistant-memory:clear": { args: []; result: { ok: boolean; reason?: string } };
+  "assistant-memory:auto-extract": {
+    args: [payload: { messages: Array<{ role?: string; content?: string }> }];
+    result: {
+      ok: boolean;
+      added?: number;
+      facts?: string[];
+      reason?: string;
+      error?: string;
+    };
+  };
   "assistant:screenshot": { args: []; result: { ok: boolean; dataUrl?: string; reason?: string; error?: string } };
   "feedback:record": { args: [payload: AiFeedbackRecordPayload]; result: AiFeedbackRecordResponse };
   "feedback:export": { args: []; result: AiFeedbackExportResponse };

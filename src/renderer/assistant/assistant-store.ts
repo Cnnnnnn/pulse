@@ -404,8 +404,37 @@ export async function refreshAiRuntimeStatus() {
 
 export function closeGlobalChat() {
   persistActiveThread();
+  // 记忆自动沉淀：fire-and-forget，不阻塞关闭
+  void maybeAutoExtractMemory();
   globalChatOpen.value = false;
   chatSessionsOpen.value = false;
+}
+
+/**
+ * 抽屉关闭时对最近 user 消息做一次轻量抽取。
+ * 至少 2 条 user 消息且含偏好关键词才打 LLM，避免无谓成本。
+ */
+async function maybeAutoExtractMemory() {
+  try {
+    if (typeof api.assistantMemoryAutoExtract !== "function") return;
+    const msgs = chatMessages.value || [];
+    const userTexts = msgs
+      .filter((m) => m.role === "user" && m.content && typeof m.content === "string")
+      .map((m) => m.content as string)
+      .filter((t) => t.trim().length >= 4);
+    if (userTexts.length < 2) return;
+    const hint =
+      /记住|记一下|以后|下次|我喜欢|我不喜欢|别再|不要|偏好|习惯|默认|总是|一直|公司|团队/;
+    if (!userTexts.some((t) => hint.test(t))) return;
+    await api.assistantMemoryAutoExtract({
+      messages: msgs.slice(-20).map((m) => ({
+        role: m.role,
+        content: typeof m.content === "string" ? m.content : "",
+      })),
+    });
+  } catch {
+    /* 静默 — 记忆沉淀失败不影响主流程 */
+  }
 }
 
 export function toggleGlobalChat() {

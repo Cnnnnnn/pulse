@@ -351,6 +351,9 @@ export const api = {
     payload: IpcChannelMap["assistant-memory:remove"]["args"][0],
   ) => invokeChannel("assistant-memory:remove", payload),
   assistantMemoryClear: () => invokeChannel("assistant-memory:clear"),
+  assistantMemoryAutoExtract: (
+    payload: IpcChannelMap["assistant-memory:auto-extract"]["args"][0],
+  ) => invokeChannel("assistant-memory:auto-extract", payload),
 
   // Universal "open URL in system browser" bridge (validated http/https in main process).
   openUrl: (url: IpcChannelMap["open-url:open"]["args"][0]) =>
