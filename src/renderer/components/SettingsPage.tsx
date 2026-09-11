@@ -244,26 +244,30 @@ function TmdbSettingsSection() {
   };
 
   return (
-    <section class="settings-group" aria-labelledby="settings-tmdb-title">
-      <div class="settings-action-row">
-        <span class="settings-action-row__icon">
-          <IconFilm size={18} />
-        </span>
+    <section class="settings-card" aria-labelledby="settings-tmdb-title">
+      <h3 class="settings-card__title" id="settings-tmdb-title">
+        <IconFilm size={18} />
+        电影 · TMDB API Key
+      </h3>
+      <p class="settings-card__intro">
+        香港 / 澳门片单与详情需要此 Key。申请免费 Developer Key。
+        {source === "env"
+          ? " 当前来自 .env。"
+          : source === "vault"
+            ? " 当前来自密钥库（加密）。"
+            : source === "settings"
+              ? " 当前来自本机设置。"
+              : ""}
+      </p>
+      <div class="settings-row">
         <div class="settings-row__label-block">
-          <h3 id="settings-tmdb-title">电影 · TMDB API Key</h3>
+          <span class="settings-row__label">API Key</span>
           <span class="settings-row__hint">
-            香港 / 澳门片单与详情需要此 Key。申请免费 Developer Key。
-            {source === "env"
-              ? " 当前来自 .env。"
-              : source === "vault"
-                ? " 当前来自密钥库（加密）。"
-                : source === "settings"
-                  ? " 当前来自本机设置。"
-                  : ""}
+            {hasSaved
+              ? "已存入密钥库（加密）。"
+              : "尚未配置，港澳片单可能不可用。"}
           </span>
         </div>
-      </div>
-      <div class="settings-row" style="margin-top:12px">
         <div class="settings-row__buttons github-token-actions">
           <div class="github-token-input-wrap">
             <input
@@ -302,7 +306,7 @@ function TmdbSettingsSection() {
           </button>
         </div>
       </div>
-      <p class="settings-row__hint" style="margin-top:8px">
+      <p class="settings-card__intro" style="margin: 12px 0 0">
         没有 Key？在{" "}
         <a href="https://www.themoviedb.org/settings/api" class="settings-link" onClick={openTmdb}>
           TMDB API 设置页
