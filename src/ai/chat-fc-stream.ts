@@ -2,7 +2,7 @@
  * FC 流式 — Round 0 边出字边收 tool_calls（OpenAI + Anthropic）.
  */
 import { sanitizeLlmOutput } from "./sanitize-llm-output";
-import { recordTokenSpend } from "./shared-llm";
+import { recordTokenSpend, resolveLlmTimeoutMs } from "./shared-llm";
 import { resolveMaxOutputTokens } from "./default-models";
 import type { AssistantAction } from "./assistant-prompt";
 import { buildAnthropicFcRequest, buildOpenAiFcRequest } from "./fc-tool-policy";
@@ -251,7 +251,7 @@ function postSseStream(
       }
     });
     req.on("error", reject);
-    req.setTimeout(opts.timeoutMs ?? 120_000, () => {
+    req.setTimeout(opts.timeoutMs ?? resolveLlmTimeoutMs(), () => {
       req.destroy();
       reject(new Error("stream_timeout"));
     });
@@ -375,7 +375,7 @@ function postOpenAiFcStream(
       }
     });
     req.on("error", reject);
-    req.setTimeout(opts.timeoutMs ?? 120_000, () => {
+    req.setTimeout(opts.timeoutMs ?? resolveLlmTimeoutMs(), () => {
       req.destroy();
       reject(new Error("stream_timeout"));
     });

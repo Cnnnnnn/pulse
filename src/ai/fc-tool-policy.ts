@@ -4,6 +4,7 @@
 import { ASSISTANT_UI_TOOLS } from "../shared/pulse-href";
 import type { UiInferContext } from "../shared/pulse-href";
 import {
+  ASSISTANT_GLOBAL_CORE_TOOLS,
   extractFcPageContext,
   resolveToolNamesForPage,
   type AssistantPageCtx,
@@ -50,7 +51,8 @@ function resolveAllowedToolNames(
     return uiNames;
   }
 
-  if (!pageAllowed) return new Set(TOOL_NAMES);
+  // 未知页面只发核心 11 个，不再全量 39 — 省 token 且降幻觉
+  if (!pageAllowed) return new Set<string>(ASSISTANT_GLOBAL_CORE_TOOLS);
   const out = new Set<string>();
   for (const n of pageAllowed) {
     if (TOOL_NAMES.has(n)) out.add(n);

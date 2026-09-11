@@ -522,19 +522,60 @@ export async function runAssistantAgent(
     }
 
     if (round === MAX_ROUNDS - 1) {
-      // 末轮不再把工具结果原文拼进回复 (会漏出「不可信数据」包装给用户);
-      // 结果已通过 toolResults 工具卡片展示, 这里只提示可以继续追问
-      const suffix =
-        roundResults.length > 0
-          ? "\n\n(已连续执行多轮查询, 本轮到此; 需要我汇总以上结果请继续说。)"
-          : "";
+      // 末轮：先回注工具结果，再做一次「无 tools」综合调用。
+      // 否则 finalText 只是工具调用前的过渡句，用户看到半截回复。
+      if (pendingFcMeta && pendingFcMeta.toolCalls.length > 0 && fcResults) {
+        llmThread = appendFcToolResults(
+          llmThread,
+          pendingFcMeta,
+          fcResults,
+          pendingFcText,
+        );
+        pendingFcMeta = undefined;
+        pendingFcText = "";
+      } else if (roundResults.length > 0) {
+        llmThread.push({ role: "assistant", content: finalText || "正在查询…" });
+        llmThread.push({
+          role: "user",
+          content:
+            `[工具查询结果]\n${formatToolResultsForLlm(roundResults)}\n\n请基于以上数据用简体中文回答用户。不要重复输出 action 标签。`,
+        });
+      }
+
+      let synthesized = "";
+      if (roundResults.length > 0 && !agentDeps.isAborted?.()) {
+        try {
+          const syn =
+            agentDeps.onDelta
+              ? await chatCompletionStream(llmThread, {
+                  model: resolveAgentModel(agentDeps),
+                  onDelta: agentDeps.onDelta,
+                  isAborted: agentDeps.isAborted,
+                  onAbortRegister: agentDeps.onAbortRegister,
+                })
+              : await chatCompletion(llmThread, {
+                  model: resolveAgentModel(agentDeps),
+                });
+          if (syn.ok) synthesized = cleanVisibleText(syn.text || "");
+        } catch {
+          /* 综合失败 → 用 suffix 兜底 */
+        }
+      }
+
+      const text =
+        synthesized ||
+        (roundResults.length > 0
+          ? finalText +
+            "\n\n(已连续执行多轮查询, 本轮到此; 需要我汇总以上结果请继续说。)"
+          : finalText);
+
       return {
         ok: true,
-        text: finalText + suffix,
+        text,
         actions: finalizeRendererActions(
           history,
           allRendererActions,
-          cleanVisibleText(rawText),
+          synthesized || cleanVisibleText(rawText),
           ctx?.activeNav,
         ),
         toolResults: allToolResults,
