@@ -13,6 +13,7 @@
  *   error            → "出错"   / cls=error
  *
  * `installed_newer` (note) 显式 → "本机较新" / cls=info
+ *   （自更新 app：本机领先公开安装包，hover 有说明）
  * `incompatible`   (note) 显式 → "需确认" / cls=warning
  */
 
@@ -41,7 +42,15 @@ export function AppAction({
 
   // 特殊 note 显式覆盖
   if (note === 'installed_newer') {
-    return <StatusBadge status="info">本机较新</StatusBadge>;
+    // 自更新 app（如 Marvis）：本机版本来自应用内更新通道，公开下载包可能滞后
+    return (
+      <StatusBadge
+        status="info"
+        title="本机版本领先公开安装包（多为应用内自更新）。公开渠道无更新时不必再升。"
+      >
+        本机较新
+      </StatusBadge>
+    );
   }
   if (note === 'incompatible') {
     return <StatusBadge status="warning">需确认</StatusBadge>;

@@ -167,7 +167,7 @@ describe('AppRow 渲染细节', () => {
     expect(container.querySelector('.version-value.highlight').textContent).toBe('3.6');
   });
 
-  it('note=installed_newer → 蓝色"本机较新"badge', () => {
+  it('note=installed_newer → 蓝色"本机较新"badge + 自更新说明 title', () => {
     applyProgress(makeResult({
       name: 'Cursor',
       bundle: 'Cursor.app',
@@ -178,6 +178,7 @@ describe('AppRow 渲染细节', () => {
     const badge = container.querySelector('.status-badge.info');
     expect(badge).toBeTruthy();
     expect(badge.textContent).toBe('本机较新');
+    expect(badge.getAttribute('title') || '').toContain('应用内自更新');
   });
 
   it('note=incompatible → 灰色"需确认"badge', () => {
