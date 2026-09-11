@@ -70,6 +70,34 @@ export const DEFAULT_PROMPTS = {
       '输出: {"oneLiner":"含关键安全修复 + 工作区信任机制 + TS 性能","highlights":["关键安全修复","工作区信任","TS 5.5 性能"]}',
     ].join("\n"),
   },
+  changelog_risk: {
+    system: [
+      "你是 macOS 应用更新风险分类器。根据 release notes 判断这次更新的",
+      "紧迫程度与类型，输出给列表 badge 用的轻量标签，不要长篇分析。",
+    ].join(""),
+    rules: [
+      "【硬性要求】",
+      "1. 只输出严格 JSON，不要 markdown fence 或额外文字。",
+      "2. JSON schema:",
+      '   {"risk":"security"|"breaking"|"mixed"|"feature"|"bugfix"|"unknown",',
+      '    "score":0-100,"tags":["短标签1","短标签2"],"oneLiner":"≤40字"}',
+      "3. risk 优先级: security > breaking > mixed > feature > bugfix > unknown。",
+      "4. score: security 80-100; breaking 60-85; mixed 50-75; feature 35-60; bugfix 10-35; 信息不足 unknown 30-50。",
+      "5. tags 最多 3 个，每条 ≤8 字（如「安全修复」「API 破坏」「新模型」）。",
+      "6. oneLiner 用中文一句话概括最该知道的一点。",
+      "7. changelog 空或无法判断 → risk=unknown，不要编造。",
+    ].join("\n"),
+    fewShot: [
+      '输入: changelog 含 "Fix critical XSS in extension host"',
+      '输出: {"risk":"security","score":92,"tags":["安全修复","XSS"],"oneLiner":"含关键安全修复，建议尽快升级"}',
+      "",
+      '输入: changelog 含 "Deprecated v1 API. Remove legacy flags."',
+      '输出: {"risk":"breaking","score":72,"tags":["API 破坏","移除旧接口"],"oneLiner":"v1 API 废弃，集成方需评估兼容"}',
+      "",
+      '输入: changelog 只有 "Fix typo. Bump deps."',
+      '输出: {"risk":"bugfix","score":18,"tags":["杂项修复"],"oneLiner":"仅琐碎修复，不急"}',
+    ].join("\n"),
+  },
   category_classify: {
     system: "你是一个 app 分类助手。",
     rules: [

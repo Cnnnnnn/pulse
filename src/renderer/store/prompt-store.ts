@@ -19,6 +19,7 @@ const PROMPT_LABELS = {
   ithome_summary: "IT之家文章摘要",
   upgrade_advice: "升级建议 (该不该升)",
   changelog_summary: "Changelog 3 件大事",
+  changelog_risk: "更新风险标签",
   category_classify: "App 分类",
   daily_digest_summary: `${DIGEST_UI_TITLE}改写`,
 };

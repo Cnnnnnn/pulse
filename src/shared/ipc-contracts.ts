@@ -754,6 +754,38 @@ export interface AiAdviceApiContract {
   changelogSummaryFetch(
     opts: AiChangelogSummaryOptions,
   ): Promise<AiChangelogSummaryResponse>;
+  changelogRiskFetch(
+    opts: AiChangelogRiskOptions,
+  ): Promise<AiChangelogRiskResponse>;
+}
+
+export type ChangelogRiskLevel =
+  | "security"
+  | "breaking"
+  | "mixed"
+  | "feature"
+  | "bugfix"
+  | "unknown";
+
+export interface AiChangelogRiskOptions {
+  appName?: string;
+  force?: boolean;
+  statePath?: string;
+}
+
+export interface AiChangelogRiskResponse {
+  ok: boolean;
+  appName?: string;
+  latestVersion?: string;
+  risk?: ChangelogRiskLevel;
+  score?: number;
+  tags?: string[];
+  oneLiner?: string;
+  generatedAt?: number;
+  cached?: boolean;
+  reason?: string;
+  error?: string;
+  raw?: string;
 }
 
 export interface AppUpdateResult {
@@ -2798,6 +2830,7 @@ export interface IpcChannelMap {
   "token-budget:set": { args: [config: TokenBudgetConfig]; result: TokenBudgetSetResponse };
   "upgrade-advice:fetch": { args: [opts: AiUpgradeAdviceOptions]; result: AiUpgradeAdviceResponse };
   "changelog-summary:fetch": { args: [opts: AiChangelogSummaryOptions]; result: AiChangelogSummaryResponse };
+  "changelog-risk:fetch": { args: [opts: AiChangelogRiskOptions]; result: AiChangelogRiskResponse };
   "check-updates": { args: []; result: CheckUpdatesResponse };
   "check-updates:cancel": { args: [jobId?: string]; result: CheckCancelResponse };
   "window:minimize": { args: []; result: void };

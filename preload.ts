@@ -217,6 +217,8 @@ export const api = {
     invokeChannel("ai-prompts:reset", key),
   upgradeAdviceFetch: (opts: IpcChannelMap["upgrade-advice:fetch"]["args"][0]) =>
     invokeChannel("upgrade-advice:fetch", opts),
+  changelogRiskFetch: (opts: IpcChannelMap["changelog-risk:fetch"]["args"][0]) =>
+    invokeChannel("changelog-risk:fetch", opts),
   changelogSummaryFetch: (
     opts: IpcChannelMap["changelog-summary:fetch"]["args"][0],
   ) => invokeChannel("changelog-summary:fetch", opts),

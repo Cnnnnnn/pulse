@@ -7,6 +7,7 @@
 
 import { getLocalTier } from '../store.ts';
 import { UpgradeAdvice } from './UpgradeAdvice.tsx';
+import { ChangelogRiskBadge } from './ChangelogRiskBadge.tsx';
 import { IconVolumeOff, IconInfo } from './icons.tsx';
 import type { ResultLike } from './appTypes.ts';
 
@@ -229,7 +230,10 @@ export function AppInfo({
         </div>
       )}
       {result.has_update && (
-        <UpgradeAdvice appName={result.name} hasUpdate={true} />
+        <>
+          <ChangelogRiskBadge appName={result.name} hasUpdate={true} />
+          <UpgradeAdvice appName={result.name} hasUpdate={true} />
+        </>
       )}
       {lastOpenedLine}
     </div>
