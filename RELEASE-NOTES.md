@@ -2,6 +2,12 @@
 
 ---
 
+## v2.86.2 (🚑 TMDB Key 设置区内边距) — 2026-09-11
+
+**🚑 设置页 TMDB Key 区仍贴边**
+- 原 `settings-group` 无 padding，输入行贴卡片边框
+- 改为与 GitHub Token 相同的 `settings-card` 结构（自带内边距 + label 行）
+
 ## v2.86.1 (🚑 设置页 TMDB/GitHub Token 布局修复) — 2026-09-11
 
 **🚑 修 v2.86.0 懒 CSS 注入又一处回归**
