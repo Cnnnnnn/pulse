@@ -24,7 +24,7 @@ describe('DigestDrawer', () => {
     digestDrawerOpen.value = true;
     const { container } = render(<DigestDrawer />);
     await waitFor(() => {
-      expect(container.textContent).toMatch(/今天没有重要变化/);
+      expect(container.textContent).toMatch(/今天还没有要点/);
     });
   });
 
@@ -45,19 +45,19 @@ describe('DigestDrawer', () => {
   it('closes drawer when close button clicked', () => {
     digestDrawerOpen.value = true;
     const { getByText } = render(<DigestDrawer />);
-    const closeBtn = getByText('×');
+    const closeBtn = getByText('关闭');
     fireEvent.click(closeBtn);
     expect(digestDrawerOpen.value).toBe(false);
   });
 
-  it('shows loading indicator when digestLoading=true', () => {
+  it('shows skeleton loader when digestLoading=true', () => {
     const originalFetch = api.digestFetchSections;
     api.digestFetchSections = () => new Promise(() => {});
     try {
       digestDrawerOpen.value = true;
       digestLoading.value = true;
       const { container } = render(<DigestDrawer />);
-      expect(container.textContent).toMatch(/加载中|loading/i);
+      expect(container.querySelector('.digest-drawer__skeleton')).toBeTruthy();
     } finally {
       api.digestFetchSections = originalFetch;
     }

@@ -22,3 +22,4 @@ export const digestSections = signal<DigestSection[]>([]);
 export const digestLines = signal<string[]>([]);
 export const digestLoading = signal(false);
 export const digestDate = signal<string | null>(null);   // 'YYYY-MM-DD' from server
+export const digestIsOfflineSnapshot = signal(false);    // v3.0 beta: 显示的是本地 snapshot, 不是实时 aggregate

@@ -122,68 +122,85 @@ export function BriefingSettings() {
     );
   }
 
+  const enabledCount = config.subscribed_sections.length;
+
   return (
     <div class="briefing-settings settings-card" data-testid="briefing-settings">
-      <div class="settings-card__title">每日早报</div>
-      <div class="settings-card__intro">
-        每天到点推送一组关键摘要：可升级应用 / 微博热搜 / IT 新闻 / 基金变动 / AI 用量预警。
-        LLM 改写默认关闭，开启后会用大模型把要点改写成可读段落。
-      </div>
-
-      <label class="briefing-settings__row">
-        <input
-          type="checkbox"
-          data-testid="briefing-enabled"
-          checked={config.enabled}
-          onChange={(e) =>
-            setConfig({ ...config, enabled: (e.target as HTMLInputElement).checked })
-          }
-        />
-        <span>启用每日早报</span>
-      </label>
-
-      <label class="briefing-settings__row">
-        <span class="briefing-settings__label">推送时间</span>
-        <input
-          type="time"
-          data-testid="briefing-time"
-          value={config.time}
-          onInput={(e) => {
-            const v = (e.target as HTMLInputElement).value;
-            if (isValidHHMM(v)) setConfig({ ...config, time: v });
-          }}
-        />
-      </label>
-
-      <div class="briefing-settings__row briefing-settings__row--cols">
-        <label class="briefing-settings__sub">
-          <span>免打扰起 (可选)</span>
+      {/* ── 头部 ─────────────────────────────────────────── */}
+      <div class="briefing-settings__head">
+        <div class="briefing-settings__head-text">
+          <div class="settings-card__title">每日早报</div>
+          <div class="settings-card__intro">
+            每天到点推送一组关键摘要 — 可升级应用 / 微博热搜 / IT 新闻 / 基金变动 / AI 用量。
+          </div>
+        </div>
+        <label class="briefing-settings__switch">
           <input
-            type="time"
-            data-testid="briefing-quiet-start"
-            value={config.quiet_hours_start || ""}
-            onInput={(e) => {
-              const v = (e.target as HTMLInputElement).value;
-              setConfig({ ...config, quiet_hours_start: v || null });
-            }}
+            type="checkbox"
+            data-testid="briefing-enabled"
+            checked={config.enabled}
+            onChange={(e) =>
+              setConfig({ ...config, enabled: (e.target as HTMLInputElement).checked })
+            }
           />
-        </label>
-        <label class="briefing-settings__sub">
-          <span>免打扰止 (可选)</span>
-          <input
-            type="time"
-            data-testid="briefing-quiet-end"
-            value={config.quiet_hours_end || ""}
-            onInput={(e) => {
-              const v = (e.target as HTMLInputElement).value;
-              setConfig({ ...config, quiet_hours_end: v || null });
-            }}
-          />
+          <span class="briefing-settings__switch-slider" />
+          <span class="briefing-settings__switch-label">
+            {config.enabled ? "已启用" : "未启用"}
+          </span>
         </label>
       </div>
 
-      <div class="briefing-settings__group">
-        <div class="briefing-settings__group-title">模块订阅</div>
+      {/* ── 时间 + 免打扰 ───────────────────────────────── */}
+      <fieldset class="briefing-settings__fieldset">
+        <legend>推送计划</legend>
+        <div class="briefing-settings__grid">
+          <label class="briefing-settings__field">
+            <span class="briefing-settings__label">推送时间</span>
+            <input
+              type="time"
+              class="briefing-settings__input"
+              data-testid="briefing-time"
+              value={config.time}
+              onInput={(e) => {
+                const v = (e.target as HTMLInputElement).value;
+                if (isValidHHMM(v)) setConfig({ ...config, time: v });
+              }}
+            />
+          </label>
+          <label class="briefing-settings__field">
+            <span class="briefing-settings__label">免打扰起 (可选)</span>
+            <input
+              type="time"
+              class="briefing-settings__input"
+              data-testid="briefing-quiet-start"
+              value={config.quiet_hours_start || ""}
+              onInput={(e) => {
+                const v = (e.target as HTMLInputElement).value;
+                setConfig({ ...config, quiet_hours_start: v || null });
+              }}
+            />
+          </label>
+          <label class="briefing-settings__field">
+            <span class="briefing-settings__label">免打扰止 (可选)</span>
+            <input
+              type="time"
+              class="briefing-settings__input"
+              data-testid="briefing-quiet-end"
+              value={config.quiet_hours_end || ""}
+              onInput={(e) => {
+                const v = (e.target as HTMLInputElement).value;
+                setConfig({ ...config, quiet_hours_end: v || null });
+              }}
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      {/* ── 模块订阅 ────────────────────────────────────── */}
+      <fieldset class="briefing-settings__fieldset">
+        <legend>
+          模块订阅 <span class="briefing-settings__legend-hint">已选 {enabledCount} / {DIGEST_KIND_ORDER.length}</span>
+        </legend>
         <div class="briefing-settings__chips">
           {DIGEST_KIND_ORDER.map((kind) => {
             const checked = config.subscribed_sections.includes(kind);
@@ -199,14 +216,16 @@ export function BriefingSettings() {
                   onChange={() => toggleSection(kind)}
                   data-testid={`briefing-section-${kind}`}
                 />
+                <span class="briefing-settings__chip-dot" aria-hidden />
                 <span>{DIGEST_KIND_LABEL[kind]}</span>
               </label>
             );
           })}
         </div>
-      </div>
+      </fieldset>
 
-      <label class="briefing-settings__row">
+      {/* ── LLM 改写 ─────────────────────────────────────── */}
+      <label class="briefing-settings__toggle">
         <input
           type="checkbox"
           checked={config.llm_rewrite_enabled}
@@ -218,56 +237,70 @@ export function BriefingSettings() {
           }
           data-testid="briefing-llm"
         />
-        <span>启用 LLM 改写 (alpha · 失败自动回退原要点)</span>
+        <span class="briefing-settings__toggle-text">
+          <strong>启用 LLM 改写</strong>
+          <span class="briefing-settings__toggle-hint">
+            用大模型把要点改写成可读段落；失败时自动回退原要点。
+          </span>
+        </span>
       </label>
 
+      {/* ── 操作栏 ──────────────────────────────────────── */}
       <div class="briefing-settings__actions">
+        <div class="briefing-settings__actions-left">
+          <button
+            type="button"
+            class="briefing-settings__btn briefing-settings__btn--ghost"
+            onClick={refreshPreview}
+            data-testid="briefing-preview"
+          >
+            <span aria-hidden>👁</span> 预览
+          </button>
+          <button
+            type="button"
+            class="briefing-settings__btn briefing-settings__btn--ghost"
+            onClick={exportHtml}
+            disabled={exporting}
+            data-testid="briefing-export"
+          >
+            <span aria-hidden>⤓</span> {exporting ? "导出中..." : "导出 HTML"}
+          </button>
+          <button
+            type="button"
+            class="briefing-settings__btn briefing-settings__btn--ghost"
+            onClick={() => {
+              digestDrawerOpen.value = true;
+            }}
+            data-testid="briefing-open-drawer"
+          >
+            <span aria-hidden>📐</span> 打开 Drawer
+          </button>
+        </div>
         <button
           type="button"
-          class="briefing-settings__preview"
-          onClick={refreshPreview}
-          data-testid="briefing-preview"
-        >
-          预览
-        </button>
-        <button
-          type="button"
-          class="briefing-settings__export"
-          onClick={exportHtml}
-          disabled={exporting}
-          data-testid="briefing-export"
-        >
-          {exporting ? "导出中..." : "导出 HTML"}
-        </button>
-        <button
-          type="button"
-          class="briefing-settings__save"
+          class="briefing-settings__btn briefing-settings__btn--primary"
           onClick={save}
           disabled={saving}
           data-testid="briefing-save"
         >
-          {saving ? "保存中..." : "保存"}
+          {saving ? "保存中..." : "保存设置"}
         </button>
       </div>
 
-      <div class="briefing-settings__meta" data-testid="briefing-meta">
-        {snapshotDate ? (
-          <span>最近推送：{snapshotDate}</span>
-        ) : (
-          <span>今天还没推送过 (开启后到点会自动推送)</span>
-        )}
-        <button
-          type="button"
-          class="briefing-settings__open-drawer"
-          onClick={() => {
-            digestDrawerOpen.value = true;
-          }}
-          data-testid="briefing-open-drawer"
-        >
-          打开早报 Drawer
-        </button>
+      {/* ── 状态栏 ──────────────────────────────────────── */}
+      <div
+        class={`briefing-settings__status ${snapshotDate ? "is-pushed" : "is-pending"}`}
+        data-testid="briefing-meta"
+      >
+        <span class="briefing-settings__status-dot" aria-hidden />
+        <span class="briefing-settings__status-text">
+          {snapshotDate
+            ? `最近推送：${snapshotDate}`
+            : "今天还没推送过 — 开启后到点会自动推送"}
+        </span>
       </div>
 
+      {/* ── 预览结果 ────────────────────────────────────── */}
       {previewDate ? (
         <div class="briefing-settings__preview-box" data-testid="briefing-preview-box">
           <div class="briefing-settings__preview-date">预览 · {previewDate}</div>

@@ -469,7 +469,13 @@ export function registerCoreHandlers(ctx: any) {
   safeHandle("digest:fetch-sections", () => {
     try {
       const state = stateStore.load() || {};
-      const result = aggregate(state, { now: new Date() });
+      // v3.0 beta: 复用 v3 config 的 subscribed_sections 过滤, 跟设置页保持一致
+      const cfg: any =
+        stateStore.loadDailyDigestConfig && stateStore.loadDailyDigestConfig();
+      const subscribed = cfg && Array.isArray(cfg.subscribed_sections)
+        ? cfg.subscribed_sections
+        : undefined;
+      const result = aggregate(state, { now: new Date(), subscribed });
       return { ok: true, ...result };
     } catch (err: any) {
       return {
