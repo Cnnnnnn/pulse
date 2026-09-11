@@ -2,6 +2,21 @@
 
 ---
 
+## v2.86.0 (🏷 更新风险标签 + 📋 Tray Quick Look) — 2026-09-11
+
+**🏷 更新风险标签（changelog-risk）**
+- 应用库有更新的行上新增「风险?」badge：点击调 LLM 对 changelog 分类
+- risk：`security` / `breaking` / `mixed` / `feature` / `bugfix` + score 0–100 + 短 tags
+- 与「该不该升?」互补：这里只出类型与紧迫度，列表扫一眼即可
+- 缓存复用 upgrade_advice_cache（app::version + contentHash）；prompt 可在 Settings 改
+- IPC `changelog-risk:fetch`；badge 样式在 styles.css（共享，不进懒注入模块 CSS）
+
+**📋 Tray Quick Look**
+- **左键**托盘弹出迷你面板，不再直接打开主窗口
+- 面板：可升级 / 已最新 / 监控中 + 升级列表（点行定位主面板）+ 检查更新 / 打开面板
+- 失焦自动收起；**右键**仍是完整菜单（改 `popUpContextMenu`，避免 macOS 抢左键）
+- Windows 双击仍开主面板；专用小 preload（`trayQl` only，sandbox 友好）
+
 ## v2.85.1 (🚑 应用库工具栏布局修复) — 2026-09-10
 
 **🚑 修 v2.85.0 懒 CSS 注入回归**
