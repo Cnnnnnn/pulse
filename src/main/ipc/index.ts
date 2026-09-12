@@ -29,6 +29,7 @@ import { registerAiPromptsHandlers } from "./register-ai-prompts";
 import { registerUpgradeAdviceHandlers } from "./register-upgrade-advice";
 import { registerUpgradeDiagnosticsHandlers } from "./register-upgrade-diagnostics";
 import { registerBriefingHandlers } from "./register-briefing";
+import { registerCliPackagesHandlers } from "./register-cli-packages";
 const {
   registerChangelogSummaryHandlers,
 } = require("./register-changelog-summary.ts");
@@ -72,6 +73,7 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
   registerUpgradeDiagnosticsHandlers(ctx); // v3.0 alpha: 升级路径诊断
   registerBriefingHandlers(ctx); // v3.0 alpha: 早报设置 + 预览
+  registerCliPackagesHandlers(ctx); // v3.2: CLI 包 (npm/pip/brew) 版本监控
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
   registerAiFeedbackHandlers(ctx); // A8: AI 反馈闭环
   registerTokenBudgetHandlers(ctx); // P71: token 预算

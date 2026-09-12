@@ -229,6 +229,24 @@ export interface StateStoreAdapter {
     statePath?: string,
   ): StateRecord;
 
+  // v3.2 — CLI 包扫描结果
+  saveCliPackages(
+    data: {
+      items?: Array<{
+        ecosystem: string;
+        name: string;
+        installed: string;
+        latest: string;
+        has_update: boolean;
+        note?: string;
+      }>;
+      ignored?: Array<{ ecosystem: string; name: string }>;
+      errors?: Array<{ ecosystem: string; reason: string }>;
+      checkedAt?: number;
+    },
+    statePath?: string,
+  ): StateRecord;
+
   // Phase v1 — tray menu prefs
   loadTrayMenuPrefs(statePath?: string): {
     version: number;

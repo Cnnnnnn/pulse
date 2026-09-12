@@ -36,6 +36,7 @@ const NAV_ITEMS = NAV_REGISTRY.map((e) => ({ key: e.key, label: e.label, tooltip
 // 它们仍共用版本检查模块的加载边界，但由系统抽屉直接切换当前页面。
 const SYSTEM_VIEW_ITEMS = [
   { key: "library", label: "应用列表", tooltip: "应用版本监控列表" },
+  { key: "cli", label: "CLI 包", tooltip: "npm / pip / brew 全局包版本监控 (v3.2)" },
   { key: "diagnostics", label: "诊断", tooltip: "检查失败与网络诊断" },
   { key: "settings", label: "设置", tooltip: "应用与 AI 设置" },
 ] as const;

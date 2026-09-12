@@ -222,6 +222,46 @@ export interface GithubReleasesIngestResponse {
   error?: string;
 }
 
+// v3.2: CLI 包 (npm -g / pip / brew formulae) 版本监控
+export type CliPackageItemDto = {
+  ecosystem: "npm" | "pip" | "brew";
+  name: string;
+  installed: string;
+  latest: string;
+  has_update: boolean;
+  note?: string; // '' | 'installed_newer'
+};
+
+export type CliPackagesData = {
+  items: CliPackageItemDto[];
+  ignored: Array<{ ecosystem: string; name: string }>;
+  errors: Array<{ ecosystem: string; reason: string }>;
+  checkedAt: number;
+};
+
+export interface CliPackagesResponse {
+  ok: boolean;
+  data?: CliPackagesData | null;
+  reason?: string;
+  error?: string;
+}
+
+export interface CliPackagesToggleResponse {
+  ok: boolean;
+  ignored?: Array<{ ecosystem: string; name: string }>;
+  reason?: string;
+  error?: string;
+}
+
+export interface CliPackagesApiContract {
+  cliPackagesFetch(): Promise<CliPackagesResponse>;
+  cliPackagesRefresh(): Promise<CliPackagesResponse>;
+  cliPackagesToggleIgnore(opts: {
+    ecosystem: string;
+    name: string;
+  }): Promise<CliPackagesToggleResponse>;
+}
+
 export interface BriefingApiContract {
   briefingFetchConfig(): Promise<DigestConfigResponse>;
   briefingSaveConfig(
@@ -2957,6 +2997,18 @@ export interface IpcChannelMap {
   "briefing:ingest-github-releases": {
     args: [items: GithubReleaseDigestItem[]];
     result: GithubReleasesIngestResponse;
+  };
+  "cli-packages:fetch": {
+    args: [opts?: Record<string, unknown> | undefined];
+    result: CliPackagesResponse;
+  };
+  "cli-packages:refresh": {
+    args: [opts?: Record<string, unknown> | undefined];
+    result: CliPackagesResponse;
+  };
+  "cli-packages:toggle-ignore": {
+    args: [opts: { ecosystem: string; name: string }];
+    result: CliPackagesToggleResponse;
   };
   "changelog-summary:fetch": { args: [opts: AiChangelogSummaryOptions]; result: AiChangelogSummaryResponse };
   "changelog-risk:fetch": { args: [opts: AiChangelogRiskOptions]; result: AiChangelogRiskResponse };

@@ -108,12 +108,13 @@ describe("NavDrawer — section 过滤", () => {
     expect(keys).toContain("ai-usage");
   });
 
-  it("section=system → 渲染 3 个独立页面入口", () => {
+  it("section=system → 渲染 4 个独立页面入口 (v3.2: +CLI 包)", () => {
     const { container } = render(<NavDrawer section="system" />);
     const items = container.querySelectorAll(".nav-drawer-item");
-    expect(items.length).toBe(3);
+    expect(items.length).toBe(4);
     expect(Array.from(items).map((item) => item.getAttribute("data-nav"))).toEqual([
       "library",
+      "cli",
       "diagnostics",
       "settings",
     ]);

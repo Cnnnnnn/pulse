@@ -39,6 +39,7 @@ import type {
   DiagnosticsApiContract,
   UpgradeDiagnosticsApiContract,
   BriefingApiContract,
+  CliPackagesApiContract,
   FinanceApiContract,
   FundsApiContract,
   RecentApiContract,
@@ -125,6 +126,7 @@ export type RendererApi =
   VaultApiContract &
   UpgradeDiagnosticsApiContract &
   BriefingApiContract &
+  CliPackagesApiContract &
   Record<string, any>;
 
 export function createApi(overrides: Record<string, any> = {}): RendererApi {
@@ -326,6 +328,10 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     briefingShowInFolder: pick(overrides, "briefingShowInFolder"),
     // v3.1: GitHub 收录 release 检查结果 → 早报
     briefingIngestGithubReleases: pick(overrides, "briefingIngestGithubReleases"),
+    // v3.2: CLI 包 (npm/pip/brew) 版本监控
+    cliPackagesFetch: pick(overrides, "cliPackagesFetch"),
+    cliPackagesRefresh: pick(overrides, "cliPackagesRefresh"),
+    cliPackagesToggleIgnore: pick(overrides, "cliPackagesToggleIgnore"),
     // 选股分析 (阶段一): 筛选 + 搜索
     stocksScreen: pick(overrides, "stocksScreen"),
     stocksSearch: pick(overrides, "stocksSearch"),

@@ -15,7 +15,7 @@
  */
 import { signal } from "@preact/signals";
 
-export const ROUTES = ["library", "diagnostics", "settings"];
+export const ROUTES = ["library", "diagnostics", "cli", "settings"];
 
 export const currentRoute = signal("library");
 export const routeTab = signal("general"); // 'general' | 'ai'

@@ -55,6 +55,7 @@ const FIELD_SPECS: Record<string, { kind: string; required?: boolean }> = {
   briefing_snapshot: { kind: 'object' }, // v3.0 beta: 最近一次推送的早报快照
   github_releases_digest: { kind: 'object' }, // v3.1: 早报 GitHub 收录更新 { items, ts }
   wechatHot: { kind: 'object' }, // v3.1: 微博热搜快照落盘 (早报 aggregate 读 s.wechatHot)
+  cli_packages: { kind: 'object' }, // v3.2: CLI 包扫描结果 { items, ignored, errors, checkedAt }
 };
 
 function isObject(v: any): boolean {

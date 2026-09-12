@@ -2,6 +2,30 @@
 
 ---
 
+## v3.2.0 (📦 CLI 包版本监控: npm -g / pip / brew) — 2026-09-12
+
+**📦 新模块「CLI 包」** — 版本检查 → 系统区新入口,定位从「App 版本监控」延伸到「本机软件资产版本监控」
+
+- 三个生态一键扫描: **npm -g** / **pip** / **brew formulae**(cask 已在应用库覆盖)
+- 实现: 逐生态跑包管理器自带的枚举 + outdated 命令(`npm ls -g --json` + `npm outdated -g` / `pip3 list --format=json` + `--outdated` / `brew list --formula --versions` + `brew outdated --json=v2`) — **零 HTTP 请求**,无速率限制,"最新版本"由包管理器自己带回
+- CLI 未安装 → 生态级「未安装 CLI」pill,单生态失败不影响其它生态
+- 包行: 生态 tag + 包名 + `已装 → 最新` + 忽略/恢复;brew revision bump(`3.2.0 → 3.2.0_1`)以包管理器 outdated 为准判可升级
+- 忽略集合持久化(`state.cli_packages.ignored`)— 刷新与重启后仍生效
+- 首次打开自动跑一轮;之后手动「扫描更新」(pip outdated 大列表时较慢,给 120s 时限)
+- **只看不升** — 升级仍回用户终端(npm i -g / pip install -U / brew upgrade),不代做
+
+**🔒 安全边界**
+
+- 命令名与参数全部是静态字面量数组,`execFile` 不经过 shell,无任何外部输入拼进命令
+- Windows 不支持(npm/pip 的 .cmd shim 需走 shell 才有注入面;brew 本身 mac-only)→ 直接报「平台不支持」而不是降低安全边界
+
+**🔧 内部变更**
+
+- 新目录 `src/main/cli-packages/`:`enumerate.ts`(exec + parsers)/ `service.ts`(编排 + 忽略集合)/ `version-cmp.ts`(自 detector-chain compareVersions 移植,避免把整个 detector 注册表拉进主进程 bundle)
+- 新 IPC:`cli-packages:fetch` / `:refresh` / `:toggle-ignore`;新 state 键 `cli_packages`(schema + PRESERVE_FIELDS)
+- renderer:新路由 `cli` + NavDrawer 系统区入口 + `CliPackagesPage`(+ 域 CSS)
+- 新测试:`tests/main/cli-packages/`(enumerate 9 + service 10 用例)
+
 ## v3.1.0 (🌅 早报新模块: AI 榜单异动 + GitHub 收录更新) — 2026-09-12
 
 **🌅 早报订阅模块 5 → 7**

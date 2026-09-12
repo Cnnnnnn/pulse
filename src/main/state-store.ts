@@ -301,6 +301,7 @@ const PRESERVE_FIELDS = [
   { key: "briefing_snapshot", kind: "object" }, // v3.0 beta: 每日早报最后一次推送的 snapshot (给 Drawer 离线打开)
   { key: "github_releases_digest", kind: "object", notArray: true }, // v3.1: 早报 GitHub 收录更新 { items, ts } (register-briefing ingest 写入)
   { key: "wechatHot", kind: "object", notArray: true }, // v3.1: 微博热搜快照落盘 { items, fetchedAt, source } (register-wechat-hot 写入)
+  { key: "cli_packages", kind: "object", notArray: true }, // v3.2: CLI 包扫描 { items, ignored, errors, checkedAt } (cli-packages service 写入)
 ];
 const PRESERVE_KEYS = new Set(PRESERVE_FIELDS.map((spec: any) => spec.key));
 const RETIRED_KEYS = new Set([
@@ -1169,6 +1170,24 @@ export function saveWechatHotSnapshot(payload: any, statePath = defaultPath()) {
       items: Array.isArray(payload.items) ? payload.items.slice(0, 50) : [],
       fetchedAt: payload.fetchedAt || Date.now(),
       source: payload.source || "",
+    };
+  }, statePath);
+}
+
+/**
+ * v3.2: CLI 包扫描结果 (npm -g / pip / brew formulae) — cli-packages service 写入.
+ * items 上限 500 (brew formulae 可能上百行).
+ */
+export function saveCliPackages(data: any, statePath = defaultPath()) {
+  if (data == null || typeof data !== "object" || Array.isArray(data)) {
+    throw new TypeError("saveCliPackages: data must be plain object");
+  }
+  return patchState((next: any) => {
+    next.cli_packages = {
+      items: Array.isArray(data.items) ? data.items.slice(0, 500) : [],
+      ignored: Array.isArray(data.ignored) ? data.ignored.slice(0, 200) : [],
+      errors: Array.isArray(data.errors) ? data.errors.slice(0, 10) : [],
+      checkedAt: typeof data.checkedAt === "number" ? data.checkedAt : 0,
     };
   }, statePath);
 }
@@ -2165,6 +2184,8 @@ module.exports = {
   // v3.1: 早报新数据源 — GitHub 收录 ingest + 微博热搜快照落盘
   saveGithubReleasesDigest,
   saveWechatHotSnapshot,
+  // v3.2: CLI 包扫描结果
+  saveCliPackages,
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,

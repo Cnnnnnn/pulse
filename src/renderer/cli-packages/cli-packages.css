@@ -1,0 +1,232 @@
+/**
+ * src/renderer/cli-packages/cli-packages.css
+ *
+ * v3.2: CLI 包页样式 — 域前缀 --cli-*, 全部引用全局 token, 不引入新裸色值
+ * (v2.84 设计语言: 苹果原生风, 页头 22px 顶距, 统计卡, 域强调色变量).
+ */
+
+.cli-packages-page {
+  --cli-bg-card: var(--bg-card);
+  --cli-bg-hover: var(--bg-hover);
+  --cli-border: var(--border);
+  --cli-text: var(--text-primary);
+  --cli-text-2: var(--text-secondary);
+  --cli-text-3: var(--text-tertiary);
+  --cli-accent: var(--accent-primary);
+
+  padding-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 100%;
+}
+
+/* ── KPI 统计卡 ─────────────────────────────── */
+.cli-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.cli-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--cli-bg-card);
+  border: 1px solid var(--cli-border);
+  border-radius: 10px;
+}
+.cli-kpi__num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cli-text);
+  font-variant-numeric: tabular-nums;
+}
+.cli-kpi__num--accent {
+  color: var(--cli-accent);
+}
+.cli-kpi__time {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cli-text);
+  font-variant-numeric: tabular-nums;
+}
+.cli-kpi__label {
+  font-size: 11px;
+  color: var(--cli-text-3);
+}
+
+/* ── 生态级错误 pill ─────────────────────────── */
+.cli-errors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cli-errors__pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--cli-text-2);
+  background: var(--cli-bg-hover);
+  border: 1px solid var(--cli-border);
+}
+.cli-errors__pill--error {
+  color: var(--color-down);
+  border-color: var(--color-down);
+}
+
+/* ── 列表 ──────────────────────────────────── */
+.cli-table {
+  background: var(--cli-bg-card);
+  border: 1px solid var(--cli-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cli-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) minmax(0, 220px) 72px;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--cli-border);
+}
+.cli-row:last-child {
+  border-bottom: none;
+}
+.cli-table__head {
+  min-height: 34px;
+  font-size: 11px;
+  color: var(--cli-text-3);
+  background: var(--cli-bg-hover);
+}
+.cli-row--update {
+  background: color-mix(in srgb, var(--cli-accent) 6%, transparent);
+}
+.cli-row--ignored {
+  opacity: 0.5;
+}
+.cli-row__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cli-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cli-row__version {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.cli-ver {
+  font-size: 12px;
+  color: var(--cli-text-2);
+}
+.cli-ver--old {
+  color: var(--cli-text-3);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--cli-text-3) 55%, transparent);
+}
+.cli-ver--new {
+  color: var(--cli-accent);
+  font-weight: 600;
+}
+.cli-ver__arrow {
+  color: var(--cli-text-3);
+  font-size: 11px;
+}
+.cli-note {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--cli-text-3);
+  border: 1px solid var(--cli-border);
+  white-space: nowrap;
+}
+
+/* 生态 tag */
+.cli-eco {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.cli-eco--npm {
+  color: #cb3837;
+  background: rgba(203, 56, 55, 0.1);
+}
+.cli-eco--pip {
+  color: #3775a9;
+  background: rgba(55, 117, 169, 0.1);
+}
+.cli-eco--brew {
+  color: #b8893b;
+  background: rgba(184, 137, 59, 0.12);
+}
+
+/* ── 按钮 ──────────────────────────────────── */
+.cli-btn {
+  border: 1px solid var(--cli-border);
+  background: var(--cli-bg-card);
+  color: var(--cli-text);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cli-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.cli-btn--primary {
+  background: var(--cli-accent);
+  border-color: var(--cli-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.cli-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cli-text-2);
+  padding: 4px 10px;
+}
+.cli-btn--ghost:hover {
+  background: var(--cli-bg-hover);
+  border-color: var(--cli-border);
+}
+
+/* ── 空态 / 提示 ────────────────────────────── */
+.cli-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 16px;
+  background: var(--cli-bg-card);
+  border: 1px solid var(--cli-border);
+  border-radius: 10px;
+}
+.cli-empty__icon {
+  font-size: 28px;
+}
+.cli-empty__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cli-text);
+}
+.cli-empty__desc {
+  font-size: 12px;
+  color: var(--cli-text-3);
+  text-align: center;
+}
+.cli-ignored-hint {
+  font-size: 11px;
+  color: var(--cli-text-3);
+  text-align: center;
+  padding-bottom: 12px;
+}

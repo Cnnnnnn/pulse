@@ -240,6 +240,12 @@ export const api = {
   briefingIngestGithubReleases: (
     items: IpcChannelMap["briefing:ingest-github-releases"]["args"][0],
   ) => invokeChannel("briefing:ingest-github-releases", items),
+  // v3.2: CLI 包 (npm/pip/brew) 版本监控
+  cliPackagesFetch: () => invokeChannel("cli-packages:fetch", undefined),
+  cliPackagesRefresh: () => invokeChannel("cli-packages:refresh", undefined),
+  cliPackagesToggleIgnore: (
+    opts: IpcChannelMap["cli-packages:toggle-ignore"]["args"][0],
+  ) => invokeChannel("cli-packages:toggle-ignore", opts),
   changelogRiskFetch: (opts: IpcChannelMap["changelog-risk:fetch"]["args"][0]) =>
     invokeChannel("changelog-risk:fetch", opts),
   changelogSummaryFetch: (

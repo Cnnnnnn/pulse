@@ -16,6 +16,7 @@ import { CommandPalette } from "./CommandPalette.tsx";
 import { LibraryPage } from "./LibraryPage.tsx";
 import { DiagnosticsPage } from "./DiagnosticsPage.tsx";
 import { SettingsPage } from "./SettingsPage.tsx";
+import { CliPackagesPage } from "../cli-packages/CliPackagesPage.tsx";
 import { AITasksDrawer } from "./AITasksDrawer.tsx";
 
 export function VersionsLayout({ onCheck }: { onCheck?: () => void }) {
@@ -24,6 +25,7 @@ export function VersionsLayout({ onCheck }: { onCheck?: () => void }) {
     <div class="versions-layout">
       <CommandPalette />
       {route === "library" && <LibraryPage />}
+      {route === "cli" && <CliPackagesPage />}
       {route === "diagnostics" && <DiagnosticsPage />}
       {route === "settings" && <SettingsPage />}
       <AITasksDrawer />
