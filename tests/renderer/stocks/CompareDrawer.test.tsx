@@ -75,9 +75,10 @@ describe("CompareDrawer", () => {
     // ponytail: 再 render 一份, 确认 cmp-head 跟 cmp-row 节点都存在 (drawer 渲染没炸)
     compareDrawerOpen.value = true;
     toggleCompare({ code: "002463", name: "沪电股份", price: 218, changePct: 2.3, industry: "PCB" });
-    const { container } = render(<CompareDrawer api={null} />);
-    expect(container.querySelector(".cmp-head")).toBeTruthy();
-    expect(container.querySelector(".cmp-row")).toBeTruthy();
+    // drawer 走 portal 渲染到 document.body
+    render(<CompareDrawer api={null} />);
+    expect(document.body.querySelector(".cmp-head")).toBeTruthy();
+    expect(document.body.querySelector(".cmp-row")).toBeTruthy();
   });
 
   it("缺价 entry 在 drawer 打开时通过 api.stocksSearch 反查补价", async () => {
@@ -110,10 +111,10 @@ describe("CompareDrawer", () => {
   it("缺 scores 时综合分跟 5 维小柱都显示 —", () => {
     compareDrawerOpen.value = true;
     toggleCompare({ code: "002463", name: "沪电股份", price: 218, changePct: 2.3 });
-    const { container } = render(<CompareDrawer api={null} />);
-    expect(container.querySelector(".cmp-overall-missing")).toBeTruthy();
+    render(<CompareDrawer api={null} />);
+    expect(document.body.querySelector(".cmp-overall-missing")).toBeTruthy();
     // 5 维小柱有 dim-missing 占位
-    expect(container.querySelectorAll(".cmp-dim-missing").length).toBe(5);
+    expect(document.body.querySelectorAll(".cmp-dim-missing").length).toBe(5);
   });
 
   it("D-5: 缺 4 财务字段的 entry 在 drawer 打开时一次性补齐 (pe/pb/roe/marketCap)", async () => {
@@ -150,9 +151,9 @@ describe("CompareDrawer", () => {
     compareDrawerOpen.value = true;
     // 模拟只带价的 entry, 4 财务字段全 null
     toggleCompare({ code: "002463", name: "沪电股份", price: 218, changePct: 2.3 });
-    const { container } = render(<CompareDrawer api={null} />);
+    render(<CompareDrawer api={null} />);
     // 4 个 FinCell 缺数据 → 4 个 cmp-fin-missing
-    const missing = container.querySelectorAll(".cmp-fin-missing");
+    const missing = document.body.querySelectorAll(".cmp-fin-missing");
     expect(missing.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -167,8 +168,8 @@ describe("CompareDrawer", () => {
       code: "X2", name: "小市值", price: 50, marketCap: 8.5e9, // 85 亿
       pe: 30, pb: 4, roe: 8,
     });
-    const { container } = render(<CompareDrawer api={null} />);
-    const txt = container.textContent;
+    render(<CompareDrawer api={null} />);
+    const txt = document.body.textContent;
     expect(txt).toMatch(/5000亿/);
     expect(txt).toMatch(/85\.0亿/);
   });

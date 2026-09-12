@@ -9,6 +9,7 @@
  *   用原生 focus trap 实现 (简单循环), 不引依赖.
  */
 import { useEffect, useRef } from "preact/hooks";
+import { createPortal } from "preact/compat";
 
 type AIDrawerShellProps = {
   open: boolean;
@@ -60,7 +61,11 @@ export function AIDrawerShell({ open, onClose, title, subtitle, children }: AIDr
 
   if (!open) return null;
 
-  return (
+  // ponytail: portal 到 body — 祖先的 transform/filter/backdrop-filter 会创建
+  //   stacking context, 把 fixed drawer 的 z-index 困在局部 (跟 DrawerShell
+  //   usePortal 同一个坑, 见 DrawerShell 头注释). 不 portal 时 #titlebar /
+  //   .topbar (z=100) 会盖在 drawer (z=8000) 上面形成"顶部遮挡条".
+  return createPortal(
     <div class="ai-drawer-overlay" role="dialog" aria-modal="true" aria-label={title}>
       <div class="ai-drawer-shell" ref={cardRef}>
         <div class="ai-drawer-header">
@@ -72,7 +77,8 @@ export function AIDrawerShell({ open, onClose, title, subtitle, children }: AIDr
         </div>
         <div class="ai-drawer-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

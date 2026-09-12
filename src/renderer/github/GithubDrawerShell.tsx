@@ -117,6 +117,7 @@ export function GithubDrawerShell({
       overlayClass="github-drawer-overlay"
       drawerClass="github-drawer"
       bodyClass="github-drawer__body"
+      usePortal
       role="dialog"
       ariaLabel={`${project.name} 项目详情`}
     >

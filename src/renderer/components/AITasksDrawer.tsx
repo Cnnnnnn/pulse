@@ -250,6 +250,7 @@ export function AITasksDrawer() {
       drawerClass="ai-digest-drawer"
       drawerExtraClass="open"
       bodyClass="drawer-body"
+      usePortal
       role="dialog"
       ariaLabel="AI 任务总结"
       header={(

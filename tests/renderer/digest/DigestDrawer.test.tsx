@@ -22,9 +22,10 @@ describe('DigestDrawer', () => {
 
   it('renders drawer with empty state when open and no sections', async () => {
     digestDrawerOpen.value = true;
-    const { container } = render(<DigestDrawer />);
+    render(<DigestDrawer />);
     await waitFor(() => {
-      expect(container.textContent).toMatch(/今天还没有要点/);
+      // drawer 走 portal 渲染到 document.body
+      expect(document.body.textContent).toMatch(/今天还没有要点/);
     });
   });
 
@@ -35,10 +36,10 @@ describe('DigestDrawer', () => {
       { kind: 'updates', items: [{ name: 'Cursor', latest_version: '3.6.33' }] },
       { kind: 'hot', items: [{ title: '热搜A' }] },
     ];
-    const { container } = render(<DigestDrawer />);
+    render(<DigestDrawer />);
     await waitFor(() => {
-      expect(container.textContent).toContain('Cursor');
-      expect(container.textContent).toContain('热搜A');
+      expect(document.body.textContent).toContain('Cursor');
+      expect(document.body.textContent).toContain('热搜A');
     });
   });
 
@@ -56,8 +57,8 @@ describe('DigestDrawer', () => {
     try {
       digestDrawerOpen.value = true;
       digestLoading.value = true;
-      const { container } = render(<DigestDrawer />);
-      expect(container.querySelector('.digest-drawer__skeleton')).toBeTruthy();
+      render(<DigestDrawer />);
+      expect(document.body.querySelector('.digest-drawer__skeleton')).toBeTruthy();
     } finally {
       api.digestFetchSections = originalFetch;
     }

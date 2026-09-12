@@ -24,7 +24,7 @@ const tabs = [
 
 describe("GithubDrawerShell", () => {
   it("separates identity, tab navigation, and scroll content", () => {
-    const { container, getByRole } = render(
+    const { getByRole } = render(
       <GithubDrawerShell
         project={project}
         tabs={tabs}
@@ -39,11 +39,12 @@ describe("GithubDrawerShell", () => {
       </GithubDrawerShell>,
     );
 
-    expect(container.querySelector(".github-drawer__topbar")).toBeTruthy();
-    expect(container.querySelector(".github-drawer__tabs")).toBeTruthy();
-    expect(container.querySelector(".github-drawer__content")).toBeTruthy();
-    expect(container.querySelector(".github-drawer__body")).toBeTruthy();
-    expect(container.querySelector(".github-drawer__topbar")?.textContent).not.toContain(project.description);
+    // drawer 走 portal 渲染到 document.body — 查 body 而不是 container
+    expect(document.body.querySelector(".github-drawer__topbar")).toBeTruthy();
+    expect(document.body.querySelector(".github-drawer__tabs")).toBeTruthy();
+    expect(document.body.querySelector(".github-drawer__content")).toBeTruthy();
+    expect(document.body.querySelector(".github-drawer__body")).toBeTruthy();
+    expect(document.body.querySelector(".github-drawer__topbar")?.textContent).not.toContain(project.description);
     expect(getByRole("tab", { name: "版本更新" })).toBeTruthy();
   });
 

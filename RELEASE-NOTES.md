@@ -2,6 +2,23 @@
 
 ---
 
+## v3.2.1 (🚑 Drawer 顶部遮挡条修复: 全部浮层 portal 化) — 2026-09-12
+
+**🚑 修「AI 任务 / 早报 / GitHub 详情 drawer 顶部被半透明条遮挡」**
+
+症状: drawer 打开后, 窗口顶部横着一条半透明遮挡 (macOS 交通灯所在那条), 盖住 drawer header, drawer 展示不全。
+
+根因: 这几个 drawer 内联渲染在页面组件树里, 祖先元素的 stacking context 把 drawer 的 z-index 困在局部 — 根层级 `#titlebar` / `.topbar` (z=100, 半透明) 反而画在 drawer (z=4000+) 上面。DrawerShell 头注释里早就记录了这个失效模式 ("z-index 调多高都压不住"), portal 是既定的根本解法 — 助手 / 金属详情 / 搜索 / 确认框早就 portal 了所以一直正常。
+
+修复: 4 处浮层统一 portal 到 `document.body`:
+
+- `AITasksDrawer` (今天的 AI 任务) — 用户报告的现场
+- `DigestDrawer` (早报) — 同病
+- `GithubDrawerShell` (GitHub 项目详情) — 同病
+- `AIDrawerShell` (选股对比 / AI 推荐) — 同病
+
+**🔧 测试适配**: portal 后内容在 `document.body`, 5 个测试文件的 `container.querySelector` 查询改为 body 范围 (github-drawer-shell / github-project-panel / DigestDrawer / AiAdviseDrawer / CompareDrawer)。
+
 ## v3.2.0 (📦 CLI 包版本监控: npm -g / pip / brew) — 2026-09-12
 
 **📦 新模块「CLI 包」** — 版本检查 → 系统区新入口,定位从「App 版本监控」延伸到「本机软件资产版本监控」

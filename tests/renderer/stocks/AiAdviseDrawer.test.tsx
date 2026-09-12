@@ -35,8 +35,8 @@ afterEach(() => {
 
 describe("AiAdviseDrawer chip + 生成", () => {
   it("渲染 6 个 chip, 默认 '低估值修复' 高亮", () => {
-    const { container } = render(<AiAdviseDrawer />);
-    const chips = container.querySelectorAll(".stock-advise-chip");
+    render(<AiAdviseDrawer />);
+    const chips = document.body.querySelectorAll(".stock-advise-chip");
     expect(chips.length).toBe(6);
     const labels = Array.from(chips).map((c) => c.textContent.trim());
     expect(labels).toEqual([
@@ -47,8 +47,8 @@ describe("AiAdviseDrawer chip + 生成", () => {
   });
 
   it("点 chip → 切 active, 单选互斥", async () => {
-    const { container } = render(<AiAdviseDrawer />);
-    const chips = container.querySelectorAll(".stock-advise-chip");
+    render(<AiAdviseDrawer />);
+    const chips = document.body.querySelectorAll(".stock-advise-chip");
     // 切到第 3 个 '超跌反弹'
     fireEvent.click(chips[2]);
     await waitFor(() => {
@@ -63,8 +63,8 @@ describe("AiAdviseDrawer chip + 生成", () => {
       await import("../../../src/renderer/stocks/stockStore.ts"),
       "requestAiAdvise",
     );
-    const { container } = render(<AiAdviseDrawer api={api} />);
-    const btn = container.querySelector(".stock-advise-generate");
+    render(<AiAdviseDrawer api={api} />);
+    const btn = document.body.querySelector(".stock-advise-generate");
     fireEvent.click(btn);
     expect(spy).toHaveBeenCalledWith(api, expect.objectContaining({
       intentChip: expect.objectContaining({ id: "low_value" }),
@@ -77,10 +77,10 @@ describe("AiAdviseDrawer chip + 生成", () => {
       await import("../../../src/renderer/stocks/stockStore.ts"),
       "requestAiAdvise",
     );
-    const { container } = render(<AiAdviseDrawer api={api} />);
-    const input = container.querySelector(".stock-advise-input");
+    render(<AiAdviseDrawer api={api} />);
+    const input = document.body.querySelector(".stock-advise-input");
     fireEvent.input(input, { target: { value: "银行地产" } });
-    fireEvent.click(container.querySelector(".stock-advise-generate"));
+    fireEvent.click(document.body.querySelector(".stock-advise-generate"));
     expect(spy).toHaveBeenCalledWith(api, expect.objectContaining({
       freeText: "银行地产",
     }));
@@ -90,8 +90,8 @@ describe("AiAdviseDrawer chip + 生成", () => {
 describe("AiAdviseDrawer 状态", () => {
   it("status=loading → 生成按钮禁用 + 显示 '生成中…'", () => {
     aiAdvise.value = { status: "loading", result: null };
-    const { container } = render(<AiAdviseDrawer />);
-    const btn = container.querySelector(".stock-advise-generate");
+    render(<AiAdviseDrawer />);
+    const btn = document.body.querySelector(".stock-advise-generate");
     expect(btn.hasAttribute("disabled")).toBe(true);
     expect(btn.textContent).toMatch(/生成中/);
   });
@@ -102,11 +102,11 @@ describe("AiAdviseDrawer 状态", () => {
       result: null,
       reason: "api_key_missing",
     };
-    const { container } = render(<AiAdviseDrawer />);
+    render(<AiAdviseDrawer />);
     expect(
-      container.querySelector(".stock-advise-error"),
+      document.body.querySelector(".stock-advise-error"),
     ).toBeTruthy();
-    expect(container.textContent).toMatch(/AI Key 缺失/);
+    expect(document.body.textContent).toMatch(/AI Key 缺失/);
   });
 
   it("status=ready + result → 渲染预览 + 取消/应用按钮", () => {
@@ -120,16 +120,16 @@ describe("AiAdviseDrawer 状态", () => {
         sortConfig: { key: "roe", dir: "desc" },
       },
     };
-    const { container } = render(<AiAdviseDrawer />);
-    expect(container.querySelector(".stock-advise-preview")).toBeTruthy();
+    render(<AiAdviseDrawer />);
+    expect(document.body.querySelector(".stock-advise-preview")).toBeTruthy();
     // ponytail: summary 渲染, rationale 不显示在 UI (spec §3.3 预览只露条件 + 总结)
-    expect(container.textContent).toMatch(/低估值高ROE大蓝筹/);
+    expect(document.body.textContent).toMatch(/低估值高ROE大蓝筹/);
     // 条件项 PE 20 / ROE 15 / 排序
-    expect(container.textContent).toMatch(/PE\s*—\s*-\s*20/);
-    expect(container.textContent).toMatch(/ROE ≥ 15%/);
-    expect(container.textContent).toMatch(/排序.*ROE.*降序/);
+    expect(document.body.textContent).toMatch(/PE\s*—\s*-\s*20/);
+    expect(document.body.textContent).toMatch(/ROE ≥ 15%/);
+    expect(document.body.textContent).toMatch(/排序.*ROE.*降序/);
     // 两个操作按钮
-    const buttons = container.querySelectorAll(".stock-advise-actions button");
+    const buttons = document.body.querySelectorAll(".stock-advise-actions button");
     expect(buttons.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -148,9 +148,9 @@ describe("AiAdviseDrawer 状态", () => {
         sortConfig: { key: "pe", dir: "asc" },
       },
     };
-    const { container } = render(<AiAdviseDrawer />);
+    render(<AiAdviseDrawer />);
     const applyBtn = Array.from(
-      container.querySelectorAll(".stock-advise-actions button"),
+      document.body.querySelectorAll(".stock-advise-actions button"),
     ).find((b) => /应用/.test(b.textContent));
     fireEvent.click(applyBtn);
     expect(spy).toHaveBeenCalled();

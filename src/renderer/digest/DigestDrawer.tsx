@@ -107,6 +107,7 @@ export function DigestDrawer() {
       overlayClass="digest-overlay"
       drawerClass="digest-drawer"
       ariaLabel={DIGEST_UI_TITLE}
+      usePortal
     >
       <div class="digest-drawer__inner">
         {/* ─── Hero ──────────────────────────────────────────────── */}
