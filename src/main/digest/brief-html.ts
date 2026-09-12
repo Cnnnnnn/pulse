@@ -46,6 +46,12 @@ function sectionHtml(s: BriefingSnapshot["sections"][number]): string {
         text = `${it.name} ${sign}${it.today_change_pct.toFixed(1)}%`;
       } else if (s.kind === "ai_usage") {
         text = `${it.provider} ${it.percent}%`;
+      } else if (s.kind === "ai_movers") {
+        text = it.is_new
+          ? `${it.model} 新上榜 (${it.board}榜 #${it.to})`
+          : `${it.model} ${it.board}榜 #${it.from}→#${it.to}`;
+      } else if (s.kind === "github_releases") {
+        text = `${it.name || it.repo} ${it.latest_version}`;
       }
       return `<li>${escapeHtml(text)}</li>`;
     })

@@ -9,9 +9,9 @@ const { aggregate, MAX_LINES, SECTION_ORDER } = requireMain('digest/aggregate');
 const NOW = new Date('2026-06-20T08:30:00');
 
 describe('aggregate', () => {
-  it('exports MAX_LINES = 6 and SECTION_ORDER with 5 kinds (no worldcup, v2.80)', () => {
+  it('exports MAX_LINES = 6 and SECTION_ORDER with 7 kinds (v3.1: +ai_movers/github_releases)', () => {
     expect(MAX_LINES).toBe(6);
-    expect(SECTION_ORDER).toEqual(['updates', 'hot', 'news', 'funds', 'ai_usage']);
+    expect(SECTION_ORDER).toEqual(['updates', 'hot', 'news', 'funds', 'ai_usage', 'ai_movers', 'github_releases']);
   });
 
   it('returns empty sections + empty lines for empty state', () => {
@@ -93,6 +93,34 @@ describe('aggregate', () => {
     expect(ai.items[0].percent).toBe(87);
   });
 
+  it('aggregates github_releases section from state.github_releases_digest (cap 3)', () => {
+    const r = aggregate(
+      {
+        github_releases_digest: {
+          ts: 1,
+          items: [
+            { name: 'vite', owner: 'vitejs', repo: 'vite', latest_version: 'v8.0.0' },
+            { name: '', owner: 'oven-sh', repo: 'bun', latest_version: 'v1.3' },
+            { repo: 'no-version', latest_version: '' }, // 无版本 → 过滤
+            { name: 'esbuild', owner: 'evanw', repo: 'esbuild', latest_version: 'v0.27' },
+            { name: 'fourth', owner: 'x', repo: 'fourth', latest_version: 'v1' },
+          ],
+        },
+      },
+      { now: NOW },
+    );
+    const gh = r.sections.find((s) => s.kind === 'github_releases');
+    expect(gh.items).toHaveLength(3);
+    expect(gh.items[0]).toMatchObject({ name: 'vite', latest_version: 'v8.0.0' });
+    expect(gh.items[1].name).toBe('bun'); // 空名回退 repo
+    expect(r.lines.some((l) => l.includes('GitHub'))).toBe(true);
+  });
+
+  it('skips github_releases section when digest absent or empty', () => {
+    const r = aggregate({ github_releases_digest: { items: [] } }, { now: NOW });
+    expect(r.sections.find((s) => s.kind === 'github_releases')).toBeUndefined();
+  });
+
   it('caps total lines to MAX_LINES (6) and prioritizes by SECTION_ORDER', () => {
     const state = {
       apps: { A1: { name: 'A1', has_update: true }, A2: { name: 'A2', has_update: true }, A3: { name: 'A3', has_update: true } },
@@ -125,5 +153,37 @@ describe('aggregate', () => {
     );
     expect(r.sections).toEqual([]);
     expect(r.lines).toEqual([]);
+  });
+
+  it('builds ai_movers section from arena cache (v3.1) and honors subscribed filter', () => {
+    const lbCache = requireMain('ai-leaderboard/cache');
+    const { ARENA_CACHE_BOARD } = requireMain('digest/ai-movers');
+    lbCache.__resetForTest();
+    try {
+      const mk = (list) => list.map(([model, rank]) => ({ model, vendor: 'openai', rank, score: 1400 - rank }));
+      lbCache.__seedForTest(lbCache.cacheKey('arena', ARENA_CACHE_BOARD, '2026-06-18'), {
+        boards: { text: { models: mk([['GPT-5', 4]]) } },
+      }, 1);
+      lbCache.__seedForTest(lbCache.cacheKey('arena', ARENA_CACHE_BOARD, '2026-06-19'), {
+        boards: { text: { models: mk([['GPT-5', 1]]) } },
+      }, 2);
+
+      const r = aggregate({}, { now: NOW });
+      const movers = r.sections.find((s) => s.kind === 'ai_movers');
+      expect(movers.items).toHaveLength(1);
+      expect(movers.items[0]).toMatchObject({ model: 'GPT-5', board: 'text', from: 4, to: 1, delta: 3 });
+      expect(r.lines.some((l) => l.includes('AI 榜单'))).toBe(true);
+
+      // subscribed 过滤同样生效
+      const filtered = aggregate({}, { now: NOW, subscribed: ['ai_movers'] });
+      expect(filtered.sections.map((s) => s.kind)).toEqual(['ai_movers']);
+      const excluded = aggregate(
+        { github_releases_digest: { items: [{ name: 'x', repo: 'x', latest_version: 'v1' }] } },
+        { now: NOW, subscribed: ['github_releases'] },
+      );
+      expect(excluded.sections.map((s) => s.kind)).toEqual(['github_releases']);
+    } finally {
+      lbCache.__resetForTest();
+    }
   });
 });

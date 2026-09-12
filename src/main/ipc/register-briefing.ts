@@ -27,6 +27,7 @@ import {
   saveDailyDigestConfig,
   loadBriefingSnapshot,
   saveBriefingSnapshot,
+  saveGithubReleasesDigest,
 } from "../state-store";
 import { aggregate } from "../digest/aggregate";
 import { briefHtmlShell } from "../digest/brief-html";
@@ -183,6 +184,42 @@ export function registerBriefingHandlers(ctx: any) {
           filename,
           snapshot,
         };
+      } catch (err: unknown) {
+        return { ok: false, reason: "threw", error: errMsg(err) };
+      }
+    },
+  );
+
+  // v3.1: renderer GitHub 收录检查完 release 后推送「有更新」的项目清单,
+  // 落盘 state.github_releases_digest 供早报 aggregate 读 (github 数据在 renderer
+  // localStorage, 主进程拿不到, 只能靠 ingest).
+  safeHandle(
+    "briefing:ingest-github-releases",
+    async (
+      _evt: unknown,
+      items: IpcChannelMap["briefing:ingest-github-releases"]["args"][0],
+    ) => {
+      try {
+        if (!Array.isArray(items)) {
+          return { ok: false, reason: "bad_items" };
+        }
+        const clean = items
+          .filter(
+            (it: any) =>
+              it && typeof it === "object" &&
+              typeof it.repo === "string" && it.repo &&
+              typeof it.latest_version === "string" && it.latest_version,
+          )
+          .slice(0, 20)
+          .map((it: any) => ({
+            name: typeof it.name === "string" ? it.name : "",
+            owner: typeof it.owner === "string" ? it.owner : "",
+            repo: it.repo,
+            latest_version: it.latest_version,
+            published_at: typeof it.published_at === "number" ? it.published_at : 0,
+          }));
+        saveGithubReleasesDigest(clean);
+        return { ok: true, count: clean.length };
       } catch (err: unknown) {
         return { ok: false, reason: "threw", error: errMsg(err) };
       }

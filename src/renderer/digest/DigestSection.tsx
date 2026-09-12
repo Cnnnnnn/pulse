@@ -11,6 +11,8 @@ const LABELS = {
   news: { title: 'IT 新闻' },
   funds: { title: '基金变动' },
   ai_usage: { title: 'AI 用量预警' },
+  ai_movers: { title: 'AI 榜单异动' },
+  github_releases: { title: 'GitHub 收录更新' },
 };
 
 type DigestKind = keyof typeof LABELS;
@@ -34,13 +36,27 @@ interface DigestAiUsageItem {
   provider: string;
   percent: number;
 }
+interface DigestAiMoverItem {
+  model: string;
+  board: string;
+  from: number | null;
+  to: number;
+  is_new: boolean;
+}
+interface DigestGithubReleaseItem {
+  name: string;
+  repo: string;
+  latest_version: string;
+}
 
 type DigestItem =
   | DigestUpdateItem
   | DigestHotItem
   | DigestNewsItem
   | DigestFundsItem
-  | DigestAiUsageItem;
+  | DigestAiUsageItem
+  | DigestAiMoverItem
+  | DigestGithubReleaseItem;
 
 interface DigestSectionData {
   kind: DigestKind;
@@ -88,6 +104,16 @@ function renderItem(kind: DigestKind, it: DigestItem): string {
     case 'ai_usage': {
       const a = it as DigestAiUsageItem;
       return `${a.provider} ${a.percent}%`;
+    }
+    case 'ai_movers': {
+      const m = it as DigestAiMoverItem;
+      return m.is_new
+        ? `${m.model} 新上榜 (${m.board}榜 #${m.to})`
+        : `${m.model} ${m.board}榜 #${m.from}→#${m.to}`;
+    }
+    case 'github_releases': {
+      const g = it as DigestGithubReleaseItem;
+      return `${g.name || g.repo} ${g.latest_version}`;
     }
     default:
       return JSON.stringify(it);

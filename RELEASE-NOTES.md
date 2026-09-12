@@ -2,6 +2,30 @@
 
 ---
 
+## v3.1.0 (🌅 早报新模块: AI 榜单异动 + GitHub 收录更新) — 2026-09-12
+
+**🌅 早报订阅模块 5 → 7**
+
+设置 → 每日早报 的模块订阅 chips 新增两项（设置页自动随 `DIGEST_KIND_ORDER` 扩展）：
+
+- **AI 榜单异动** (`ai_movers`) — 读 Arena 磁盘缓存最新两份快照做排名 diff，纯磁盘读（不打网络 / 不耗 AA 令牌 / 离线可用）。|Δrank| ≥ 2 才算异动（过滤 ±1 抖动），新上榜模型也收录；每模型只留最强一条，上限 3 条。条目形如 `Claude-5 text榜 #5→#2`。
+- **GitHub 收录更新** (`github_releases`) — GitHub 项目库存在 renderer localStorage（主进程读不到），故 renderer 的 release 检查调度器每轮检查后把「有更新」的项目经新 IPC `briefing:ingest-github-releases` 推给主进程落盘 `state.github_releases_digest`；空清单也推（用户标已读后早报跟着清掉）。上限 3 条。
+
+早报 Drawer / 推送通知 / HTML 导出全链路支持新 section（`DigestSection.tsx` / `brief-html.ts` / `lineFor`）。
+
+**🚑 微博热搜 section 静默失效修复**
+
+aggregate 读 `state.wechatHot` 做热搜 section，但 wechat-hot 缓存是纯内存态、从不落盘——真实推送里该 section 一直是空的。现在热搜刷新时把快照落盘 state（新键 `wechatHot`，与已读词 `wechat_hot` 是两个键），section 恢复工作。
+
+**🔧 内部变更**
+
+- 新文件：`src/main/digest/ai-movers.ts`（arena 缓存扫描 + 排名 diff）
+- `ai-leaderboard/cache.ts` 新增 `listCacheKeysDesc(source, board)`（磁盘/内存双模式按日期降序列缓存键）
+- state-store 新增 `saveGithubReleasesDigest` / `saveWechatHotSnapshot` + schema/PRESERVE_FIELDS 两个键
+- `daily-summary-job` 默认订阅从硬编码数组改为引用 `DIGEST_KIND_ORDER` 真源（否则新模块会被默认配置静默漏掉）
+- 已存用户的 `subscribed_sections` 是显式列表 — 新模块需在设置页手动勾选；默认（新）配置为全选
+- 新测试：`tests/main/digest/ai-movers.test.ts`（5 用例）；`aggregate` / `brief-html` / `aggregate-subscribed` / `electron-adapters` 契约测试同步扩展
+
 ## v3.0.3 (🎨 Light theme 适配) — 2026-09-12
 
 **🎨 Light theme 下 Drawer / 设置页可见性修复**

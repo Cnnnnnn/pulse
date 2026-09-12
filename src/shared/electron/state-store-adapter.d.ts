@@ -213,6 +213,22 @@ export interface StateStoreAdapter {
     statePath?: string,
   ): StateRecord;
 
+  // v3.1 — 早报新数据源
+  saveGithubReleasesDigest(
+    items: Array<{
+      name: string;
+      owner: string;
+      repo: string;
+      latest_version: string;
+      published_at?: number;
+    }>,
+    statePath?: string,
+  ): StateRecord;
+  saveWechatHotSnapshot(
+    payload: { items?: unknown[]; fetchedAt?: number; source?: string },
+    statePath?: string,
+  ): StateRecord;
+
   // Phase v1 — tray menu prefs
   loadTrayMenuPrefs(statePath?: string): {
     version: number;

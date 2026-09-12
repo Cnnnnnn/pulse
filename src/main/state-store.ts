@@ -299,6 +299,8 @@ const PRESERVE_FIELDS = [
   { key: "last_active_nav", kind: "string" },  // P-N: HomeGrid 落点
   { key: "upgrade_diagnostics", kind: "object" }, // v3.0 alpha: 升级路径诊断 attempts 环形缓冲 (按 appId 分桶)
   { key: "briefing_snapshot", kind: "object" }, // v3.0 beta: 每日早报最后一次推送的 snapshot (给 Drawer 离线打开)
+  { key: "github_releases_digest", kind: "object", notArray: true }, // v3.1: 早报 GitHub 收录更新 { items, ts } (register-briefing ingest 写入)
+  { key: "wechatHot", kind: "object", notArray: true }, // v3.1: 微博热搜快照落盘 { items, fetchedAt, source } (register-wechat-hot 写入)
 ];
 const PRESERVE_KEYS = new Set(PRESERVE_FIELDS.map((spec: any) => spec.key));
 const RETIRED_KEYS = new Set([
@@ -1138,6 +1140,36 @@ export function saveDailyDigest(cfg: any, statePath = defaultPath()) {
         ? existing.daily_digest
         : {};
     next.daily_digest = { ...prev, ...cfg };
+  }, statePath);
+}
+
+/**
+ * v3.1: 早报 GitHub 收录更新 digest — renderer 检查完 release 后经 IPC ingest.
+ * @param {Array} items [{name, owner, repo, latest_version, published_at}]
+ */
+export function saveGithubReleasesDigest(items: any, statePath = defaultPath()) {
+  if (!Array.isArray(items)) {
+    throw new TypeError("saveGithubReleasesDigest: items must be array");
+  }
+  return patchState((next: any) => {
+    next.github_releases_digest = { items: items.slice(0, 20), ts: Date.now() };
+  }, statePath);
+}
+
+/**
+ * v3.1: 微博热搜快照落盘 — register-wechat-hot 的 cache onUpdate 时调用.
+ * 早报 aggregate 读 s.wechatHot.items; 注意与 wechat_hot (已读词 readIds) 是两个键.
+ */
+export function saveWechatHotSnapshot(payload: any, statePath = defaultPath()) {
+  if (payload == null || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new TypeError("saveWechatHotSnapshot: payload must be plain object");
+  }
+  return patchState((next: any) => {
+    next.wechatHot = {
+      items: Array.isArray(payload.items) ? payload.items.slice(0, 50) : [],
+      fetchedAt: payload.fetchedAt || Date.now(),
+      source: payload.source || "",
+    };
   }, statePath);
 }
 
@@ -2130,6 +2162,9 @@ module.exports = {
   // v3.0 beta: briefing snapshot 持久化 + 读
   saveBriefingSnapshot,
   loadBriefingSnapshot,
+  // v3.1: 早报新数据源 — GitHub 收录 ingest + 微博热搜快照落盘
+  saveGithubReleasesDigest,
+  saveWechatHotSnapshot,
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,

@@ -15,11 +15,13 @@
  *   - 幂等 start（重复调不启多个 interval）
  */
 
+import { api } from "../api.ts";
 import {
   checkGithubUpdates,
   githubAutoCheck,
   githubAutoCheckIntervalMin,
   githubNotifyOnNew,
+  githubProjects,
 } from "../store/github-projects-store.ts";
 
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰
@@ -36,6 +38,7 @@ export function createGithubCheckScheduler() {
       if (r.newCount > 0 && githubNotifyOnNew.value) {
         _notifyNewReleases(r.newCount, r.failedProjects || []);
       }
+      _ingestBriefingReleases();
     } catch {
       /* 静默失败不打扰用户 */
     }
@@ -78,6 +81,31 @@ export function createGithubCheckScheduler() {
   }
 
   return { start, stop, restart, checkOnce };
+}
+
+/**
+ * v3.1: 每轮检查后把「有更新」的收录项目推给主进程早报
+ * (github 项目库在 renderer localStorage, 主进程读不到, 只能 ingest)。
+ * 空清单也推 — 用户标已读后早报里的过期条目要随之清掉。fire-and-forget。
+ */
+function _ingestBriefingReleases() {
+  try {
+    const items = (githubProjects.value || [])
+      .filter(
+        (p: any) => p && p.owner && p.repo &&
+          p.latestVersion && p.latestVersion !== p.lastSeenVersion,
+      )
+      .map((p: any) => ({
+        name: typeof p.name === "string" ? p.name : "",
+        owner: String(p.owner),
+        repo: String(p.repo),
+        latest_version: String(p.latestVersion),
+        published_at: typeof p.latestVersionPublishedAt === "number" ? p.latestVersionPublishedAt : 0,
+      }));
+    void api.briefingIngestGithubReleases(items);
+  } catch {
+    /* 早报 ingest 失败不影响主流程 */
+  }
 }
 
 /**

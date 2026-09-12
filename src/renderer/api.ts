@@ -324,6 +324,8 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     briefingSnapshotFetch: pick(overrides, "briefingSnapshotFetch"),
     briefingExport: pick(overrides, "briefingExport"),
     briefingShowInFolder: pick(overrides, "briefingShowInFolder"),
+    // v3.1: GitHub 收录 release 检查结果 → 早报
+    briefingIngestGithubReleases: pick(overrides, "briefingIngestGithubReleases"),
     // 选股分析 (阶段一): 筛选 + 搜索
     stocksScreen: pick(overrides, "stocksScreen"),
     stocksSearch: pick(overrides, "stocksSearch"),

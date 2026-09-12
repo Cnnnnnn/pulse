@@ -694,6 +694,8 @@ const DIGEST_SECTION_ICON: Record<string, IconComponent> = {
   news: IconNews,
   funds: IconTrendingUp,
   ai_usage: IconAlert,
+  ai_movers: IconBarChart,
+  github_releases: IconLayers,
 };
 
 export function DigestSectionIcon({ kind, size = 14 }: { kind: string; size?: number }) {

@@ -8,6 +8,7 @@
  *   - 新增 BriefingSnapshot 给 drawer 离线打开用
  *
  * 与 aggregate.ts SECTION_ORDER 同步: updates / hot / news / funds / ai_usage
+ *   + v3.1: ai_movers (AI 榜单异动) / github_releases (GitHub 收录更新)
  */
 
 export type DigestKind =
@@ -15,7 +16,9 @@ export type DigestKind =
   | "hot"
   | "news"
   | "funds"
-  | "ai_usage";
+  | "ai_usage"
+  | "ai_movers"
+  | "github_releases";
 
 export const DIGEST_KIND_ORDER: DigestKind[] = [
   "updates",
@@ -23,6 +26,8 @@ export const DIGEST_KIND_ORDER: DigestKind[] = [
   "news",
   "funds",
   "ai_usage",
+  "ai_movers",
+  "github_releases",
 ];
 
 export const DIGEST_KIND_LABEL: Record<DigestKind, string> = {
@@ -31,6 +36,8 @@ export const DIGEST_KIND_LABEL: Record<DigestKind, string> = {
   news: "IT 新闻",
   funds: "基金变动",
   ai_usage: "AI 用量预警",
+  ai_movers: "AI 榜单异动",
+  github_releases: "GitHub 收录更新",
 };
 
 export type DailyDigestConfig = {

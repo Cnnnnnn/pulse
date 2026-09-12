@@ -60,6 +60,19 @@ describe("briefHtmlShell", () => {
         title: "AI Usage",
         items: [{ provider: "minimax", percent: 70 }],
       } as any,
+      {
+        kind: "ai_movers",
+        title: "AI Movers",
+        items: [
+          { model: "Claude-5", vendor: "anthropic", board: "text", from: 5, to: 2, delta: 3, is_new: false },
+          { model: "Kimi-K3", vendor: "moonshot", board: "code", from: null, to: 3, delta: null, is_new: true },
+        ],
+      } as any,
+      {
+        kind: "github_releases",
+        title: "GitHub Releases",
+        items: [{ name: "vite", owner: "vitejs", repo: "vite", latest_version: "v8.0.0" }],
+      } as any,
     ]);
     const html = briefHtmlShell(snap);
     expect(html).toContain("<title>Pulse 今日要点 · 2026-09-11</title>");
@@ -68,6 +81,9 @@ describe("briefHtmlShell", () => {
     expect(html).toContain("IT 新闻: bar");
     expect(html).toContain("沪深 300 +1.3%");
     expect(html).toContain("minimax 70%");
+    expect(html).toContain("Claude-5 text榜 #5→#2");
+    expect(html).toContain("Kimi-K3 新上榜 (code榜 #3)");
+    expect(html).toContain("vite v8.0.0");
   });
 
   it("rewritten=true 时显示 LLM 改写标签", () => {

@@ -236,6 +236,10 @@ export const api = {
   briefingShowInFolder: (
     opts: IpcChannelMap["briefing:show-in-folder"]["args"][0],
   ) => invokeChannel("briefing:show-in-folder", opts),
+  // v3.1: renderer 检查完 GitHub release 后把有更新的项目推给早报
+  briefingIngestGithubReleases: (
+    items: IpcChannelMap["briefing:ingest-github-releases"]["args"][0],
+  ) => invokeChannel("briefing:ingest-github-releases", items),
   changelogRiskFetch: (opts: IpcChannelMap["changelog-risk:fetch"]["args"][0]) =>
     invokeChannel("changelog-risk:fetch", opts),
   changelogSummaryFetch: (

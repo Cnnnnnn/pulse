@@ -18,6 +18,7 @@
  */
 
 import { DIGEST_UI_TITLE } from "../../shared/digest-labels";
+import { DIGEST_KIND_ORDER } from "../../shared/digest-types";
 import { inQuietHours } from "../notification-policy";
 import { aggregate as defaultAggregate } from "./aggregate";
 const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
@@ -74,10 +75,11 @@ async function checkAndPush(deps: any): Promise<any> {
   if (cfg.last_push_date === today) return { skipped: "already_pushed_today" };
 
   const aggregate = deps.aggregate || defaultAggregate;
-  // v3.0 alpha: 模块订阅过滤 — alpha 阶段 cfg.subscribed_sections 缺省则全选
+  // v3.0 alpha: 模块订阅过滤 — cfg.subscribed_sections 缺省则全选 (真源 = DIGEST_KIND_ORDER,
+  //  v3.1 起含 ai_movers / github_releases; 硬编码数组会在加新 section 时静默漏掉)
   const subscribed = Array.isArray(cfg.subscribed_sections)
     ? cfg.subscribed_sections
-    : ["updates", "hot", "news", "funds", "ai_usage"];
+    : DIGEST_KIND_ORDER;
   let result: any;
   try {
     result = aggregate(state, { now, subscribed });

@@ -25,6 +25,7 @@ import { createWechatHotCache } from "../wechat-hot/cache";
 import { loadReadIds, markItemRead } from "../wechat-hot/read-store";
 import { HttpClient } from "../http-client";
 import { mainLog } from "../log";
+import { saveWechatHotSnapshot } from "../state-store";
 
 export const UPDATED_CHANNEL = "wechat-hot:updated";
 const TIMEOUT_MS = 10000;
@@ -55,6 +56,13 @@ export function registerWechatHotHandlers(ctx: any) {
   const cache = createWechatHotCache({
     fetcher: () => fetchWechatHot({ httpClient, timeoutMs: TIMEOUT_MS }),
     onUpdate: (payload: IpcChannelMap["wechat-hot:load"]["result"]) => {
+      // v3.1: 快照落盘 — 早报 aggregate 读 state.wechatHot (cache 本体是内存态,
+      // 早报推送时刻 renderer 未必打开过热搜页, 不落盘该 section 永远是空的)
+      try {
+        saveWechatHotSnapshot(payload);
+      } catch (err: any) {
+        mainLog.warn(`[wechat-hot] snapshot save failed: ${errMsg(err)}`);
+      }
       if (typeof sendToRenderer === "function") {
         try { sendToRenderer(UPDATED_CHANNEL, payload); } catch { /* noop */ }
       }

@@ -13,7 +13,15 @@
 
 const MAX_LINES = 6;
 
-const SECTION_ORDER = ["updates", "hot", "news", "funds", "ai_usage"] as const;
+const SECTION_ORDER = [
+  "updates",
+  "hot",
+  "news",
+  "funds",
+  "ai_usage",
+  "ai_movers",
+  "github_releases",
+] as const;
 
 const MAX_LINE_LEN = 60;
 const UPDATES_CAP = 3;
@@ -23,6 +31,8 @@ const FUNDS_CAP = 2;
 const AI_USAGE_CAP = 1;
 const AI_USAGE_THRESHOLD_PCT = 80;
 const FUND_DELTA_THRESHOLD_PCT = 1;
+const AI_MOVERS_CAP = 3;
+const GITHUB_RELEASES_CAP = 3;
 
 function ymd(d: Date): string {
   const y = d.getFullYear();
@@ -53,13 +63,30 @@ type HotItem = { title: string };
 type NewsItem = { title: string; url: string };
 type FundItem = { code: string; name: string; today_change_pct: number };
 type AiUsageItem = { provider: string; percent: number };
+type AiMoverItem = {
+  model: string;
+  vendor: string;
+  board: string;
+  from: number | null;
+  to: number;
+  delta: number | null;
+  is_new: boolean;
+};
+type GithubReleaseItem = {
+  name: string;
+  owner: string;
+  repo: string;
+  latest_version: string;
+};
 
 type Section =
   | { kind: "updates"; items: UpdateItem[] }
   | { kind: "hot"; items: HotItem[] }
   | { kind: "news"; items: NewsItem[] }
   | { kind: "funds"; items: FundItem[] }
-  | { kind: "ai_usage"; items: AiUsageItem[] };
+  | { kind: "ai_usage"; items: AiUsageItem[] }
+  | { kind: "ai_movers"; items: AiMoverItem[] }
+  | { kind: "github_releases"; items: GithubReleaseItem[] };
 
 function sectionUpdates(apps: any): Section | null {
   if (!apps || typeof apps !== "object") return null;
@@ -124,6 +151,43 @@ function sectionAiUsage(aiUsage: any): Section | null {
   return items.length ? { kind: "ai_usage", items } : null;
 }
 
+/**
+ * v3.1: AI 榜单异动 — 读 arena 磁盘缓存最新两份快照 diff (纯读, 无网络).
+ * state 里没有对应键: 数据源是 ai-leaderboard-cache/ 目录, 直接从 cache 模块拿.
+ */
+function sectionAiMovers(): Section | null {
+  const { computeAiMovers } = require("./ai-movers.ts");
+  const payload = computeAiMovers({ maxItems: AI_MOVERS_CAP });
+  const items: AiMoverItem[] = Array.isArray(payload && payload.items)
+    ? payload.items.filter(
+        (it: any) => it && it.model && it.board &&
+          (it.is_new ? typeof it.to === "number" : typeof it.from === "number" && typeof it.to === "number"),
+      )
+    : [];
+  return items.length ? { kind: "ai_movers", items } : null;
+}
+
+/**
+ * v3.1: GitHub 收录更新 — renderer 检查完 release 后经 briefing:ingest-github-releases
+ * 推到 state.github_releases_digest, 这里只读.
+ */
+function sectionGithubReleases(digest: any): Section | null {
+  if (!digest || !Array.isArray(digest.items)) return null;
+  const items: GithubReleaseItem[] = [];
+  for (const it of digest.items) {
+    if (it && it.repo && it.latest_version) {
+      items.push({
+        name: it.name || it.repo,
+        owner: it.owner || "",
+        repo: it.repo,
+        latest_version: it.latest_version,
+      });
+      if (items.length >= GITHUB_RELEASES_CAP) break;
+    }
+  }
+  return items.length ? { kind: "github_releases", items } : null;
+}
+
 function lineFor(s: Section): string | null {
   const first = s.items[0] as any;
   switch (s.kind) {
@@ -141,6 +205,12 @@ function lineFor(s: Section): string | null {
     }
     case "ai_usage":
       return `• AI 用量: ${first.provider} ${first.percent}%`;
+    case "ai_movers":
+      return first.is_new
+        ? `• AI 榜单: ${first.model} 新上榜 (${first.board}榜 #${first.to})`
+        : `• AI 榜单: ${first.model} ${first.board}榜 #${first.from}→#${first.to}`;
+    case "github_releases":
+      return `• GitHub: ${first.name} ${first.latest_version}`;
     default:
       return null;
   }
@@ -154,7 +224,8 @@ type AggregateResult = {
 
 /**
  * Pure aggregator.
- * @param state  shape: {apps, wechatHot, ithome_news, funds, ai_usage}
+ * @param state  shape: {apps, wechatHot, ithome_news, funds, ai_usage, github_releases_digest}
+ *                — ai_movers 不走 state, 直接读 ai-leaderboard 磁盘缓存
  * @param opts
  * @param opts.subscribed  v3.0 alpha: subset of SECTION_ORDER. undefined/empty → 全选 (向后兼容)
  */
@@ -176,6 +247,8 @@ export function aggregate(
     () => sectionNews(s.ithome_news),
     () => sectionFunds(s.funds),
     () => sectionAiUsage(s.ai_usage),
+    () => sectionAiMovers(),
+    () => sectionGithubReleases(s.github_releases_digest),
   ];
 
   const sections: Section[] = [];

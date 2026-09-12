@@ -207,6 +207,21 @@ export interface UpgradeDiagnosticsApiContract {
   upgradeDiagnosticsFetch(): Promise<UpgradeDiagnosticsResponse>;
 }
 
+export interface GithubReleaseDigestItem {
+  name: string;
+  owner: string;
+  repo: string;
+  latest_version: string;
+  published_at?: number;
+}
+
+export interface GithubReleasesIngestResponse {
+  ok: boolean;
+  count?: number;
+  reason?: string;
+  error?: string;
+}
+
 export interface BriefingApiContract {
   briefingFetchConfig(): Promise<DigestConfigResponse>;
   briefingSaveConfig(
@@ -216,6 +231,9 @@ export interface BriefingApiContract {
   briefingSnapshotFetch(): Promise<BriefingSnapshotResponse>;
   briefingExport(opts?: { regenerate?: boolean }): Promise<BriefingExportResponse>;
   briefingShowInFolder(opts: { path: string }): Promise<BriefingShowInFolderResponse>;
+  briefingIngestGithubReleases(
+    items: GithubReleaseDigestItem[],
+  ): Promise<GithubReleasesIngestResponse>;
 }
 
 export type BriefingSnapshotResponse = {
@@ -2935,6 +2953,10 @@ export interface IpcChannelMap {
   "briefing:show-in-folder": {
     args: [opts: { path: string }];
     result: BriefingShowInFolderResponse;
+  };
+  "briefing:ingest-github-releases": {
+    args: [items: GithubReleaseDigestItem[]];
+    result: GithubReleasesIngestResponse;
   };
   "changelog-summary:fetch": { args: [opts: AiChangelogSummaryOptions]; result: AiChangelogSummaryResponse };
   "changelog-risk:fetch": { args: [opts: AiChangelogRiskOptions]; result: AiChangelogRiskResponse };

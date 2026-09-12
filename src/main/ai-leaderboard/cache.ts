@@ -127,6 +127,33 @@ export function readLatestCache(source: string, board: string): { data: any; fet
 }
 
 /**
+ * 列出同 source:board 前缀下全部缓存键（含日期后缀），按日期降序。
+ * 早报 ai-movers 用：取最新两份做排名 diff。磁盘/内存双模式。
+ * @returns {string[]} 完整 cacheKey 列表，日期新的在前
+ */
+export function listCacheKeysDesc(source: string, board: string): string[] {
+  const prefix = `ai-lb:${source}:${board}:`;
+  const dir = getCacheDir();
+  if (!dir) {
+    const keys: string[] = [];
+    for (const k of _memCache.keys()) {
+      if (k.startsWith(prefix)) keys.push(k);
+    }
+    return keys.sort((a, b) => (a.slice(prefix.length) < b.slice(prefix.length) ? 1 : -1));
+  }
+  const keys: string[] = [];
+  try {
+    for (const name of fs.readdirSync(dir as string)) {
+      const key = decodeURIComponent(name.replace(/\.json\.gz$/, "").replace(/\.json$/, ""));
+      if (key.startsWith(prefix)) keys.push(key);
+    }
+  } catch {
+    return [];
+  }
+  return keys.sort((a, b) => (a.slice(prefix.length) < b.slice(prefix.length) ? 1 : -1));
+}
+
+/**
  * 写缓存。
  * @param key
  * @param data
