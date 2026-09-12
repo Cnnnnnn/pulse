@@ -24,7 +24,9 @@ export function getPreviousArenaRanks(lookbackDays: number = 7): Map<string, any
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
-    const key = cacheKey("arena", "all", dateStr);
+    // v3.1: 板名跟 aggregator 写入口对齐 — v2.8x 起 arena 缓存只写 "all-v11",
+    // 旧 "all" 键永远读不到, rankDelta/sparkline 曾静默失效
+    const key = cacheKey("arena", "all-v11", dateStr);
     const entry = readCache(key);
     if (!entry || !entry.data) continue;
     const boards = entry.data.boards;
@@ -70,7 +72,8 @@ export function getArenaRankSeriesMap(nDays: number = 14): Map<string, Map<strin
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
-    const key = cacheKey("arena", "all", dateStr);
+    // v3.1: 同 getPreviousArenaRanks — 跟 aggregator 写入口 "all-v11" 对齐
+    const key = cacheKey("arena", "all-v11", dateStr);
     const entry = readCache(key);
     if (!entry || !entry.data || !entry.data.boards) continue;
     const boards = entry.data.boards;
