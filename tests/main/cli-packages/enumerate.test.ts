@@ -100,43 +100,50 @@ describe("sweepEcosystem", () => {
   };
 
   it("npm — installed + outdated 正常合并返回", async () => {
-    const runner = okRunner({
-      "npm ls -g --depth=0 --json": JSON.stringify({
-        dependencies: { typescript: { version: "5.6.3" } },
-      }),
-      "npm outdated -g --json": JSON.stringify({
-        typescript: { current: "5.6.3", latest: "5.7.0" },
-      }),
+    // 平台守卫在 win32 短路 — CI 会跑 Windows, 全部 stub 成 darwin
+    await withPlatform("darwin", async () => {
+      const runner = okRunner({
+        "npm ls -g --depth=0 --json": JSON.stringify({
+          dependencies: { typescript: { version: "5.6.3" } },
+        }),
+        "npm outdated -g --json": JSON.stringify({
+          typescript: { current: "5.6.3", latest: "5.7.0" },
+        }),
+      });
+      const r = await sweepEcosystem("npm", { runner });
+      expect(r.ok).toBe(true);
+      expect(r.installed).toEqual([{ name: "typescript", installed: "5.6.3" }]);
+      expect(r.outdated).toEqual([{ name: "typescript", installed: "5.6.3", latest: "5.7.0" }]);
     });
-    const r = await sweepEcosystem("npm", { runner });
-    expect(r.ok).toBe(true);
-    expect(r.installed).toEqual([{ name: "typescript", installed: "5.6.3" }]);
-    expect(r.outdated).toEqual([{ name: "typescript", installed: "5.6.3", latest: "5.7.0" }]);
   });
 
   it("npm outdated exit≠0 (reject 带 stdout) — installed 仍返回, outdated 解析自 reject stdout", async () => {
-    const runner = async (cmd: string, args: string[]) => {
-      if (args[0] === "outdated") {
-        throw Object.assign(new Error("exit 1"), {
-          stdout: JSON.stringify({ esbuild: { current: "0.20.0", latest: "0.27.0" } }),
-        });
-      }
-      return { stdout: JSON.stringify({ dependencies: { esbuild: { version: "0.20.0" } } }), stderr: "" };
-    };
-    const r = await sweepEcosystem("npm", { runner });
-    expect(r.ok).toBe(true);
-    expect(r.installed).toHaveLength(1);
-    expect(r.outdated).toEqual([{ name: "esbuild", installed: "0.20.0", latest: "0.27.0" }]);
+    await withPlatform("darwin", async () => {
+      const runner = async (cmd: string, args: string[]) => {
+        if (args[0] === "outdated") {
+          throw Object.assign(new Error("exit 1"), {
+            stdout: JSON.stringify({ esbuild: { current: "0.20.0", latest: "0.27.0" } }),
+          });
+        }
+        return { stdout: JSON.stringify({ dependencies: { esbuild: { version: "0.20.0" } } }), stderr: "" };
+      };
+      const r = await sweepEcosystem("npm", { runner });
+      expect(r.ok).toBe(true);
+      expect(r.installed).toHaveLength(1);
+      expect(r.outdated).toEqual([{ name: "esbuild", installed: "0.20.0", latest: "0.27.0" }]);
+    });
   });
 
   it("outdated 挂掉但 installed 成功 → ok:true, outdated 空 (降级)", async () => {
-    const runner = async (cmd: string, args: string[]) => {
-      if (args[0] === "outdated") throw new Error("boom");
-      return { stdout: JSON.stringify({ dependencies: { a: { version: "1.0.0" } } }), stderr: "" };
-    };
-    const r = await sweepEcosystem("npm", { runner });
-    expect(r.ok).toBe(true);
-    expect(r.outdated).toEqual([]);
+    await withPlatform("darwin", async () => {
+      const runner = async (cmd: string, args: string[]) => {
+        if (args[0] === "outdated") throw new Error("boom");
+        return { stdout: JSON.stringify({ dependencies: { a: { version: "1.0.0" } } }), stderr: "" };
+      };
+      const r = await sweepEcosystem("npm", { runner });
+      expect(r.ok).toBe(true);
+      expect(r.outdated).toEqual([]);
+    });
   });
 
   it("installed 命令 ENOENT → cli_missing", async () => {
