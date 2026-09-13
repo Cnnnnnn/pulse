@@ -18,6 +18,17 @@ const {
   sweepEcosystem,
 } = requireMain("cli-packages/enumerate");
 
+/** stub process.platform 跑一段异步断言 (恢复原值) — sweepEcosystem 的平台守卫在 win32 会短路 */
+async function withPlatform(platform: NodeJS.Platform, fn: () => Promise<void>) {
+  const original = process.platform;
+  Object.defineProperty(process, "platform", { value: platform, configurable: true });
+  try {
+    await fn();
+  } finally {
+    Object.defineProperty(process, "platform", { value: original, configurable: true });
+  }
+}
+
 describe("parsers", () => {
   it("parseNpmList — 读 dependencies 的 name+version, 跳过 invalid", () => {
     const rows = parseNpmList(
@@ -129,20 +140,34 @@ describe("sweepEcosystem", () => {
   });
 
   it("installed 命令 ENOENT → cli_missing", async () => {
-    const runner = async () => {
-      const e: any = new Error("spawn npm ENOENT");
-      e.code = "ENOENT";
-      throw e;
-    };
-    const r = await sweepEcosystem("npm", { runner });
-    expect(r).toEqual({ ok: false, reason: "cli_missing" });
+    // sweepEcosystem 在 win32 直接 unsupported_platform — stub 成 darwin 才能测到
+    // exec 错误映射 (CI 会跑 Windows)
+    withPlatform("darwin", async () => {
+      const runner = async () => {
+        const e: any = new Error("spawn npm ENOENT");
+        e.code = "ENOENT";
+        throw e;
+      };
+      const r = await sweepEcosystem("npm", { runner });
+      expect(r).toEqual({ ok: false, reason: "cli_missing" });
+    });
   });
 
   it("其它错误 → sweep_failed", async () => {
-    const runner = async () => {
-      throw new Error("segfault");
-    };
-    const r = await sweepEcosystem("brew", { runner });
-    expect(r).toEqual({ ok: false, reason: "sweep_failed" });
+    withPlatform("darwin", async () => {
+      const runner = async () => {
+        throw new Error("segfault");
+      };
+      const r = await sweepEcosystem("brew", { runner });
+      expect(r).toEqual({ ok: false, reason: "sweep_failed" });
+    });
+  });
+
+  it("win32 → unsupported_platform (不降安全边界跑 shell shim)", async () => {
+    withPlatform("win32", async () => {
+      const runner = async () => ({ stdout: "x", stderr: "" });
+      const r = await sweepEcosystem("npm", { runner });
+      expect(r).toEqual({ ok: false, reason: "unsupported_platform" });
+    });
   });
 });

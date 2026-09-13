@@ -89,8 +89,10 @@ test("macOS chrome bridges into the horizontal navigation toolbar", async ({ pag
   await page.locator('[data-section="system"]').hover({ force: true });
   await page.waitForTimeout(180);
   const systemItems = page.locator('.nav-drawer[data-section="system"] .nav-drawer-item');
-  await expect(systemItems).toHaveCount(3);
+  // v3.2: +CLI 包 → 4 项
+  await expect(systemItems).toHaveCount(4);
   await expect(systemItems.nth(0)).toHaveAttribute("data-nav", "library");
-  await expect(systemItems.nth(1)).toHaveAttribute("data-nav", "diagnostics");
-  await expect(systemItems.nth(2)).toHaveAttribute("data-nav", "settings");
+  await expect(systemItems.nth(1)).toHaveAttribute("data-nav", "cli");
+  await expect(systemItems.nth(2)).toHaveAttribute("data-nav", "diagnostics");
+  await expect(systemItems.nth(3)).toHaveAttribute("data-nav", "settings");
 });
