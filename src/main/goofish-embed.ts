@@ -15,11 +15,9 @@
  *   - 本模块: 创建/附着/设界/显隐/导航 guest, 并把 URL 变化推回 renderer
  *
  * 后台消息 / 系统通知:
- *   - guest 必须常驻 (WS + 未读轮询), 不能只在闲鱼 tab 可见时才创建
- *   - 切走 tab / 启动 warm-start: 停到屏外 (park) 且 setVisible(true),
- *     避免 setVisible(false) 把渲染进程冻住 → 收不到新消息
- *   - 浮层遮挡: 仍 setVisible(false) 让 DOM 浮层盖住原生层 (短暂可接受)
- *   - 未读上涨且用户没在盯着嵌入页时发 Electron Notification
+ *   - guest warm-start 屏外保活（续 cookie / 浏览态）
+ *   - 未读通知改由 goofish/notify-service.ts 走 session.sync（协议层）
+ *   - 本模块 DOM/标题轮询仅作侧栏徽标兜底，不再弹系统通知
  *
  * 安全: guest 围栏 (弹窗全拒 + 导航白名单) 见 webview-guard.applyGoofishGuestFence;
  * 分区 session 加固 (UA 伪装 + 权限全拒) 见 webview-guard.hardenGoofishSession。
@@ -68,21 +66,17 @@ function pushUnread(unread: number): void {
   }
 }
 
-/** 采信未读变化: 首次只建基线; 之后上涨才通知 */
+/** 采信未读变化: 仅更新侧栏徽标。系统通知改由 goofish/notify-service（session.sync）负责。 */
 function applyUnread(unread: number, source: string): void {
   if (!unreadSeeded) {
     unreadSeeded = true;
     pushUnread(unread);
-    embedLog(`seed unread=${unread} (${source})`);
+    embedLog(`seed unread=${unread} (${source}) [badge-only]`);
     return;
   }
   if (unread === lastUnread) return;
-  const increased = unread > lastUnread;
-  embedLog(
-    "unread " + lastUnread + " -> " + unread + " (" + source + ")",
-  );
+  embedLog("unread " + lastUnread + " -> " + unread + " (" + source + ") [badge-only]");
   pushUnread(unread);
-  if (increased && unread > 0) maybeNotify(unread);
 }
 
 function parkOffscreen(): void {
@@ -96,70 +90,8 @@ function parkOffscreen(): void {
   }
 }
 
-/** 保活 Notification 引用, 防止 GC 导致横幅一闪就没 (Electron 文档要求) */
-const liveNotifications: electronType.Notification[] = [];
+// 系统通知已迁到 goofish/notify-service.ts（session.sync 协议层）
 
-/**
- * 未读上涨 → 系统通知 + 应用内 toast。
- * macOS 对前台应用经常不弹横幅 (只进通知中心), 所以同时推 renderer toast,
- * 行为对齐「检查更新有结果就告诉你」。
- */
-function maybeNotify(unread: number): void {
-  const body = `${unread} 条未读消息，点击查看`;
-  try {
-    const focused =
-      !!(attachedWin && !attachedWin.isDestroyed() && attachedWin.isFocused());
-    const { Notification, app } = require("electron") as typeof electronType;
-    if (!Notification || !Notification.isSupported || !Notification.isSupported()) {
-      embedLog("notify skipped: Notification.isSupported()=false");
-    } else {
-      const n = new Notification({
-        title: "闲鱼消息",
-        body,
-        silent: false,
-      });
-      liveNotifications.push(n);
-      if (liveNotifications.length > 8) liveNotifications.shift();
-      n.on("click", () => {
-        try {
-          if (attachedWin && !attachedWin.isDestroyed()) {
-            if (attachedWin.isMinimized()) attachedWin.restore();
-            attachedWin.show();
-            attachedWin.focus();
-            attachedWin.webContents.send("goofish:open-request");
-          }
-        } catch {
-          /* noop */
-        }
-      });
-      n.show();
-      embedLog(`notify shown: unread=${unread} focused=${focused}`);
-    }
-    // Dock 跳一下 — 前台被系统吞横幅时仍有存在感
-    try {
-      if (app && app.dock && typeof app.dock.bounce === "function") {
-        app.dock.bounce("informational");
-      }
-    } catch {
-      /* noop */
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    embedLog(`notify failed: ${msg}`);
-  }
-  // 应用内 toast (前台必达; 与系统通知并行)
-  try {
-    if (attachedWin && !attachedWin.isDestroyed()) {
-      attachedWin.webContents.send("goofish:alert", {
-        title: "闲鱼消息",
-        body,
-        unread,
-      });
-    }
-  } catch {
-    /* noop */
-  }
-}
 
 /** guest 页内轮询脚本: 每次先模拟一次「切回标签页」(visibilitychange + focus,
  *  闲鱼只在此时刷新未读数 — 用户 Chrome 实测), 800ms 后再读标题前缀 + 右侧栏
@@ -404,13 +336,32 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
  */
 export function goofishEmbedWarmStart(
   win: electronType.BrowserWindow | null,
-): void {
-  if (!win || win.isDestroyed()) return;
-  void (async () => {
+): Promise<void> {
+  if (!win || win.isDestroyed()) return Promise.resolve();
+  return (async () => {
     try {
       if (view) {
-        // 已创建 (用户先打开了闲鱼): 若当前没在看, 确保停靠存活
-        if (!userViewing) parkOffscreen();
+        // 已有 guest: 用户正在看则不乱动；否则停靠 + 轻刷续 cookie
+        if (userViewing) return;
+        parkOffscreen();
+        try {
+          const url = String(view.webContents.getURL() || "");
+          if (!url.includes("goofish.com")) {
+            await view.webContents.loadURL(GOOFISH_HOME);
+          } else {
+            view.webContents.reload();
+            await new Promise<void>((resolve) => {
+              const done = () => {
+                view?.webContents.removeListener("did-finish-load", done);
+                resolve();
+              };
+              view?.webContents.once("did-finish-load", done);
+              setTimeout(done, 8000);
+            });
+          }
+        } catch {
+          /* noop */
+        }
         return;
       }
       const { session } = require("electron") as typeof electronType;

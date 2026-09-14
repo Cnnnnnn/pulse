@@ -2,6 +2,14 @@
 
 ---
 
+## v3.3.1 (🐟 闲鱼未读改协议层通知) — 2026-09-14
+
+**🐟 闲鱼消息通知重构** — 与「检查更新」同构：自己拉完结果再弹系统通知
+
+- 新增 `goofish/notify-service`：定时调用 `mtop.taobao.idlemessage.pc.session.sync`，真人会话未读上涨 → `Electron.Notification` + 应用内 toast + 侧栏徽标
+- 登录态过期时 warm-start 刷新 cookie 后重试；DOM/标题轮询降级为徽标兜底，不再承担系统通知
+- 嵌入页仍负责浏览/登录；消息守护从「刮页面」改为「读会话接口」
+
 ## v3.3.0 (🐟 闲鱼 web 版嵌入: webview + 独立登录分区) — 2026-09-14
 
 **🐟 新模块「闲鱼」** — 娱乐区新入口，goofish.com 官方 web 版整体嵌入（webview，非 API 抓取），浏览/搜索/商品详情全功能可用
@@ -11,7 +19,7 @@
 - 架构: renderer `GoofishLayout` 只做占位容器（矩形量测 + 遮挡门控）+ 工具条；几何经 `goofish:sync`、导航经 `goofish:nav` IPC 驱动主进程；URL / 未读数变化由主进程推回
 - **浮层遮挡门控（快照冻结）**: WebContentsView 是原生层会盖住一切 DOM — 抽屉/弹窗压到嵌入框上时（`elementFromPoint` 采样命中 + body portal 扫描 + 300ms 漂移对账检测），先抓 guest 当前帧冻结为占位图、再隐藏原生视图让浮层正常显示；遮挡消失后无缝恢复实时画面
 - 快捷搜索: 页头工具条拼 `/search?q=` 直达搜索页；页头「✦ AI 助手 / 首页 / 刷新 / 外部打开」胶囊（嵌入页上悬浮球由原生层遮挡，入口移至页头）
-- **未读消息提示**: guest 标题前缀 `(N)` + 页内角标轮询 → 侧栏「闲鱼」徽标；未读上涨即发系统通知（与检查更新同一套 `Electron.Notification`，不因正在看闲鱼页而抑制），点击聚焦并切到闲鱼 tab。**已登录时启动 warm-start**：guest 屏外保活，不打开闲鱼页也能收消息弹通知
+- **未读消息提示**: **协议层** `mtop.taobao.idlemessage.pc.session.sync` 定时拉取（与检查更新同构：自己拉完再弹）→ 真人会话未读上涨发系统通知 + 应用内 toast；侧栏徽标同步。登录态过期会 warm-start 刷新 cookie。DOM/标题轮询仅作徽标兜底。已登录启动时 guest 屏外保活
 - UA 伪装标准 Chrome/macOS（去 Electron 标记），spike 全流程未触发阿里 baxia 风控滑块
 
 **🏠 首页双栏重设计 (Calm Pro 2.0)**

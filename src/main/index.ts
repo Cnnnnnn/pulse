@@ -341,16 +341,21 @@ function createMainWindow(runtimeConfig: any) {
       `state.json recovery pushed to renderer: reason=${evt.reason} backup=${evt.backup || "(none)"}`,
     );
   });
-  // 闲鱼: 已登录则预热 guest (屏外保活), 不打开 tab 也能收消息弹系统通知
+  // 闲鱼: 已登录则预热 guest (屏外保活) + 协议层未读通知 (session.sync)
   setTimeout(() => {
     try {
       const w = getWindow();
       if (!w || w.isDestroyed()) return;
       const { goofishEmbedWarmStart } = require("./goofish-embed.ts");
       goofishEmbedWarmStart(w);
+      const { startGoofishNotifyService } = require("./goofish/notify-service.ts");
+      startGoofishNotifyService({
+        getWindow,
+        refreshSession: (win: any) => goofishEmbedWarmStart(win),
+      });
     } catch (err: unknown) {
       mainLog.warn(
-        `[goofish-embed] warm-start hook failed: ${errMsg(err)}`,
+        `[goofish] warm-start/notify hook failed: ${errMsg(err)}`,
       );
     }
   }, 2500);
