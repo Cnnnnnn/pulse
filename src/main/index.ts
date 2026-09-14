@@ -348,10 +348,34 @@ function createMainWindow(runtimeConfig: any) {
       if (!w || w.isDestroyed()) return;
       const { goofishEmbedWarmStart } = require("./goofish-embed.ts");
       goofishEmbedWarmStart(w);
-      const { startGoofishNotifyService } = require("./goofish/notify-service.ts");
+      const { startGoofishNotifyService, defaultGoofishQuietHoursCheck } = require("./goofish/notify-service.ts");
       startGoofishNotifyService({
         getWindow,
         refreshSession: (win: any) => goofishEmbedWarmStart(win),
+        openIm: (win: any, url: string) => {
+          const { goofishEmbedNav } = require("./goofish-embed.ts");
+          goofishEmbedNav(win, {
+            action: "load",
+            url: url || "https://www.goofish.com/im",
+          });
+        },
+        isNotifyEnabled: () => {
+          try {
+            return stateStore.loadGoofishPrefs().notify_enabled !== false;
+          } catch {
+            return true;
+          }
+        },
+        isHumansOnly: () => {
+          try {
+            return stateStore.loadGoofishPrefs().humans_only !== false;
+          } catch {
+            return true;
+          }
+        },
+        isInQuietHours: defaultGoofishQuietHoursCheck(
+          () => runtimeConfigRef.current || {},
+        ),
       });
     } catch (err: unknown) {
       mainLog.warn(

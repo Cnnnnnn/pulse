@@ -33,7 +33,7 @@ import {
   setThemePreference,
   subscribeTheme,
 } from "../theme/theme-manager.ts";
-import { showToast } from "../store.ts";
+import { showToast } from "../store/toast-store.ts";
 import type { SelfUpdateState, ThemeMode, RecentActivityEntry, Reminder } from "../../shared/ipc-contracts";
 import {
   loadGithubSettings,
@@ -42,6 +42,13 @@ import {
   githubAutoCheckIntervalMin, setGithubAutoCheckInterval,
   githubNotifyOnNew, setGithubNotifyOnNew,
 } from "../store/github-projects-store.ts";
+import {
+  goofishNotifyEnabled,
+  goofishHumansOnly,
+  setGoofishNotifyEnabled,
+  setGoofishHumansOnly,
+} from "../goofish/store.ts";
+import { api } from "../api.ts";
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
 //           变化, 防止 main 进程 / 其它 renderer 改主题时 signal 跟 UI 脱节.
 const themeMode = signal(getThemePreference());
@@ -594,6 +601,103 @@ function GithubSettingsSection() {
   );
 }
 
+function GoofishSettingsSection() {
+  return (
+    <section class="settings-card" aria-labelledby="settings-goofish-title">
+      <h3 class="settings-card__title" id="settings-goofish-title">
+        闲鱼消息
+      </h3>
+      <p class="settings-card__intro">
+        通过会话接口检查未读；有新消息时发系统通知和应用内提示。
+        闲鱼页内官方长连会即时唤醒检查；全局免打扰时段内不弹通知。
+        连续通知默认至少间隔约 90 秒，避免刷屏。
+      </p>
+      <div class="settings-control-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">收到消息时桌面通知</span>
+          <span class="settings-row__hint">
+            关闭后仍更新侧栏徽标，不再弹系统通知与 toast。
+          </span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={goofishNotifyEnabled.value}
+          aria-label="闲鱼消息桌面通知"
+          class={`settings-switch ${goofishNotifyEnabled.value ? "is-on" : ""}`}
+          onClick={() => {
+            void setGoofishNotifyEnabled(!goofishNotifyEnabled.value).then((ok) => {
+              if (ok) showToast(goofishNotifyEnabled.value ? "已开启闲鱼通知" : "已关闭闲鱼通知", "success", 1800);
+            });
+          }}
+        >
+          <span class="settings-switch__thumb" />
+        </button>
+      </div>
+      <div class="settings-control-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">仅提醒真人买家</span>
+          <span class="settings-row__hint">
+            开启后侧栏徽标与通知忽略官方/营销会话，点击通知会尽量直达对应聊天。
+          </span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={goofishHumansOnly.value}
+          aria-label="仅提醒真人买家"
+          class={`settings-switch ${goofishHumansOnly.value ? "is-on" : ""}`}
+          onClick={() => {
+            void setGoofishHumansOnly(!goofishHumansOnly.value).then((ok) => {
+              if (ok) {
+                showToast(
+                  goofishHumansOnly.value ? "仅提醒真人买家" : "包含全部会话未读",
+                  "success",
+                  1800,
+                );
+              }
+            });
+          }}
+        >
+          <span class="settings-switch__thumb" />
+        </button>
+      </div>
+      <div class="settings-control-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">立即检查未读</span>
+          <span class="settings-row__hint">手动拉一次会话列表，用于确认登录与通知链路。</span>
+        </div>
+        <button
+          type="button"
+          class="settings-btn settings-btn--ghost"
+          onClick={() => {
+            if (typeof api.goofishCheckNow !== "function") return;
+            api
+              .goofishCheckNow()
+              .then((r: { ok?: boolean; auth?: string; reason?: string }) => {
+                if (r && r.ok) {
+                  const auth = r.auth || "unknown";
+                  showToast(
+                    auth === "ok"
+                      ? "闲鱼同步完成"
+                      : `闲鱼状态：${auth}`,
+                    auth === "ok" ? "success" : "warn",
+                    2200,
+                  );
+                } else {
+                  showToast(`检查失败：${(r && r.reason) || "unknown"}`, "error", 2500);
+                }
+              })
+              .catch(() => showToast("检查失败", "error", 2000));
+          }}
+        >
+          检查
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function PulseAboutSection() {
   const [version, setVersion] = useState("");
   const [updateState, setUpdateState] = useState<SelfUpdateState | null>(null);
@@ -887,6 +991,8 @@ export function SettingsPage() {
             </section>
 
             <TmdbSettingsSection />
+
+            <GoofishSettingsSection />
 
             <PulseAboutSection />
 

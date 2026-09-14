@@ -394,13 +394,20 @@ export const api = {
   goofishNav: (payload: IpcChannelMap["goofish:nav"]["args"][0]) =>
     invokeChannel("goofish:nav", payload),
   goofishSnapshot: () => invokeChannel("goofish:snapshot"),
+  goofishGetPrefs: () => invokeChannel("goofish:get-prefs"),
+  goofishSetPrefs: (patch: IpcChannelMap["goofish:set-prefs"]["args"][0]) =>
+    invokeChannel("goofish:set-prefs", patch),
+  goofishCheckNow: () => invokeChannel("goofish:check-now"),
+  goofishGetAuth: () => invokeChannel("goofish:get-auth"),
   onGoofishUrl: (cb: Callback<string>) => subscribe("goofish:url", cb),
   onGoofishUnread: (cb: Callback<number>) => subscribe("goofish:unread", cb),
-  onGoofishOpenRequest: (cb: Callback<void>) =>
-    subscribeVoid("goofish:open-request", cb as () => void),
+  onGoofishOpenRequest: (cb: Callback<{ url?: string }>) =>
+    subscribe("goofish:open-request", cb),
   onGoofishAlert: (
-    cb: Callback<{ title?: string; body?: string; unread?: number }>,
+    cb: Callback<{ title?: string; body?: string; unread?: number; url?: string }>,
   ) => subscribe("goofish:alert", cb),
+  onGoofishAuth: (cb: Callback<{ status: string }>) =>
+    subscribe("goofish:auth", cb),
 
   // 微信热搜 (v2.24)
   wechatHotLoad: () => invokeChannel("wechat-hot:load"),

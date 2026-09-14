@@ -22,6 +22,8 @@ export type GoofishChatSession = {
   sessionType: number;
   peerNick: string;
   peerUserId: string;
+  /** 关联商品（有则可用于 IM 深链） */
+  itemId: string;
   unread: number;
   lastMsg: string;
   ts: number;
@@ -71,11 +73,25 @@ export function summarizeSessions(rawSessions: unknown[]): {
     const summary = (row.message && row.message.summary) || {};
     const unread = Number(summary.unread) || 0;
     const sessionType = Number(session.sessionType) || 0;
+    const ext =
+      (session.extension && typeof session.extension === "object"
+        ? session.extension
+        : null) ||
+      (row.extension && typeof row.extension === "object" ? row.extension : null) ||
+      {};
+    const itemId = String(
+      session.itemId ||
+        (ext as any).itemId ||
+        (row.item && row.item.itemId) ||
+        (row.item && row.item.id) ||
+        "",
+    );
     const parsed: GoofishChatSession = {
       sessionId: String(session.sessionId || ""),
       sessionType,
       peerNick: String(user.nick || user.fishNick || ""),
-      peerUserId: String(user.userId || ""),
+      peerUserId: String(user.userId || user.peerUserId || ""),
+      itemId,
       unread,
       lastMsg: String(summary.summary || ""),
       ts: Number(summary.ts) || 0,
@@ -86,6 +102,52 @@ export function summarizeSessions(rawSessions: unknown[]): {
     if (sessionType === 1) humanUnread += unread;
   }
   return { sessions, humanUnread, allUnread };
+}
+
+/**
+ * 通知文案：优先展示「有未读」会话里最新一条（可限真人）。
+ * 例: "买家A：在吗（共 3 条未读）"
+ */
+export function formatNotifyBody(
+  sessions: GoofishChatSession[],
+  unreadTotal: number,
+  opts?: { humansOnly?: boolean },
+): string {
+  const humansOnly = opts?.humansOnly !== false;
+  const top = pickTopUnreadSession(sessions, humansOnly);
+  const total = Math.max(0, Number(unreadTotal) || 0);
+  if (!top) {
+    return total > 0 ? `${total} 条未读消息，点击查看` : "有新消息，点击查看";
+  }
+  const nick = (top.peerNick || "买家").slice(0, 16);
+  const msg = (top.lastMsg || "").replace(/\s+/g, " ").trim().slice(0, 36);
+  const head = msg ? `${nick}：${msg}` : `${nick} 发来新消息`;
+  if (total <= 1) return head;
+  return `${head}（共 ${total} 条未读）`;
+}
+
+/** 有未读会话里取最新一条；humansOnly 时仅 sessionType=1 */
+export function pickTopUnreadSession(
+  sessions: GoofishChatSession[],
+  humansOnly = true,
+): GoofishChatSession | null {
+  const list = (sessions || [])
+    .filter((s) => s.unread > 0 && (!humansOnly || s.sessionType === 1))
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  return list[0] || null;
+}
+
+/**
+ * IM 深链：有 peerUserId 时直达会话；缺省回列表。
+ * 形如 /im?peerUserId=…&itemId=…
+ */
+export function buildImDeepLink(session: GoofishChatSession | null | undefined): string {
+  const base = "https://www.goofish.com/im";
+  if (!session || !session.peerUserId) return base;
+  const u = new URL(base);
+  u.searchParams.set("peerUserId", session.peerUserId);
+  if (session.itemId) u.searchParams.set("itemId", session.itemId);
+  return u.toString();
 }
 
 function classifyRet(ret: unknown): "ok" | "auth_expired" | "risk" | "unknown" {

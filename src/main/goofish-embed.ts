@@ -16,8 +16,9 @@
  *
  * 后台消息 / 系统通知:
  *   - guest warm-start 屏外保活（续 cookie / 浏览态）
- *   - 未读通知改由 goofish/notify-service.ts 走 session.sync（协议层）
- *   - 本模块 DOM/标题轮询仅作侧栏徽标兜底，不再弹系统通知
+ *   - 未读徽标与系统通知由 goofish/notify-service.ts 走 session.sync（协议层独占）
+ *   - guest 内钩住官方 IM WebSocket 作门铃 → 防抖触发 sync（近实时）
+ *   - 本模块不再做 title/DOM 未读轮询，避免双写抢徽标
  *
  * 安全: guest 围栏 (弹窗全拒 + 导航白名单) 见 webview-guard.applyGoofishGuestFence;
  * 分区 session 加固 (UA 伪装 + 权限全拒) 见 webview-guard.hardenGoofishSession。
@@ -34,10 +35,7 @@ const PARK_BOUNDS = { x: -12000, y: 0, width: 1280, height: 800 };
 let view: electronType.WebContentsView | null = null;
 let attachedWin: electronType.BrowserWindow | null = null;
 let loggedFirstSync = false;
-let lastUnread = 0;
-/** 首次采信的未读只作基线, 不弹通知 (避免每次启动对存量未读刷屏) */
-let unreadSeeded = false;
-/** 用户正在看嵌入页 (tab 可见且未被浮层遮挡) — 此时不弹系统通知 */
+/** 用户正在看嵌入页 (tab 可见且未被浮层遮挡) */
 let userViewing = false;
 
 function embedLog(msg: string): void {
@@ -49,34 +47,10 @@ function embedLog(msg: string): void {
   }
 }
 
-/** 闲鱼 web 端未读数走标题前缀: "(2) 闲鱼 - ..." / "（3）..." / "【1】..." */
+/** 闲鱼 web 端未读数走标题前缀: "(2) 闲鱼 - ..." / "（3）..." / "【1】..."（单测保留） */
 export function parseUnreadFromTitle(title: unknown): number {
   const m = String(title ?? "").match(/^\s*[(（【]\s*(\d+)\s*[)）】]/);
   return m ? parseInt(m[1], 10) || 0 : 0;
-}
-
-function pushUnread(unread: number): void {
-  lastUnread = unread;
-  try {
-    if (attachedWin && !attachedWin.isDestroyed()) {
-      attachedWin.webContents.send("goofish:unread", unread);
-    }
-  } catch {
-    /* noop */
-  }
-}
-
-/** 采信未读变化: 仅更新侧栏徽标。系统通知改由 goofish/notify-service（session.sync）负责。 */
-function applyUnread(unread: number, source: string): void {
-  if (!unreadSeeded) {
-    unreadSeeded = true;
-    pushUnread(unread);
-    embedLog(`seed unread=${unread} (${source}) [badge-only]`);
-    return;
-  }
-  if (unread === lastUnread) return;
-  embedLog("unread " + lastUnread + " -> " + unread + " (" + source + ") [badge-only]");
-  pushUnread(unread);
 }
 
 function parkOffscreen(): void {
@@ -88,115 +62,6 @@ function parkOffscreen(): void {
   } catch {
     /* noop */
   }
-}
-
-// 系统通知已迁到 goofish/notify-service.ts（session.sync 协议层）
-
-
-/** guest 页内轮询脚本: 每次先模拟一次「切回标签页」(visibilitychange + focus,
- *  闲鱼只在此时刷新未读数 — 用户 Chrome 实测), 800ms 后再读标题前缀 + 右侧栏
- *  「消息」角标数。右侧栏特征 = 消息元素向上 4 层内存在同时含「发闲置」的祖先
- *  容器, 防止在 IM 页等其它含「消息」文案的界面误匹配聊天列表数字。 */
-const UNREAD_PROBE = `(() => new Promise((resolve) => {
-  try {
-    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
-    Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
-    window.dispatchEvent(new Event('focus'));
-  } catch (e) {}
-  setTimeout(() => {
-    const t = String(document.title || '');
-    const m = t.match(/^\\s*[(（【]\\s*(\\d+)/);
-    const titleCount = m ? parseInt(m[1], 10) || 0 : 0;
-    let railCount = 0;
-    for (const n of document.querySelectorAll('div,span,a')) {
-      if (n.childElementCount !== 0) continue;
-      if ((n.textContent || '').trim() !== '消息') continue;
-      let p = n.parentElement;
-      let hit = false;
-      for (let i = 0; i < 4 && p; i++, p = p.parentElement) {
-        if ((p.textContent || '').indexOf('发闲置') === -1) continue;
-        hit = true;
-        const b = p.querySelector('[class*="badge" i], [class*="count" i], [class*="red" i], [class*="num" i]');
-        if (b) {
-          const v = parseInt((b.textContent || '').trim(), 10);
-          if (!Number.isNaN(v) && v > 0) railCount = v;
-        }
-        break;
-      }
-      if (hit) break;
-    }
-    // IM 探针页 (隐藏 iframe /im): 会话角标求和 = 未读消息总数, 同会话多条也会涨
-    let imSum = 0;
-    let imSeen = 0;
-    try {
-      const f = document.getElementById('gf-im-probe');
-      const d = f && f.contentDocument;
-      if (d && d.body) {
-        Object.defineProperty(d, 'hidden', { get: () => false, configurable: true });
-        Object.defineProperty(d, 'visibilityState', { get: () => 'visible', configurable: true });
-        d.dispatchEvent(new Event('visibilitychange'));
-        d.querySelectorAll('[class*="badge" i], [class*="count" i], [class*="red" i], [class*="num" i]').forEach((b) => {
-          const v = parseInt((b.textContent || '').trim(), 10);
-          if (!Number.isNaN(v) && v > 0 && v <= 99) { imSum += v; imSeen++; }
-        });
-      }
-    } catch (e) {}
-    resolve(JSON.stringify({ t: titleCount, r: railCount, m: imSeen > 0 ? imSum : -1 }));
-  }, 800);
-}))()`;
-
-let unreadPollTimer: ReturnType<typeof setInterval> | null = null;
-let pendingUnread: number | null = null;
-
-/**
- * 每 5s 轮询 guest 未读 (标题 + 页内角标取大), 变化时推送徽标并按需通知。
- * 防抖: 选择器宽松 (class 模糊匹配), 需要 连续两次轮询一致 才采信, 且 99 封顶
- * (更大数值几乎必然是页内其它数字元素被误匹配)。
- */
-function startUnreadPoll(): void {
-  if (unreadPollTimer) return;
-  unreadPollTimer = setInterval(() => {
-    try {
-      if (!view || !attachedWin || attachedWin.isDestroyed()) return;
-      void view.webContents
-        .executeJavaScript(UNREAD_PROBE, true)
-        .then((raw: unknown) => {
-          let titleCount = 0;
-          let railCount = 0;
-          let imSum = -1; // -1 = IM 探针页未就绪
-          try {
-            const parsed = JSON.parse(String(raw));
-            titleCount = Number(parsed.t) || 0;
-            railCount = Number(parsed.r) || 0;
-            if (parsed.m !== undefined && parsed.m !== null) {
-              imSum = Number(parsed.m);
-            }
-          } catch {
-            return;
-          }
-          if (railCount > 99) railCount = 99;
-          const imCount = imSum >= 0 ? Math.min(imSum, 999) : 0;
-          const unread = Math.max(titleCount, railCount, imCount);
-          if (unread === lastUnread && unreadSeeded) {
-            pendingUnread = null;
-            return;
-          }
-          if (unread !== pendingUnread) {
-            pendingUnread = unread; // 第一次见到该值, 等下一轮确认
-            return;
-          }
-          pendingUnread = null;
-          applyUnread(
-            unread,
-            "poll title=" + titleCount + " rail=" + railCount + " im=" + imSum,
-          );
-        })
-        .catch(() => {});
-    } catch {
-      /* noop */
-    }
-  }, 5000);
 }
 
 function isSafeGoofishLoadUrl(raw: unknown): boolean {
@@ -221,26 +86,80 @@ const VISIBILITY_SPOOF = `(() => {
 })()`;
 
 /**
- * 注入隐藏 IM 探针页: 同源 iframe 加载 /im 会话列表 (1280px 桌面布局, 移出视口)。
- * 未读消息总数 = 会话列表里每个会话角标之和 — 右侧栏角标只数会话, 同一会话里
- * 再来消息不会 +1, 逐条通知必须靠这里。
+ * 钩住官方 IM WebSocket：有流量就 console 打标，主进程防抖后 session.sync。
+ * 不解析协议、不代发消息 —— 复用页面已建好的长连当「门铃」。
  */
-const IM_FRAME_INJECT = `(() => {
-  if (window.__gfImFrame || location.pathname === '/im') return;
-  window.__gfImFrame = true;
-  const f = document.createElement('iframe');
-  f.id = 'gf-im-probe';
-  f.src = 'https://www.goofish.com/im';
-  f.style.cssText = 'position:fixed;left:-9999px;top:0;width:1280px;height:800px;border:0;opacity:0;pointer-events:none;';
-  f.addEventListener('load', () => {
+const WS_WAKE_HOOK = `(() => {
+  if (window.__gfWsWakeHook) return;
+  window.__gfWsWakeHook = true;
+  const Orig = window.WebSocket;
+  if (!Orig) return;
+  function Wrapped(url, protocols) {
+    const ws = protocols !== undefined ? new Orig(url, protocols) : new Orig(url);
     try {
-      const d = f.contentDocument;
-      Object.defineProperty(d, 'hidden', { get: () => false, configurable: true });
-      Object.defineProperty(d, 'visibilityState', { get: () => 'visible', configurable: true });
+      const u = String(url || '');
+      if (/goofish|dingtalk/i.test(u)) {
+        ws.addEventListener('message', function () {
+          var now = Date.now();
+          if (window.__gfWsLast && now - window.__gfWsLast < 1500) return;
+          window.__gfWsLast = now;
+          console.info('__GOOFISH_WS__');
+        });
+      }
     } catch (e) {}
-  });
-  (document.body || document.documentElement).appendChild(f);
+    return ws;
+  }
+  Wrapped.prototype = Orig.prototype;
+  Wrapped.CONNECTING = Orig.CONNECTING;
+  Wrapped.OPEN = Orig.OPEN;
+  Wrapped.CLOSING = Orig.CLOSING;
+  Wrapped.CLOSED = Orig.CLOSED;
+  window.WebSocket = Wrapped;
 })()`;
+
+function installGuestWakeBridge(wc: electronType.WebContents): void {
+  const inject = () => {
+    try {
+      void wc.executeJavaScript(VISIBILITY_SPOOF + WS_WAKE_HOOK, true).catch(() => {});
+    } catch {
+      /* noop */
+    }
+  };
+  wc.on("dom-ready", inject);
+  // 尽量赶在页面脚本建连前注入
+  try {
+    if (!wc.debugger.isAttached()) {
+      wc.debugger.attach("1.3");
+    }
+    void wc.debugger
+      .sendCommand("Page.enable")
+      .then(() =>
+        wc.debugger.sendCommand("Page.addScriptToEvaluateOnNewDocument", {
+          source: VISIBILITY_SPOOF + WS_WAKE_HOOK,
+        }),
+      )
+      .catch(() => {
+        /* 无 debugger 权限时靠 dom-ready */
+      });
+  } catch {
+    /* noop */
+  }
+  wc.on("console-message", (...args: any[]) => {
+    try {
+      let msg = "";
+      if (args[0] && typeof args[0] === "object" && args[0].message != null) {
+        msg = String(args[0].message);
+      } else if (typeof args[2] === "string") {
+        msg = args[2];
+      }
+      if (!msg.includes("__GOOFISH_WS__")) return;
+      const { goofishNotifyOnWsWake } = require("./goofish/notify-service.ts");
+      goofishNotifyOnWsWake();
+    } catch {
+      /* noop */
+    }
+  });
+}
 
 function ensureView(win: electronType.BrowserWindow): electronType.WebContentsView | null {
   try {
@@ -261,6 +180,7 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       const { applyGoofishGuestFence } = require("./webview-guard.ts");
       applyGoofishGuestFence(view.webContents);
       view.webContents.setBackgroundThrottling(false);
+      installGuestWakeBridge(view.webContents);
       // 推送走模块级 attachedWin (窗口重建后仍指向当前窗口)
       const onNav = (_e: unknown, url: unknown) => {
         if (attachedWin && !attachedWin.isDestroyed()) {
@@ -273,22 +193,8 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       };
       view.webContents.on("did-navigate", onNav);
       view.webContents.on("did-navigate-in-page", onNav);
-      // 每个新文档注入可见性伪装 + IM 探针页 (dom-ready 每次导航都会触发)
-      view.webContents.on("dom-ready", () => {
-        try {
-          void view?.webContents.executeJavaScript(
-            VISIBILITY_SPOOF + IM_FRAME_INJECT,
-            true,
-          ).catch(() => {});
-        } catch {
-          /* noop */
-        }
-      });
-      // 未读消息: 闲鱼 web 端把未读数写在 document.title 前缀里, 解析后
-      // 推给 renderer (侧栏徽标) + 需要时发系统通知
-      view.webContents.on("page-title-updated", (_e, title) => {
-        applyUnread(parseUnreadFromTitle(title), "title");
-      });
+      // 未读徽标 / 系统通知改由 goofish/notify-service（session.sync）独占，
+      // guest 内官方 WS 仅作门铃（见 installGuestWakeBridge）。
       // 首次创建即加载首页 — 视图没有 src 概念, 不主动 load 就是白板
       embedLog("guest view created, loading home");
       // 先停靠屏外, 等 goofish:sync 给真实矩形再亮出来 — 避免 warm-start / 创建瞬间闪屏
@@ -297,7 +203,6 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
         .loadURL(GOOFISH_HOME)
         .then(() => embedLog("guest home loaded"))
         .catch(() => {});
-      startUnreadPoll();
       view.webContents.on("did-fail-load", (_e, code, desc, url) => {
         if (code === -3) return; // ERR_ABORTED: 导航被打断, 非错误
         try {
@@ -489,15 +394,8 @@ export function goofishEmbedHide(): void {
 
 /** 测试专用: 重置模块态 */
 export function __resetGoofishEmbedForTest(): void {
-  lastUnread = 0;
-  pendingUnread = null;
-  unreadSeeded = false;
   userViewing = false;
   loggedFirstSync = false;
-  if (unreadPollTimer) {
-    clearInterval(unreadPollTimer);
-    unreadPollTimer = null;
-  }
   view = null;
   attachedWin = null;
 }

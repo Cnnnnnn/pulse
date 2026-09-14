@@ -4,8 +4,10 @@
  * 闲鱼嵌入 (v3.3) IPC: renderer 侧 GoofishLayout 驱动主进程 WebContentsView。
  *
  * Channels:
- *   goofish:sync — 嵌入区几何 + 可见性同步 (ResizeObserver / 挂卸载驱动)
- *   goofish:nav  — 导航指令 (home / reload / load, load 限 goofish.com 域)
+ *   goofish:sync / nav / snapshot — 嵌入几何与导航
+ *   goofish:get-prefs / set-prefs — 通知开关
+ *   goofish:check-now — 立即 session.sync
+ *   goofish:get-auth — 当前登录探测状态
  */
 
 import type { BrowserWindow } from "electron";
@@ -24,6 +26,11 @@ export function registerGoofishHandlers(ctx: any) {
   const { goofishEmbedSync, goofishEmbedNav, goofishEmbedSnapshot } = require(
     "../goofish-embed.ts",
   );
+  const { loadGoofishPrefs, saveGoofishPrefs } = require("../state-store.ts");
+  const {
+    goofishNotifyTickNow,
+    getGoofishAuthStatus,
+  } = require("../goofish/notify-service.ts");
 
   const winOf = (evt: any): BrowserWindow | null => {
     try {
@@ -69,5 +76,47 @@ export function registerGoofishHandlers(ctx: any) {
     } catch {
       return { ok: false };
     }
+  });
+
+  safeHandle("goofish:get-prefs", async (): Promise<
+    IpcChannelMap["goofish:get-prefs"]["result"]
+  > => {
+    try {
+      return { ok: true, prefs: loadGoofishPrefs() };
+    } catch (err: unknown) {
+      return { ok: false, reason: errMsg(err) };
+    }
+  });
+
+  safeHandle(
+    "goofish:set-prefs",
+    async (
+      _evt: any,
+      patch: IpcChannelMap["goofish:set-prefs"]["args"][0],
+    ): Promise<IpcChannelMap["goofish:set-prefs"]["result"]> => {
+      try {
+        saveGoofishPrefs(patch || {});
+        return { ok: true, prefs: loadGoofishPrefs() };
+      } catch (err: unknown) {
+        return { ok: false, reason: errMsg(err) };
+      }
+    },
+  );
+
+  safeHandle("goofish:check-now", async (): Promise<
+    IpcChannelMap["goofish:check-now"]["result"]
+  > => {
+    try {
+      await goofishNotifyTickNow();
+      return { ok: true, auth: getGoofishAuthStatus() };
+    } catch (err: unknown) {
+      return { ok: false, reason: errMsg(err) };
+    }
+  });
+
+  safeHandle("goofish:get-auth", async (): Promise<
+    IpcChannelMap["goofish:get-auth"]["result"]
+  > => {
+    return { ok: true, status: getGoofishAuthStatus() };
   });
 }

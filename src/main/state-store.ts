@@ -302,6 +302,7 @@ const PRESERVE_FIELDS = [
   { key: "github_releases_digest", kind: "object", notArray: true }, // v3.1: 早报 GitHub 收录更新 { items, ts } (register-briefing ingest 写入)
   { key: "wechatHot", kind: "object", notArray: true }, // v3.1: 微博热搜快照落盘 { items, fetchedAt, source } (register-wechat-hot 写入)
   { key: "cli_packages", kind: "object", notArray: true }, // v3.2: CLI 包扫描 { items, ignored, errors, checkedAt } (cli-packages service 写入)
+  { key: "goofish", kind: "object", notArray: true }, // v3.3.x: { notify_enabled, humans_only }
 ];
 const PRESERVE_KEYS = new Set(PRESERVE_FIELDS.map((spec: any) => spec.key));
 const RETIRED_KEYS = new Set([
@@ -1189,6 +1190,51 @@ export function saveCliPackages(data: any, statePath = defaultPath()) {
       errors: Array.isArray(data.errors) ? data.errors.slice(0, 10) : [],
       checkedAt: typeof data.checkedAt === "number" ? data.checkedAt : 0,
     };
+  }, statePath);
+}
+
+/** v3.3.x: 闲鱼偏好 { notify_enabled, humans_only } — 默认均开 */
+export function loadGoofishPrefs(statePath = defaultPath()): {
+  notify_enabled: boolean;
+  humans_only: boolean;
+} {
+  const s = load(statePath);
+  const def = { notify_enabled: true, humans_only: true };
+  if (!s || !s.goofish || typeof s.goofish !== "object" || Array.isArray(s.goofish)) {
+    return def;
+  }
+  return {
+    notify_enabled:
+      typeof s.goofish.notify_enabled === "boolean"
+        ? s.goofish.notify_enabled
+        : def.notify_enabled,
+    humans_only:
+      typeof s.goofish.humans_only === "boolean"
+        ? s.goofish.humans_only
+        : def.humans_only,
+  };
+}
+
+export function saveGoofishPrefs(
+  patch: { notify_enabled?: boolean; humans_only?: boolean },
+  statePath = defaultPath(),
+) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
+    throw new TypeError("saveGoofishPrefs: patch must be plain object");
+  }
+  return patchState((next: any, existing: any) => {
+    const prev =
+      existing.goofish && typeof existing.goofish === "object"
+        ? existing.goofish
+        : {};
+    const merged = { ...prev };
+    if (typeof patch.notify_enabled === "boolean") {
+      merged.notify_enabled = patch.notify_enabled;
+    }
+    if (typeof patch.humans_only === "boolean") {
+      merged.humans_only = patch.humans_only;
+    }
+    next.goofish = merged;
   }, statePath);
 }
 
@@ -2186,6 +2232,9 @@ module.exports = {
   saveWechatHotSnapshot,
   // v3.2: CLI 包扫描结果
   saveCliPackages,
+  // v3.3.1: 闲鱼通知偏好
+  loadGoofishPrefs,
+  saveGoofishPrefs,
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,

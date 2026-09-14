@@ -1225,6 +1225,25 @@ export interface GoofishSnapshotResponse {
   dataUrl?: string;
 }
 
+export interface GoofishPrefs {
+  notify_enabled: boolean;
+  /** 仅真人会话计入徽标与通知（默认 true） */
+  humans_only: boolean;
+}
+
+export interface GoofishPrefsResponse {
+  ok: boolean;
+  prefs?: GoofishPrefs;
+  reason?: string;
+}
+
+export interface GoofishAuthResponse {
+  ok: boolean;
+  status?: string;
+  reason?: string;
+  auth?: string;
+}
+
 export interface OpenUrlApiContract {
   openUrl(url: string): Promise<OpenUrlResponse>;
 }
@@ -3050,6 +3069,13 @@ export interface IpcChannelMap {
   "goofish:sync": { args: [payload: GoofishSyncPayload]; result: GoofishAckResponse };
   "goofish:nav": { args: [payload: GoofishNavPayload]; result: GoofishAckResponse };
   "goofish:snapshot": { args: []; result: GoofishSnapshotResponse };
+  "goofish:get-prefs": { args: []; result: GoofishPrefsResponse };
+  "goofish:set-prefs": {
+    args: [patch: Partial<GoofishPrefs>];
+    result: GoofishPrefsResponse;
+  };
+  "goofish:check-now": { args: []; result: GoofishAuthResponse };
+  "goofish:get-auth": { args: []; result: GoofishAuthResponse };
   "get-mutes": { args: []; result: MutesResponse };
   "set-mute": { args: [name: string, durationSec: number]; result: MuteMutationResponse };
   "clear-mute": { args: [name: string]; result: MuteMutationResponse };

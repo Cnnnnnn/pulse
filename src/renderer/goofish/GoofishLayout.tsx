@@ -23,8 +23,27 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import "./goofish.css";
 import { api } from "../api.ts";
 import { toggleGlobalChat } from "../assistant/assistant-store.ts";
+import { goofishAuthStatus } from "./store.ts";
 
 const GOOFISH_HOME = "https://www.goofish.com/";
+const GOOFISH_IM = "https://www.goofish.com/im";
+
+function authLabel(status: string): { text: string; tone: string } {
+  switch (status) {
+    case "ok":
+      return { text: "已登录", tone: "ok" };
+    case "logged_out":
+      return { text: "未登录 · 请扫码", tone: "warn" };
+    case "auth_expired":
+      return { text: "登录过期 · 请重新扫码", tone: "warn" };
+    case "risk":
+      return { text: "风控拦截", tone: "err" };
+    case "error":
+      return { text: "同步异常", tone: "err" };
+    default:
+      return { text: "检测登录中…", tone: "muted" };
+  }
+}
 
 interface Rect {
   x: number;
@@ -197,18 +216,48 @@ export function GoofishLayout(_props: { onCheck?: () => void }) {
     }
   };
 
+  useEffect(() => {
+    // 进入闲鱼页：对齐一次未读 + 拉 auth
+    if (typeof api.goofishCheckNow === "function") {
+      api.goofishCheckNow().catch(() => {});
+    }
+    return undefined;
+  }, []);
+
+  const reLogin = () => {
+    api.goofishNav({ action: "home" }).catch(() => {});
+  };
+
+  const openIm = () => {
+    api.goofishNav({ action: "load", url: GOOFISH_IM }).catch(() => {});
+  };
+
+  const auth = authLabel(goofishAuthStatus.value);
+
   return (
     <div class="goofish-layout">
       <div class="goofish-header">
         <div class="goofish-header__left">
           <div class="goofish-header__title">
             闲鱼
+            <span class={`goofish-header__auth goofish-header__auth--${auth.tone}`}>
+              {auth.text}
+            </span>
             <span class="goofish-header__meta">
-              web 版嵌入 · 首次使用在页面内扫码登录，登录态本机保留
+              web 版嵌入 · 消息通知走会话接口，登录态本机保留
             </span>
           </div>
         </div>
         <div class="goofish-header__actions">
+          {(goofishAuthStatus.value === "auth_expired" ||
+            goofishAuthStatus.value === "logged_out") && (
+            <button class="goofish-btn goofish-btn--accent" onClick={reLogin} title="打开首页重新扫码登录">
+              重新登录
+            </button>
+          )}
+          <button class="goofish-btn" onClick={openIm} title="打开消息列表">
+            消息
+          </button>
           <button
             class="goofish-btn"
             onClick={() => toggleGlobalChat()}

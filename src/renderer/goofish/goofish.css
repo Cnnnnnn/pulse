@@ -39,10 +39,38 @@
   letter-spacing: 0;
   color: var(--gray-500, #6e6e73);
 }
+.goofish-header__auth {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0;
+}
+.goofish-header__auth--ok {
+  color: #1a7f37;
+  background: color-mix(in oklch, #1a7f37 12%, transparent);
+}
+.goofish-header__auth--warn {
+  color: #9a6700;
+  background: color-mix(in oklch, #ffe600 35%, transparent);
+}
+.goofish-header__auth--err {
+  color: #cf222e;
+  background: color-mix(in oklch, #cf222e 12%, transparent);
+}
+.goofish-header__auth--muted {
+  color: var(--gray-500, #6e6e73);
+  background: color-mix(in oklch, var(--gray-200) 60%, transparent);
+}
 .goofish-header__actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+.goofish-btn--accent {
+  background: var(--goofish-accent, #ffe600);
+  color: #1d1d1f;
+  font-weight: 600;
 }
 
 /* ── 按钮（胶囊，同 vault-btn）── */

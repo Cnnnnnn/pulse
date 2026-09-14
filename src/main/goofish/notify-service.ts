@@ -2,27 +2,56 @@
  * src/main/goofish/notify-service.ts
  *
  * 闲鱼未读通知服务（协议层）:
- *   定时调 session.sync → 未读上涨 → Electron.Notification + goofish:alert toast
+ *   定时 / WS 唤醒 → session.sync → 未读上涨 → Notification + toast
  *   与「检查更新」同构：自己拉完结果再弹，不刮 DOM。
  *
- * 登录态过期时请求 embed warm/refresh 一次再重试。
+ * P2: guest 内官方 WS 唤醒即时 sync；通知冷却 + 全局免打扰时段。
  * 只读，不发送消息。
  */
 
 import type * as electronType from "electron";
-import { fetchSessionSync } from "./mtop-session.ts";
+import {
+  buildImDeepLink,
+  fetchSessionSync,
+  formatNotifyBody,
+  pickTopUnreadSession,
+  type GoofishChatSession,
+  type SessionSyncResult,
+} from "./mtop-session.ts";
+import { inQuietHours } from "../notification-policy.ts";
+
+export type GoofishAuthStatus =
+  | "unknown"
+  | "ok"
+  | "logged_out"
+  | "auth_expired"
+  | "risk"
+  | "error";
 
 export type GoofishNotifyDeps = {
   getWindow: () => electronType.BrowserWindow | null;
   /** 唤醒 guest 刷新 cookie（通常 goofishEmbedWarmStart） */
   refreshSession?: (win: electronType.BrowserWindow) => void | Promise<void>;
+  /** 打开 IM（可带会话深链） */
+  openIm?: (win: electronType.BrowserWindow, url: string) => void;
+  /** 是否允许系统通知（设置开关）；默认 true */
+  isNotifyEnabled?: () => boolean;
+  /** 仅统计/提醒真人会话（sessionType=1）；默认 true */
+  isHumansOnly?: () => boolean;
+  /** 是否处于全局免打扰时段；默认读 config.notifications */
+  isInQuietHours?: () => boolean;
+  /** 同会话连续通知最小间隔（ms）；默认 90s */
+  notifyCooldownMs?: number;
+  /** 轮询兜底间隔；有 WS 唤醒时仍保留。默认 60s */
   intervalMs?: number;
-  /** 注入时钟 / sync，便于测试 */
   sync?: typeof fetchSessionSync;
-  now?: () => number;
 };
 
-type StopHandle = { stop: () => void; tickNow: () => Promise<void> };
+type StopHandle = {
+  stop: () => void;
+  tickNow: () => Promise<void>;
+  getAuthStatus: () => GoofishAuthStatus;
+};
 
 let lastUnread = 0;
 let seeded = false;
@@ -30,8 +59,17 @@ let timer: ReturnType<typeof setInterval> | null = null;
 let bootTimer: ReturnType<typeof setTimeout> | null = null;
 let inflight = false;
 let authFailStreak = 0;
+let authStatus: GoofishAuthStatus = "unknown";
+let activeDeps: GoofishNotifyDeps | null = null;
+let lastNotifyAt = 0;
+let lastWsWakeAt = 0;
+let wsWakeTimer: ReturnType<typeof setTimeout> | null = null;
 
 const liveNotifications: electronType.Notification[] = [];
+const GOOFISH_IM = "https://www.goofish.com/im";
+const DEFAULT_COOLDOWN_MS = 90_000;
+const DEFAULT_INTERVAL_MS = 60_000;
+const WS_WAKE_DEBOUNCE_MS = 2_500;
 
 function log(msg: string): void {
   try {
@@ -52,8 +90,99 @@ function pushUnreadBadge(win: electronType.BrowserWindow | null, unread: number)
   }
 }
 
-function fireNotify(win: electronType.BrowserWindow | null, unread: number): void {
-  const body = `${unread} 条未读消息，点击查看`;
+function pushAuth(win: electronType.BrowserWindow | null, status: GoofishAuthStatus): void {
+  authStatus = status;
+  try {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("goofish:auth", { status });
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+function humansOnly(deps: GoofishNotifyDeps): boolean {
+  if (typeof deps.isHumansOnly === "function") {
+    try {
+      return deps.isHumansOnly() !== false;
+    } catch {
+      return true;
+    }
+  }
+  return true;
+}
+
+function focusAndOpenIm(
+  win: electronType.BrowserWindow | null,
+  deps: GoofishNotifyDeps,
+  targetUrl: string,
+): void {
+  try {
+    if (!win || win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+    const url = targetUrl || GOOFISH_IM;
+    win.webContents.send("goofish:open-request", { url });
+    if (typeof deps.openIm === "function") {
+      deps.openIm(win, url);
+    } else {
+      try {
+        const { goofishEmbedNav } = require("../goofish-embed.ts");
+        goofishEmbedNav(win, { action: "load", url });
+      } catch {
+        /* noop */
+      }
+    }
+    setTimeout(() => {
+      void tick(deps);
+    }, 4000);
+  } catch {
+    /* noop */
+  }
+}
+
+function quietHoursBlocked(deps: GoofishNotifyDeps): boolean {
+  if (typeof deps.isInQuietHours === "function") {
+    try {
+      return !!deps.isInQuietHours();
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function fireNotify(
+  win: electronType.BrowserWindow | null,
+  deps: GoofishNotifyDeps,
+  unread: number,
+  sessions: GoofishChatSession[],
+): void {
+  if (deps.isNotifyEnabled && !deps.isNotifyEnabled()) {
+    log(`notify skipped: disabled unread=${unread}`);
+    return;
+  }
+  if (quietHoursBlocked(deps)) {
+    log(`notify skipped: quiet_hours unread=${unread}`);
+    return;
+  }
+  const cooldown =
+    typeof deps.notifyCooldownMs === "number" && deps.notifyCooldownMs >= 0
+      ? deps.notifyCooldownMs
+      : DEFAULT_COOLDOWN_MS;
+  const now = Date.now();
+  if (cooldown > 0 && lastNotifyAt > 0 && now - lastNotifyAt < cooldown) {
+    log(
+      `notify cooled: unread=${unread} remainMs=${cooldown - (now - lastNotifyAt)}`,
+    );
+    return;
+  }
+
+  const onlyHumans = humansOnly(deps);
+  const body = formatNotifyBody(sessions, unread, { humansOnly: onlyHumans });
+  const top = pickTopUnreadSession(sessions, onlyHumans);
+  const deepLink = buildImDeepLink(top);
   try {
     const { Notification, app } = require("electron") as typeof electronType;
     if (Notification && Notification.isSupported && Notification.isSupported()) {
@@ -64,18 +193,7 @@ function fireNotify(win: electronType.BrowserWindow | null, unread: number): voi
       });
       liveNotifications.push(n);
       if (liveNotifications.length > 8) liveNotifications.shift();
-      n.on("click", () => {
-        try {
-          if (win && !win.isDestroyed()) {
-            if (win.isMinimized()) win.restore();
-            win.show();
-            win.focus();
-            win.webContents.send("goofish:open-request");
-          }
-        } catch {
-          /* noop */
-        }
-      });
+      n.on("click", () => focusAndOpenIm(win, deps, deepLink));
       n.show();
     }
     try {
@@ -93,12 +211,23 @@ function fireNotify(win: electronType.BrowserWindow | null, unread: number): voi
         title: "闲鱼消息",
         body,
         unread,
+        url: deepLink,
       });
     }
   } catch {
     /* noop */
   }
-  log(`notify shown: unread=${unread}`);
+  lastNotifyAt = now;
+  log(
+    `notify shown: unread=${unread} deepLink=${top?.peerUserId ? "session" : "list"}`,
+  );
+}
+
+function authFromFail(result: Extract<SessionSyncResult, { ok: false }>): GoofishAuthStatus {
+  if (result.reason === "no_token") return "logged_out";
+  if (result.reason === "auth_expired") return "auth_expired";
+  if (result.reason === "risk") return "risk";
+  return "error";
 }
 
 async function tick(deps: GoofishNotifyDeps): Promise<void> {
@@ -114,7 +243,6 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       log(`auth_expired streak=${authFailStreak}, refreshing guest…`);
       try {
         await Promise.resolve(deps.refreshSession(win));
-        // 给首页/havana 一点时间续 cookie
         await new Promise((r) => setTimeout(r, 3500));
         result = await sync();
       } catch (err: unknown) {
@@ -124,23 +252,41 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     }
 
     if (!result.ok) {
-      if (result.reason !== "auth_expired") {
+      const st = authFromFail(result);
+      pushAuth(win, st);
+      if (result.reason === "auth_expired" || result.reason === "no_token") {
+        if (authFailStreak <= 1 || st === "logged_out") {
+          try {
+            if (win && !win.isDestroyed()) {
+              win.webContents.send("goofish:alert", {
+                title: "闲鱼",
+                body:
+                  st === "logged_out"
+                    ? "尚未登录闲鱼，打开模块扫码登录后即可收消息通知"
+                    : "闲鱼登录已过期，请打开闲鱼重新扫码",
+              });
+            }
+          } catch {
+            /* noop */
+          }
+        }
+      } else {
         log(`sync fail: ${result.reason} ${result.detail || ""}`);
       }
-      // 连续认证失败：放慢节奏，避免刷风控
       return;
     }
 
     authFailStreak = 0;
-    // 侧栏 + 通知都用真人会话未读（sessionType=1）
-    const unread = result.humanUnread;
+    pushAuth(win, "ok");
+    const onlyHumans = humansOnly(deps);
+    const unread = onlyHumans ? result.humanUnread : result.allUnread;
 
     if (!seeded) {
       seeded = true;
       lastUnread = unread;
       pushUnreadBadge(win, unread);
       log(
-        `seed humanUnread=${unread} all=${result.allUnread} sessions=${result.sessions.length}`,
+        `seed unread=${unread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans}`,
       );
       return;
     }
@@ -151,7 +297,7 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
 
     if (unread > lastUnread && unread > 0) {
       log(`unread ${lastUnread} -> ${unread}`);
-      fireNotify(win, unread);
+      fireNotify(win, deps, unread, result.sessions);
     } else if (unread !== lastUnread) {
       log(`unread ${lastUnread} -> ${unread} (no notify)`);
     }
@@ -162,18 +308,19 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
 }
 
 /**
- * 启动轮询。默认 45s（比 DOM 5s 轻，也够「有消息就知道」）。
+ * 启动轮询。默认 60s（WS 唤醒为快路径，轮询兜底）。
  */
 export function startGoofishNotifyService(deps: GoofishNotifyDeps): StopHandle {
+  activeDeps = deps;
   if (timer) {
     return {
       stop: stopGoofishNotifyService,
       tickNow: () => tick(deps),
+      getAuthStatus: () => authStatus,
     };
   }
-  const intervalMs = Math.max(15_000, deps.intervalMs || 45_000);
+  const intervalMs = Math.max(15_000, deps.intervalMs || DEFAULT_INTERVAL_MS);
   log(`started interval=${intervalMs}ms`);
-  // 启动稍后第一票，避开 bootstrap 高峰
   bootTimer = setTimeout(() => {
     bootTimer = null;
     void tick(deps);
@@ -185,6 +332,7 @@ export function startGoofishNotifyService(deps: GoofishNotifyDeps): StopHandle {
   return {
     stop: stopGoofishNotifyService,
     tickNow: () => tick(deps),
+    getAuthStatus: () => authStatus,
   };
 }
 
@@ -197,6 +345,41 @@ export function stopGoofishNotifyService(): void {
     clearInterval(timer);
     timer = null;
   }
+  if (wsWakeTimer) {
+    clearTimeout(wsWakeTimer);
+    wsWakeTimer = null;
+  }
+  activeDeps = null;
+}
+
+/** 外部触发立即同步（打开闲鱼 tab / 设置页「立即检查」） */
+export function goofishNotifyTickNow(): Promise<void> {
+  if (!activeDeps) return Promise.resolve();
+  return tick(activeDeps);
+}
+
+/**
+ * guest 内官方 IM WebSocket 有流量时调用。
+ * 防抖后触发 session.sync，实现近实时通知而不自建钉钉长连。
+ */
+export function goofishNotifyOnWsWake(): void {
+  lastWsWakeAt = Date.now();
+  if (!activeDeps) return;
+  if (wsWakeTimer) return;
+  wsWakeTimer = setTimeout(() => {
+    wsWakeTimer = null;
+    log("ws-wake → sync");
+    void tick(activeDeps!);
+  }, WS_WAKE_DEBOUNCE_MS);
+}
+
+export function getGoofishAuthStatus(): GoofishAuthStatus {
+  return authStatus;
+}
+
+/** 测试：最近一次 WS 唤醒时间 */
+export function __getLastWsWakeAtForTest(): number {
+  return lastWsWakeAt;
 }
 
 /** 测试复位 */
@@ -206,4 +389,25 @@ export function __resetGoofishNotifyForTest(): void {
   seeded = false;
   inflight = false;
   authFailStreak = 0;
+  authStatus = "unknown";
+  lastNotifyAt = 0;
+  lastWsWakeAt = 0;
+}
+
+/** 供 index 注入：读全局 notifications 免打扰 */
+export function defaultGoofishQuietHoursCheck(getConfig: () => any): () => boolean {
+  return () => {
+    try {
+      const cfg = getConfig() || {};
+      const notif = cfg.notifications || {};
+      const start = notif.quiet_hours_start;
+      const end = notif.quiet_hours_end;
+      if (typeof start === "string" && typeof end === "string" && start && end) {
+        return inQuietHours(new Date(), start, end);
+      }
+    } catch {
+      /* noop */
+    }
+    return false;
+  };
 }
