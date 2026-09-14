@@ -382,4 +382,14 @@ export interface StateStoreAdapter {
   // P-N — HomeGrid nav anchor
   loadLastActiveNav(statePath?: string): string | null;
   saveLastActiveNav(key: string, statePath?: string): StateRecord;
+
+  // v3.3.x — 闲鱼消息通知偏好
+  loadGoofishPrefs(statePath?: string): {
+    notify_enabled: boolean;
+    humans_only: boolean;
+  };
+  saveGoofishPrefs(
+    patch: { notify_enabled?: boolean; humans_only?: boolean },
+    statePath?: string,
+  ): StateRecord;
 }
