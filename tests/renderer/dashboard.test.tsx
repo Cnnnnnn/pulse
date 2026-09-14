@@ -81,11 +81,11 @@ describe("Dashboard — 4 个区结构", () => {
     cleanup();
   });
 
-  it("渲染 .dashboard-root + Hero + Summary row + Tiles", () => {
+  it("渲染 .dashboard-root + Hero + 关注卡 + Tiles", () => {
     const { container } = render(<Dashboard />);
     expect(container.querySelector(".dashboard-root")).toBeTruthy();
     expect(container.querySelector(".dashboard-hero")).toBeTruthy();
-    expect(container.querySelector(".dashboard-summary-row")).toBeTruthy();
+    expect(container.querySelector(".dashboard-attention")).toBeTruthy();
     expect(container.querySelector(".dashboard-tiles")).toBeTruthy();
   });
 
@@ -102,10 +102,80 @@ describe("Dashboard — 4 个区结构", () => {
     expect(time?.textContent).toMatch(/^\d{2}:\d{2}$/);
   });
 
-  it("Summary row 固定 3 个 card (news/invest/ai-usage)", () => {
+  it("关注卡: ctx 无信号 → 一切就绪空态, 无 row", () => {
     const { container } = render(<Dashboard />);
-    const cards = container.querySelectorAll(".dashboard-summary-card");
-    expect(cards.length).toBe(3);
+    expect(container.querySelector(".dashboard-attention-empty")).toBeTruthy();
+    expect(container.querySelectorAll(".dashboard-attention-row").length).toBe(0);
+  });
+});
+
+describe("Dashboard — buildAttentionItems (关注清单派生)", () => {
+  it("checkResults Map 有 has_update → 应用更新项 (alert)", async () => {
+    const { buildAttentionItems } = await import(
+      "../../src/renderer/components/Dashboard.tsx"
+    );
+    const ctx = {
+      checkResults: new Map([
+        ["A", { has_update: true }],
+        ["B", { has_update: false }],
+      ]),
+    };
+    const items = buildAttentionItems(ctx);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      key: "versions",
+      label: "应用更新",
+      value: "1 个可升级",
+      tone: "alert",
+    });
+  });
+
+  it("githubProjects 有 latestVersion≠lastSeenVersion → 新 release 项", async () => {
+    const { buildAttentionItems } = await import(
+      "../../src/renderer/components/Dashboard.tsx"
+    );
+    const items = buildAttentionItems({
+      githubProjects: [
+        { latestVersion: "2.0", lastSeenVersion: "1.0" },
+        { latestVersion: "3.0", lastSeenVersion: "3.0" },
+        { latestVersion: "4.0", lastSeenVersion: "" },
+      ],
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ key: "github", value: "2 个新 release" });
+  });
+
+  it("资讯未读 / 持仓动态 / AI 用量≥80% 各出一项; 排序 versions > github > news", async () => {
+    const { buildAttentionItems } = await import(
+      "../../src/renderer/components/Dashboard.tsx"
+    );
+    const items = buildAttentionItems({
+      ithomeUnread: 3,
+      wechatHotUnread: 2,
+      fundUnread: 1,
+      aiUsageActiveProvider: "minimax",
+      aiUsageSnapshot: { minimax: { windows: { weekly: { usedPercent: 87 } } } },
+      githubProjects: [{ latestVersion: "2", lastSeenVersion: "1" }],
+      checkResults: new Map([["A", { has_update: true }]]),
+    });
+    expect(items.map((i) => i.key)).toEqual([
+      "versions",
+      "github",
+      "news",
+      "invest",
+      "ai-usage",
+    ]);
+  });
+
+  it("AI 用量 <80% 不进关注 (非预警)", async () => {
+    const { buildAttentionItems } = await import(
+      "../../src/renderer/components/Dashboard.tsx"
+    );
+    const items = buildAttentionItems({
+      aiUsageActiveProvider: "minimax",
+      aiUsageSnapshot: { minimax: { windows: { weekly: { usedPercent: 40 } } } },
+    });
+    expect(items).toHaveLength(0);
   });
 });
 
@@ -125,10 +195,10 @@ describe("Dashboard — Tiles 按 section 分组", () => {
     expect(labels).toEqual(["资讯", "持仓", "系统", "娱乐"]);
   });
 
-  it("tiles 数 = NAV_REGISTRY 数 (9 个非 home module, v2.83 加 vault)", () => {
+  it("tiles 数 = NAV_REGISTRY 数 (10 个非 home module, v3.3 加 goofish)", () => {
     const { container } = render(<Dashboard />);
     const tiles = container.querySelectorAll(".dashboard-tile");
-    expect(tiles.length).toBe(9);
+    expect(tiles.length).toBe(10);
   });
 });
 
@@ -150,7 +220,7 @@ describe("Dashboard — Recent 条件渲染", () => {
     expect(container.querySelector(".dashboard-recent")).toBeNull();
   });
 
-  it("recent 有数据 → 渲染 .dashboard-recent + item 列表 (上限 4 条, 屏幕缩小不被挡)", () => {
+  it("recent 有数据 → 渲染 .dashboard-recent + item 列表 (上限 5 条, v3.3 右栏竖排)", () => {
     mockRecent = Array.from({ length: 10 }, (_, i) => ({
       kind: "fund-view",
       title: `基金 ${i}`,
@@ -158,7 +228,7 @@ describe("Dashboard — Recent 条件渲染", () => {
     }));
     const { container } = render(<Dashboard />);
     const items = container.querySelectorAll(".dashboard-recent-item");
-    expect(items.length).toBe(4); // 上限 4 条 (用户反馈: 屏幕小被挡, 6 → 4)
+    expect(items.length).toBe(5); // v3.3: 移入右栏卡片, 4 → 5
   });
 });
 

@@ -48,15 +48,19 @@ test("small dashboard keeps recent activity below system tile", async ({ page })
     const recent = document.querySelector(".dashboard-recent")?.getBoundingClientRect();
     const title = document.querySelector(".dashboard-recent-title")?.getBoundingClientRect();
     return {
-      systemBottom: systemCard?.bottom ?? null,
-      recentTop: recent?.top ?? null,
-      titleTop: title?.top ?? null,
+      systemCard,
+      recent,
+      title,
     };
   });
 
-  expect(boxes.systemBottom).not.toBeNull();
-  expect(boxes.recentTop).not.toBeNull();
-  expect(boxes.titleTop).not.toBeNull();
-  expect(boxes.systemBottom).toBeLessThanOrEqual(boxes.recentTop);
-  expect(boxes.systemBottom).toBeLessThanOrEqual(boxes.titleTop);
+  expect(boxes.systemCard).not.toBeNull();
+  expect(boxes.recent).not.toBeNull();
+  expect(boxes.title).not.toBeNull();
+  // v3.3 双栏布局: 系统卡 (左主栏) 与最近活动 (右栏) 允许并列,
+  // 但矩形不得相交 (老单列布局的"系统卡覆盖最近活动"回归仍被此断言拦截)
+  const overlaps = (a, b) =>
+    a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  expect(overlaps(boxes.systemCard, boxes.recent)).toBe(false);
+  expect(overlaps(boxes.systemCard, boxes.title)).toBe(false);
 });
