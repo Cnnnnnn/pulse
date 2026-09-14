@@ -246,27 +246,9 @@ export function goofishEmbedWarmStart(
   return (async () => {
     try {
       if (view) {
-        // 已有 guest: 用户正在看则不乱动；否则停靠 + 轻刷续 cookie
+        // 已有 guest: 用户正在看则不乱动；否则仅屏外保活（认证恢复改走 soft-refresh，避免狂 reload）
         if (userViewing) return;
         parkOffscreen();
-        try {
-          const url = String(view.webContents.getURL() || "");
-          if (!url.includes("goofish.com")) {
-            await view.webContents.loadURL(GOOFISH_HOME);
-          } else {
-            view.webContents.reload();
-            await new Promise<void>((resolve) => {
-              const done = () => {
-                view?.webContents.removeListener("did-finish-load", done);
-                resolve();
-              };
-              view?.webContents.once("did-finish-load", done);
-              setTimeout(done, 8000);
-            });
-          }
-        } catch {
-          /* noop */
-        }
         return;
       }
       const { session } = require("electron") as typeof electronType;
@@ -383,6 +365,51 @@ export async function goofishEmbedSnapshot(): Promise<{
     return { ok: true, dataUrl: img.toDataURL() };
   } catch {
     return { ok: false };
+  }
+}
+
+/**
+ * 软续活：不整页 reload（reload 风暴会把仍在线的会话赶到扫码页）。
+ * 无 guest 时才走 warm-start 创建。
+ */
+export function goofishEmbedSoftRefresh(
+  win: electronType.BrowserWindow | null,
+): Promise<void> {
+  if (!win || win.isDestroyed()) return Promise.resolve();
+  return (async () => {
+    try {
+      if (!view) {
+        await goofishEmbedWarmStart(win);
+        return;
+      }
+      if (userViewing) {
+        embedLog("soft-refresh skip: user viewing");
+        return;
+      }
+      parkOffscreen();
+      try {
+        await view.webContents.executeJavaScript(
+          `fetch("https://www.goofish.com/",{credentials:"include",cache:"no-store"}).catch(()=>{})`,
+          true,
+        );
+        embedLog("soft-refresh ping home");
+      } catch {
+        /* noop */
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      embedLog(`soft-refresh error: ${msg}`);
+    }
+  })();
+}
+
+/** 供通知服务页内 sync */
+export function goofishEmbedGetWebContents(): electronType.WebContents | null {
+  try {
+    if (!view || view.webContents.isDestroyed()) return null;
+    return view.webContents;
+  } catch {
+    return null;
   }
 }
 

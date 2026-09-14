@@ -123,4 +123,18 @@ describe("formatNotifyBody / deep link", () => {
     );
     expect(buildImDeepLink(null)).toBe("https://www.goofish.com/im");
   });
+
+  it("pickGoofishH5Token 优先 goofish 域", () => {
+    const { pickGoofishH5Token, hasGoofishLoginHints } = requireMain(
+      "goofish/mtop-session",
+    );
+    expect(
+      pickGoofishH5Token([
+        { name: "_m_h5_tk", domain: ".taobao.com", value: "aaa_1" },
+        { name: "_m_h5_tk", domain: ".goofish.com", value: "bbb_2" },
+      ]),
+    ).toBe("bbb");
+    expect(hasGoofishLoginHints([{ name: "unb", value: "1" }])).toBe(true);
+    expect(hasGoofishLoginHints([{ name: "_m_h5_tk", value: "x" }])).toBe(false);
+  });
 });

@@ -39,7 +39,7 @@ function authLabel(status: string): { text: string; tone: string } {
     case "risk":
       return { text: "风控拦截", tone: "err" };
     case "error":
-      return { text: "同步异常", tone: "err" };
+      return { text: "消息同步异常", tone: "err" };
     default:
       return { text: "检测登录中…", tone: "muted" };
   }
@@ -249,8 +249,8 @@ export function GoofishLayout(_props: { onCheck?: () => void }) {
           </div>
         </div>
         <div class="goofish-header__actions">
-          {(goofishAuthStatus.value === "auth_expired" ||
-            goofishAuthStatus.value === "logged_out") && (
+          {(goofishAuthStatus.value === "logged_out" ||
+            goofishAuthStatus.value === "auth_expired") && (
             <button class="goofish-btn goofish-btn--accent" onClick={reLogin} title="打开首页重新扫码登录">
               重新登录
             </button>

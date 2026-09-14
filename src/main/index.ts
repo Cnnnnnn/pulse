@@ -346,12 +346,13 @@ function createMainWindow(runtimeConfig: any) {
     try {
       const w = getWindow();
       if (!w || w.isDestroyed()) return;
-      const { goofishEmbedWarmStart } = require("./goofish-embed.ts");
+      const { goofishEmbedWarmStart, goofishEmbedSoftRefresh, goofishEmbedGetWebContents } = require("./goofish-embed.ts");
       goofishEmbedWarmStart(w);
       const { startGoofishNotifyService, defaultGoofishQuietHoursCheck } = require("./goofish/notify-service.ts");
       startGoofishNotifyService({
         getWindow,
-        refreshSession: (win: any) => goofishEmbedWarmStart(win),
+        getGuestWebContents: () => goofishEmbedGetWebContents(),
+        refreshSession: (win: any) => goofishEmbedSoftRefresh(win),
         openIm: (win: any, url: string) => {
           const { goofishEmbedNav } = require("./goofish-embed.ts");
           goofishEmbedNav(win, {

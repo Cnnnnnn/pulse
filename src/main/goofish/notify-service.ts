@@ -14,6 +14,7 @@ import {
   buildImDeepLink,
   fetchSessionSync,
   formatNotifyBody,
+  hasGoofishLoginHints,
   pickTopUnreadSession,
   type GoofishChatSession,
   type SessionSyncResult,
@@ -30,7 +31,9 @@ export type GoofishAuthStatus =
 
 export type GoofishNotifyDeps = {
   getWindow: () => electronType.BrowserWindow | null;
-  /** 唤醒 guest 刷新 cookie（通常 goofishEmbedWarmStart） */
+  /** 取 guest webContents；有则优先页内 sync */
+  getGuestWebContents?: () => electronType.WebContents | null;
+  /** 轻量续 cookie（勿整页狂 reload） */
   refreshSession?: (win: electronType.BrowserWindow) => void | Promise<void>;
   /** 打开 IM（可带会话深链） */
   openIm?: (win: electronType.BrowserWindow, url: string) => void;
@@ -63,6 +66,7 @@ let authStatus: GoofishAuthStatus = "unknown";
 let activeDeps: GoofishNotifyDeps | null = null;
 let lastNotifyAt = 0;
 let lastWsWakeAt = 0;
+let lastRefreshAt = 0;
 let wsWakeTimer: ReturnType<typeof setTimeout> | null = null;
 
 const liveNotifications: electronType.Notification[] = [];
@@ -70,6 +74,8 @@ const GOOFISH_IM = "https://www.goofish.com/im";
 const DEFAULT_COOLDOWN_MS = 90_000;
 const DEFAULT_INTERVAL_MS = 60_000;
 const WS_WAKE_DEBOUNCE_MS = 2_500;
+/** 认证失败时最多软刷新 1 次 / 15 分钟，避免整页 reload 风暴把人赶去扫码 */
+const REFRESH_COOLDOWN_MS = 15 * 60_000;
 
 function log(msg: string): void {
   try {
@@ -230,46 +236,89 @@ function authFromFail(result: Extract<SessionSyncResult, { ok: false }>): Goofis
   return "error";
 }
 
+async function cookiesHintLoggedIn(): Promise<boolean> {
+  try {
+    const { session } = require("electron") as typeof electronType;
+    const sess = session.fromPartition("persist:goofish");
+    const cookies = await sess.cookies.get({});
+    return hasGoofishLoginHints(cookies);
+  } catch {
+    return false;
+  }
+}
+
+async function runSync(deps: GoofishNotifyDeps): Promise<SessionSyncResult> {
+  const sync = deps.sync || fetchSessionSync;
+  const guest =
+    typeof deps.getGuestWebContents === "function"
+      ? deps.getGuestWebContents()
+      : null;
+  // 自定义 sync（单测）不传 guest
+  if (deps.sync) return sync();
+  return sync(null, guest);
+}
+
 async function tick(deps: GoofishNotifyDeps): Promise<void> {
   if (inflight) return;
   inflight = true;
   try {
-    const sync = deps.sync || fetchSessionSync;
     const win = deps.getWindow ? deps.getWindow() : null;
-    let result: SessionSyncResult = await sync();
+    let result: SessionSyncResult = await runSync(deps);
 
-    if (
-      result.ok === false &&
-      result.reason === "auth_expired" &&
-      deps.refreshSession &&
-      win
-    ) {
+    if (result.ok === false && result.reason === "auth_expired" && deps.refreshSession && win) {
       authFailStreak += 1;
-      log(`auth_expired streak=${authFailStreak}, refreshing guest…`);
-      try {
-        await Promise.resolve(deps.refreshSession(win));
-        await new Promise((r) => setTimeout(r, 3500));
-        result = await sync();
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        log(`refresh failed: ${msg}`);
+      const now = Date.now();
+      const canRefresh =
+        authFailStreak === 1 || now - lastRefreshAt >= REFRESH_COOLDOWN_MS;
+      if (canRefresh) {
+        lastRefreshAt = now;
+        log(`auth_expired streak=${authFailStreak}, soft-refresh guest…`);
+        try {
+          await Promise.resolve(deps.refreshSession(win));
+          await new Promise((r) => setTimeout(r, 2500));
+          result = await runSync(deps);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          log(`refresh failed: ${msg}`);
+        }
+      } else {
+        log(`auth_expired streak=${authFailStreak}, skip refresh (cooldown)`);
       }
     }
 
     if (result.ok === false) {
       const fail = result;
-      const st = authFromFail(fail);
+      let st = authFromFail(fail);
+      // cookie 仍在却 mtop 说过期：多半是主进程带 cookie 不全，别逼用户扫码
+      if (st === "auth_expired" && (await cookiesHintLoggedIn())) {
+        st = "error";
+        log(
+          `auth_expired but login cookies present → treat as sync error; ret=${
+            Array.isArray(fail.ret) ? fail.ret.join("|") : fail.detail || ""
+          }`,
+        );
+      }
       pushAuth(win, st);
-      if (fail.reason === "auth_expired" || fail.reason === "no_token") {
-        if (authFailStreak <= 1 || st === "logged_out") {
+      if (fail.reason === "no_token") {
+        if (authFailStreak <= 1) {
           try {
             if (win && !win.isDestroyed()) {
               win.webContents.send("goofish:alert", {
                 title: "闲鱼",
-                body:
-                  st === "logged_out"
-                    ? "尚未登录闲鱼，打开模块扫码登录后即可收消息通知"
-                    : "闲鱼登录已过期，请打开闲鱼重新扫码",
+                body: "尚未登录闲鱼，打开模块扫码登录后即可收消息通知",
+              });
+            }
+          } catch {
+            /* noop */
+          }
+        }
+      } else if (st === "auth_expired") {
+        if (authFailStreak <= 1) {
+          try {
+            if (win && !win.isDestroyed()) {
+              win.webContents.send("goofish:alert", {
+                title: "闲鱼",
+                body: "闲鱼登录已过期，请打开闲鱼重新扫码",
               });
             }
           } catch {
@@ -398,6 +447,7 @@ export function __resetGoofishNotifyForTest(): void {
   authStatus = "unknown";
   lastNotifyAt = 0;
   lastWsWakeAt = 0;
+  lastRefreshAt = 0;
 }
 
 /** 供 index 注入：读全局 notifications 免打扰 */

@@ -164,11 +164,136 @@ function classifyRet(ret: unknown): "ok" | "auth_expired" | "risk" | "unknown" {
   return "unknown";
 }
 
+/** 从分区 cookie 取 goofish 域的 _m_h5_tk */
+export function pickGoofishH5Token(cookies: Array<{ name?: string; domain?: string; value?: string }>): string | null {
+  const list = (cookies || []).filter((c) => c && c.name === "_m_h5_tk" && c.value);
+  const prefer =
+    list.find((c) => String(c.domain || "").includes("goofish.com")) || list[0];
+  return parseH5Token(prefer && prefer.value);
+}
+
+/** 网页登录痕迹（Havana / unb），与 mtop token 是否过期分开看 */
+export function hasGoofishLoginHints(
+  cookies: Array<{ name?: string; domain?: string; value?: string }>,
+): boolean {
+  return (cookies || []).some((c) => {
+    if (!c || !c.value) return false;
+    const n = String(c.name || "");
+    return (
+      n === "unb" ||
+      n === "tracknick" ||
+      n === "sgcookie" ||
+      n.startsWith("havana_lgc")
+    );
+  });
+}
+
+function interpretSyncJson(parsed: any): SessionSyncResult {
+  const ret = (parsed && parsed.ret) || [];
+  const kind = classifyRet(ret);
+  if (kind === "auth_expired") {
+    return { ok: false, reason: "auth_expired", ret };
+  }
+  if (kind === "risk") {
+    return { ok: false, reason: "risk", ret };
+  }
+  if (kind !== "ok") {
+    return {
+      ok: false,
+      reason: "unknown",
+      ret,
+      detail: Array.isArray(ret) ? ret.join(" | ") : String(ret),
+    };
+  }
+  const rawSessions = (parsed.data && parsed.data.sessions) || [];
+  const { sessions, humanUnread, allUnread } = summarizeSessions(rawSessions);
+  return { ok: true, sessions, humanUnread, allUnread, ret };
+}
+
+function buildSyncRequest(token: string): { url: string; body: string } {
+  const dataVal = JSON.stringify({ fetchNum: 50 });
+  const t = String(Date.now());
+  const sign = mtopSign(t, token, dataVal);
+  const qs = new URLSearchParams({
+    jsv: "2.7.2",
+    appKey: GOOFISH_MTOP_APP_KEY,
+    t,
+    sign,
+    v: GOOFISH_SESSION_SYNC_VER,
+    type: "originaljson",
+    accountSite: "xianyu",
+    dataType: "json",
+    timeout: "20000",
+    api: GOOFISH_SESSION_SYNC_API,
+    // ponytail: 不带 AutoLoginOnly — 主进程 fetch 易误伤仍在线的 Havana 会话
+    spm_cnt: "a21ybx.im.0.0",
+  });
+  const url = `https://h5api.m.goofish.com/h5/${GOOFISH_SESSION_SYNC_API}/${GOOFISH_SESSION_SYNC_VER}/?${qs}`;
+  const body = new URLSearchParams({ data: dataVal }).toString();
+  return { url, body };
+}
+
 /**
- * 调用 session.sync。优先 session.fetch（自动带分区 cookie）。
+ * 在 guest 页内发 session.sync（带上渲染进程 cookie / 分区态）。
+ * 主进程 session.fetch 对 partitioned cookie 经常带不齐 → 假 SESSION_EXPIRED。
+ */
+export async function fetchSessionSyncViaGuest(
+  webContents: electronType.WebContents,
+  token: string,
+): Promise<SessionSyncResult> {
+  try {
+    if (!webContents || webContents.isDestroyed()) {
+      return { ok: false, reason: "unknown", detail: "no_guest" };
+    }
+    const { url, body } = buildSyncRequest(token);
+    const raw = await webContents.executeJavaScript(
+      `(() => fetch(${JSON.stringify(url)}, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: ${JSON.stringify(body)},
+      }).then(async (res) => ({
+        status: res.status,
+        text: await res.text(),
+      })).catch((e) => ({
+        error: String((e && e.message) || e),
+      })))()`,
+      true,
+    );
+    if (!raw || (raw as any).error) {
+      return {
+        ok: false,
+        reason: "http",
+        detail: String((raw as any)?.error || "guest_fetch_failed"),
+      };
+    }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(String((raw as any).text || ""));
+    } catch {
+      return {
+        ok: false,
+        reason: "parse",
+        detail: String((raw as any).text || "").slice(0, 120),
+      };
+    }
+    return interpretSyncJson(parsed);
+  } catch (err: unknown) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: "unknown", detail };
+  }
+}
+
+/**
+ * 调用 session.sync。
+ * 优先 guest 页内 fetch；否则退回分区 session.fetch。
  */
 export async function fetchSessionSync(
   electronSession?: electronType.Session | null,
+  webContents?: electronType.WebContents | null,
 ): Promise<SessionSyncResult> {
   try {
     const { session } = require("electron") as typeof electronType;
@@ -187,28 +312,23 @@ export async function fetchSessionSync(
     }
 
     const cookies = await sess.cookies.get({});
-    const h5 = cookies.find((c) => c.name === "_m_h5_tk");
-    const token = parseH5Token(h5 && h5.value);
+    const token = pickGoofishH5Token(cookies);
     if (!token) return { ok: false, reason: "no_token" };
 
-    const dataVal = JSON.stringify({ fetchNum: 50 });
-    const t = String(Date.now());
-    const sign = mtopSign(t, token, dataVal);
-    const qs = new URLSearchParams({
-      jsv: "2.7.2",
-      appKey: GOOFISH_MTOP_APP_KEY,
-      t,
-      sign,
-      v: GOOFISH_SESSION_SYNC_VER,
-      type: "originaljson",
-      accountSite: "xianyu",
-      dataType: "json",
-      timeout: "20000",
-      api: GOOFISH_SESSION_SYNC_API,
-      sessionOption: "AutoLoginOnly",
-      spm_cnt: "a21ybx.im.0.0",
-    });
-    const url = `https://h5api.m.goofish.com/h5/${GOOFISH_SESSION_SYNC_API}/${GOOFISH_SESSION_SYNC_VER}/?${qs}`;
+    if (webContents && !webContents.isDestroyed()) {
+      const viaGuest = await fetchSessionSyncViaGuest(webContents, token);
+      if (viaGuest.ok === true) return viaGuest;
+      // guest 已明确 auth/risk 时不再用主进程重试（避免假阴性覆盖）
+      if (
+        viaGuest.reason === "auth_expired" ||
+        viaGuest.reason === "risk" ||
+        viaGuest.reason === "parse"
+      ) {
+        return viaGuest;
+      }
+    }
+
+    const { url, body } = buildSyncRequest(token);
     const res = await sess.fetch(url, {
       method: "POST",
       headers: {
@@ -217,7 +337,7 @@ export async function fetchSessionSync(
         origin: "https://www.goofish.com",
         referer: "https://www.goofish.com/",
       },
-      body: new URLSearchParams({ data: dataVal }).toString(),
+      body,
     });
     if (!res || typeof res.text !== "function") {
       return { ok: false, reason: "http", detail: "bad_response" };
@@ -229,25 +349,7 @@ export async function fetchSessionSync(
     } catch {
       return { ok: false, reason: "parse", detail: text.slice(0, 120) };
     }
-    const ret = parsed.ret || [];
-    const kind = classifyRet(ret);
-    if (kind === "auth_expired") {
-      return { ok: false, reason: "auth_expired", ret };
-    }
-    if (kind === "risk") {
-      return { ok: false, reason: "risk", ret };
-    }
-    if (kind !== "ok") {
-      return {
-        ok: false,
-        reason: "unknown",
-        ret,
-        detail: Array.isArray(ret) ? ret.join(" | ") : String(ret),
-      };
-    }
-    const rawSessions = (parsed.data && parsed.data.sessions) || [];
-    const { sessions, humanUnread, allUnread } = summarizeSessions(rawSessions);
-    return { ok: true, sessions, humanUnread, allUnread, ret };
+    return interpretSyncJson(parsed);
   } catch (err: unknown) {
     const detail = err instanceof Error ? err.message : String(err);
     return { ok: false, reason: "unknown", detail };
