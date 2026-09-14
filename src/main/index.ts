@@ -34,6 +34,13 @@ if (app && typeof app.setName === "function") {
   }
 }
 
+// webview guest 围栏必须在任何 <webview> 创建前注册 (v3.3 闲鱼嵌入)
+try {
+  installWebviewGuard();
+} catch {
+  /* noop — vitest 环境 */
+}
+
 // CursorDetector 读取 vscdb 依赖 node:sqlite，必须在 app.whenReady() 前启用。
 try {
   if (
@@ -61,6 +68,10 @@ const {
 } = require("./bootstrap/state-init.ts");
 import { initErrorCapture } from "./bootstrap/error-init";
 import { mainLog, detectLog } from "./log";
+import {
+  installWebviewGuard,
+  hardenGoofishSession,
+} from "./webview-guard";
 import * as stateStore from "./state-store";
 import * as aiStorage from "../ai-sessions/storage";
 import { HttpClient } from "./http-client";
@@ -330,6 +341,19 @@ function createMainWindow(runtimeConfig: any) {
       `state.json recovery pushed to renderer: reason=${evt.reason} backup=${evt.backup || "(none)"}`,
     );
   });
+  // 闲鱼: 已登录则预热 guest (屏外保活), 不打开 tab 也能收消息弹系统通知
+  setTimeout(() => {
+    try {
+      const w = getWindow();
+      if (!w || w.isDestroyed()) return;
+      const { goofishEmbedWarmStart } = require("./goofish-embed.ts");
+      goofishEmbedWarmStart(w);
+    } catch (err: unknown) {
+      mainLog.warn(
+        `[goofish-embed] warm-start hook failed: ${errMsg(err)}`,
+      );
+    }
+  }, 2500);
   return { ms: Date.now() - tWindow };
 }
 
@@ -837,6 +861,13 @@ async function bootstrap() {
 
 if (app && typeof app.whenReady === "function") {
   app.whenReady().then(() => {
+    try {
+      // 闲鱼 persist 分区: UA 伪装 + 权限全拒 (需 session API ready)
+      hardenGoofishSession();
+    } catch {
+      /* noop */
+    }
+
     try {
       const audit = auditTimers(
         path.join(__dirname, "..", "tests", "fixtures", "timer-audit"),

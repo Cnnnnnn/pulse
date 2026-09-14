@@ -104,6 +104,9 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
         // P0 安全：preload 只用 contextBridge/ipcRenderer，可全沙箱。
         // 限制 renderer 扩权面，配合 will-navigate / setWindowOpenHandler。
         sandbox: true,
+        // v3.3 闲鱼嵌入不走 <webview> tag (Electron 43 + macOS 26 guest 高度锁死
+        // 150px, 上游 BrowserPlugin 缺陷) — 改主进程 WebContentsView, 见
+        // src/main/goofish-embed.ts。webviewTag 保持关闭 (最小权限)。
       },
       // 视觉选项走平台层 (mac: vibrancy + hiddenInset; win: acrylic + hidden)
       // 展开在末尾, 让 platform 返回值覆盖上面的同名字段 (如果有).

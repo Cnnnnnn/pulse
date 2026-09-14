@@ -9,12 +9,16 @@ import {
 } from "./assistant-store.ts";
 import { chatFabBadge, chatFabHint } from "./assistant-proactive.ts";
 import { IconSparkles } from "../components/icons.tsx";
+import { activeNav } from "../nav/navStore.ts";
 import "./global-chat.css";
 
 export function GlobalChatFab() {
   const open = globalChatOpen.value;
   const badge = chatFabBadge.value;
   const hint = chatFabHint.value;
+  // 闲鱼嵌入 tab: WebContentsView 是原生层会盖住悬浮球, 隐藏之
+  // (助手入口移至 goofish 页头「AI 助手」按钮, 快捷键 ⌘⇧J 不变)
+  if (activeNav.value === "goofish") return null;
   if (open) return null;
   return (
     <button

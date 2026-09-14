@@ -1196,6 +1196,35 @@ export interface OpenUrlResponse {
   error?: string;
 }
 
+// ─── 闲鱼嵌入 (v3.3: WebContentsView, guest 由主进程管理) ──────────
+
+/** renderer → main: 同步嵌入区几何 + 可见性 (ResizeObserver / 卸载时驱动) */
+export interface GoofishSyncPayload {
+  /** null = 隐藏 (面板未挂载/已切走); 非 null 时 visible 才生效 */
+  rect: { x: number; y: number; width: number; height: number } | null;
+  visible: boolean;
+  /** 诊断: visible=false 时首个命中元素的描述 (临时排障字段) */
+  debug?: string;
+}
+
+/** renderer → main: 嵌入页导航指令 (搜索框 / 首页 / 刷新按钮) */
+export interface GoofishNavPayload {
+  action: "home" | "reload" | "load";
+  /** action === "load" 时必填, 仅接受 goofish.com 域内 URL */
+  url?: string;
+}
+
+export interface GoofishAckResponse {
+  ok: boolean;
+  reason?: string;
+}
+
+/** renderer 请求 guest 当前画面快照 (遮挡冻结用): PNG dataURL */
+export interface GoofishSnapshotResponse {
+  ok: boolean;
+  dataUrl?: string;
+}
+
 export interface OpenUrlApiContract {
   openUrl(url: string): Promise<OpenUrlResponse>;
 }
@@ -3018,6 +3047,9 @@ export interface IpcChannelMap {
   "window:toggle-maximize": { args: []; result: WindowToggleMaximizeResponse };
   "window:close": { args: []; result: void };
   "open-url:open": { args: [url: string]; result: OpenUrlResponse };
+  "goofish:sync": { args: [payload: GoofishSyncPayload]; result: GoofishAckResponse };
+  "goofish:nav": { args: [payload: GoofishNavPayload]; result: GoofishAckResponse };
+  "goofish:snapshot": { args: []; result: GoofishSnapshotResponse };
   "get-mutes": { args: []; result: MutesResponse };
   "set-mute": { args: [name: string, durationSec: number]; result: MuteMutationResponse };
   "clear-mute": { args: [name: string]; result: MuteMutationResponse };

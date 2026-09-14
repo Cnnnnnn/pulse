@@ -49,6 +49,7 @@ import { registerThemeHandlers } from "./register-theme";
 import { registerLeaderboardHandlers } from "./register-leaderboard";
 import { registerFinanceHandlers } from "./register-finance";
 import { registerVaultHandlers } from "./register-vault";
+import { registerGoofishHandlers } from "./register-goofish";
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -59,6 +60,7 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   registerAppInfoHandlers(ctx);
   registerTrayConfigHandlers(ctx); // Phase v1: tray 菜单配置
   registerOpenUrlHandlers(ctx);
+  registerGoofishHandlers(ctx); // v3.3 闲鱼嵌入 (WebContentsView)
   registerRemindersRecentHandlers(ctx);
   registerAiHandlers(ctx);
   registerGithubHandlers(ctx); // v2.80 GitHub 优秀项目收录

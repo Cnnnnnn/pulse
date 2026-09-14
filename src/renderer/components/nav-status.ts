@@ -23,6 +23,7 @@ import { comparePoolCount } from "../stocks/comparePool.ts";
 import { results as stocksResults } from "../stocks/stockStore.ts";
 import { results as checkResults, apps as checkApps } from "../store.ts";
 import { todayShanghaiDateKey, articlesForDate } from "../ithome/news-utils.ts";
+import { goofishUnreadBadge } from "../goofish/store.ts";
 
 // ─── ctx 类型 ──────────────────────────────────────
 
@@ -33,6 +34,8 @@ export interface NavStatusCtx {
   wechatHotUnread: number;
   fundUnread: number;
   aiUsageNavBadge: number;
+  /** 闲鱼未读消息 (可选: 测试 emptyCtx 可省略) */
+  goofishUnread?: number;
   // news status 源
   ithomeDayStats: Record<string, { count?: number }> | null;
   ithomeArticles: any;
@@ -63,6 +66,7 @@ export function collectNavStatusCtx(): NavStatusCtx {
     wechatHotUnread: wechatHotUnreadBadge.value || 0,
     fundUnread: fundUnreadBadge.value || 0,
     aiUsageNavBadge: aiUsageNavBadge.value || 0,
+    goofishUnread: goofishUnreadBadge.value || 0,
     ithomeDayStats: ithomeDayStats.value,
     ithomeArticles: ithomeArticles.value,
     wechatHotItems: wechatHotItems.value,
@@ -93,6 +97,8 @@ export function getBadge(key: string, ctx: NavStatusCtx): number | null {
       return ctx.fundUnread || null;
     case "ai-usage":
       return ctx.aiUsageNavBadge || null;
+    case "goofish":
+      return ctx.goofishUnread || null;
     default:
       return null;
   }
@@ -110,6 +116,8 @@ export function sectionBadge(sectionId: string, ctx: NavStatusCtx): number {
     }
     case "holdings":
       return ctx.fundUnread + ctx.aiUsageNavBadge;
+    case "entertainment":
+      return ctx.goofishUnread || 0;
     case "system":
       return 0; // versions 无未读角标语义
     default:

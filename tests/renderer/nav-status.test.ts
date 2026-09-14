@@ -57,6 +57,10 @@ describe("getBadge — 3 个有 badge 语义的 nav + null 兜底", () => {
     expect(getBadge("ai-usage", { ...emptyCtx, aiUsageNavBadge: 5 })).toBe(5);
     expect(getBadge("ai-usage", emptyCtx)).toBeNull();
   });
+  it("goofish = 未读消息数 (v3.3 嵌入, 来自 guest 标题前缀)", () => {
+    expect(getBadge("goofish", { ...emptyCtx, goofishUnread: 2 })).toBe(2);
+    expect(getBadge("goofish", emptyCtx)).toBeNull();
+  });
   it("未注册 badge 的 nav → null (versions/github/ai-leaderboard)", () => {
     expect(getBadge("versions", emptyCtx)).toBeNull();
     expect(getBadge("github", emptyCtx)).toBeNull();
@@ -77,6 +81,11 @@ describe("sectionBadge — IconRail section 图标聚合", () => {
   });
   it("system section 固定为 0 (versions 无 badge 语义)", () => {
     expect(sectionBadge("system", emptyCtx)).toBe(0);
+  });
+  it("entertainment section = goofish 未读 (v3.3)", () => {
+    expect(
+      sectionBadge("entertainment", { ...emptyCtx, goofishUnread: 3 })
+    ).toBe(3);
   });
   it("未知 section 兜底 0", () => {
     expect(sectionBadge("unknown", emptyCtx)).toBe(0);

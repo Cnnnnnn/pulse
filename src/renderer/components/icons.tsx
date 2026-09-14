@@ -455,6 +455,7 @@ const NAV_ICON: Record<string, IconComponent> = {
   github: IconLayers,
   movies: IconFilm,
   concerts: IconTicket,
+  goofish: IconTag,
   vault: IconKey,
 };
 

@@ -195,10 +195,10 @@ describe("Dashboard — Tiles 按 section 分组", () => {
     expect(labels).toEqual(["资讯", "持仓", "系统", "娱乐"]);
   });
 
-  it("tiles 数 = NAV_REGISTRY 数 (9 个非 home module, v2.83 加 vault; goofish 落地后改 10)", () => {
+  it("tiles 数 = NAV_REGISTRY 数 (10 个非 home module, v3.3 加 goofish)", () => {
     const { container } = render(<Dashboard />);
     const tiles = container.querySelectorAll(".dashboard-tile");
-    expect(tiles.length).toBe(9);
+    expect(tiles.length).toBe(10);
   });
 });
 

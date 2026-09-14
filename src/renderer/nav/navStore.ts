@@ -125,6 +125,8 @@ export function setActiveNav(key: any) {
     clearIthomeUnreadBadge();
     clearWechatHotUnreadBadge();
   }
+  // 注: goofish 徽标不在此清零 — 它跟随 guest 页面真实未读数 (读了才会消失),
+  // 手动清零会造成 "没读却消失" 的假象
   // 仅持久化顶级 nav, 'home' 不写盘. 写盘失败仅 noop.
   if (target !== "home" && PERSISTABLE_NAV_KEYS.has(target)) {
     if (typeof api?.saveLastActiveNav === "function") {

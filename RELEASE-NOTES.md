@@ -2,6 +2,41 @@
 
 ---
 
+## v3.3.0 (🐟 闲鱼 web 版嵌入: webview + 独立登录分区) — 2026-09-14
+
+**🐟 新模块「闲鱼」** — 娱乐区新入口，goofish.com 官方 web 版整体嵌入（webview，非 API 抓取），浏览/搜索/商品详情全功能可用
+
+- 嵌入方式: 主进程 `WebContentsView` 承载 goofish.com（非 API 抓取）— **登录是硬前提**（spike 实测未登录搜索无结果），首次进入在页面内扫码（淘系 Havana），cookie 存 `persist:goofish` 独立持久分区，重启不丢，与主应用 session 完全隔离
+- **不用 `<webview>` tag**: Electron 43 + macOS 26 上 webview guest 渲染面高度锁死默认 150px（元素盒尺寸正确、宽度正常，sandbox 开关/动态 resize/窗口 resize 均无效，中性页同样复现 = 上游 BrowserPlugin 几何同步缺陷）；WebContentsView 主进程 setBounds 实测精确生效
+- 架构: renderer `GoofishLayout` 只做占位容器（矩形量测 + 遮挡门控）+ 工具条；几何经 `goofish:sync`、导航经 `goofish:nav` IPC 驱动主进程；URL / 未读数变化由主进程推回
+- **浮层遮挡门控（快照冻结）**: WebContentsView 是原生层会盖住一切 DOM — 抽屉/弹窗压到嵌入框上时（`elementFromPoint` 采样命中 + body portal 扫描 + 300ms 漂移对账检测），先抓 guest 当前帧冻结为占位图、再隐藏原生视图让浮层正常显示；遮挡消失后无缝恢复实时画面
+- 快捷搜索: 页头工具条拼 `/search?q=` 直达搜索页；页头「✦ AI 助手 / 首页 / 刷新 / 外部打开」胶囊（嵌入页上悬浮球由原生层遮挡，入口移至页头）
+- **未读消息提示**: guest 标题前缀 `(N)` + 页内角标轮询 → 侧栏「闲鱼」徽标；未读上涨即发系统通知（与检查更新同一套 `Electron.Notification`，不因正在看闲鱼页而抑制），点击聚焦并切到闲鱼 tab。**已登录时启动 warm-start**：guest 屏外保活，不打开闲鱼页也能收消息弹通知
+- UA 伪装标准 Chrome/macOS（去 Electron 标记），spike 全流程未触发阿里 baxia 风控滑块
+
+**🏠 首页双栏重设计 (Calm Pro 2.0)**
+
+- Hero 问候降级为排版行（与各模块 PageHeader 同族，22px 顶距），「上次访问」变右侧 pill 直达
+- 双栏 body：左主栏栏目卡 auto-fill 网格吃满宽度（修掉右半屏大面积留白），右侧栏 300px 放信息卡
+- 新增「关注」聚合卡：从 nav-status 派生行动清单 — 应用可升级数 / GitHub 收录新 release / 资讯未读 / 持仓动态 / AI 用量≥80% 预警，只列有信号的项，全空显示「一切就绪」；每行点击直达对应模块
+- 最近活动移入右栏时间线卡（上限 4 → 5）；<1080px 自动折叠单栏
+- dashboard-layout 视觉断言改为双栏「矩形不相交」语义；overview/funds 截图基线取景为应用库页，不受影响
+
+**🔒 安全边界**（`src/main/webview-guard.ts` + `src/main/goofish-embed.ts`）
+
+- guest（远程不可信页面）弹窗分流: 白名单域（如「消息」IM 的 target=_blank）取消弹窗、guest 内部接管导航；白名单外 http(s) 目标转系统浏览器（复用 `isSafeExternalUrl` 白名单语义）
+- guest 顶栏导航白名单: goofish.com / taobao.com（扫码登录）/ tmall.com / alipay.com（交易收银台），白名单外 `preventDefault` + 系统浏览器兜底
+- `goofish:nav` 的 load 指令仅接受 goofish.com 域内 URL
+- `persist:goofish` 分区 session: 通知/定位/媒体/剪贴板读取等权限请求一律拒绝
+- 主窗口仍 `sandbox: true` + `contextIsolation: true`，未开 `webviewTag`（最小权限）
+- 合规: 仅本机个人工具嵌入使用，无自动下单/抢购逻辑
+
+**🔧 内部变更**
+
+- `src/shared/nav-keys.ts` registry 加 `goofish`（icon `tag`，section 娱乐）— 侧栏项/首页磁贴/持久化白名单自动派生
+- `tests/renderer/dashboard.test.tsx` tiles 数 9 → 10
+- spike 验证脚本沉淀于项目记忆（webview+persist 分区可行、搜索需登录、无风控滑块、`/search?q=` 路由、PC 版 1280px 设计宽）
+
 ## v3.2.1 (🚑 Drawer 顶部遮挡条修复: 全部浮层 portal 化) — 2026-09-12
 
 **🚑 修「AI 任务 / 早报 / GitHub 详情 drawer 顶部被半透明条遮挡」**

@@ -30,6 +30,7 @@ export type NavKey =
   | 'ai-leaderboard'
   | 'movies'
   | 'concerts'
+  | 'goofish'
   | 'vault';
 
 export type NavSectionId = 'news' | 'holdings' | 'system' | 'entertainment';
@@ -49,9 +50,10 @@ export interface NavRegistryEntry {
     | 'refresh'
     | 'layers'
     | 'star'
-    | 'film'
-    | 'ticket'
-    | 'key';
+  | 'film'
+  | 'ticket'
+  | 'tag'
+  | 'key';
   /** 归属分组 */
   section: NavSectionId;
   /** 首页磁贴标题 (短); 缺省用 label */
@@ -125,6 +127,16 @@ export const NAV_REGISTRY: NavRegistryEntry[] = [
     section: 'entertainment',
     homeTitle: '演出票',
     subtitle: '演唱会实时票价监控',
+  },
+  {
+    key: 'goofish',
+    label: '闲鱼',
+    tooltip: '闲鱼 web 版嵌入浏览/搜索 (v3.3)',
+    accent: 'orange',
+    icon: 'tag',
+    section: 'entertainment',
+    homeTitle: '闲鱼',
+    subtitle: '闲鱼 web 版浏览/搜索',
   },
   {
     key: 'invest',

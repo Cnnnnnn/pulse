@@ -24,6 +24,8 @@ const LOADERS = {
     import('../movies/MoviesLayout.tsx').then((m) => m.MoviesLayout),
   concerts: () =>
     import('../concerts/ConcertsLayout.tsx').then((m) => m.ConcertsLayout),
+  goofish: () =>
+    import('../goofish/GoofishLayout.tsx').then((m) => m.GoofishLayout),
   vault: () =>
     import('../vault/VaultLayout.tsx').then((m) => m.VaultLayout),
 };

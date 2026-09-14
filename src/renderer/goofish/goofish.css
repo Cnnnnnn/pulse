@@ -1,0 +1,131 @@
+/* src/renderer/goofish/goofish.css
+ * 闲鱼嵌入模块样式（v3.3：苹果原生风，与 vault/movies/concerts 同族）。
+ * 仅用 var()/oklch()/color-mix()；域强调色 --goofish-accent（闲鱼黄）。
+ */
+
+.goofish-layout {
+  --goofish-accent: #ffe600;
+  --goofish-accent-strong: #d4b500;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── header ── */
+.goofish-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 18px 6px;
+  background: transparent;
+}
+.goofish-header__left {
+  min-width: 0;
+}
+.goofish-header__title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--gray-800, #1d1d1f);
+}
+.goofish-header__meta {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--gray-500, #6e6e73);
+}
+.goofish-header__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── 按钮（胶囊，同 vault-btn）── */
+.goofish-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--gray-100) 80%, var(--surface, #fff));
+  color: var(--gray-700, #48484a);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.goofish-btn:hover {
+  filter: brightness(0.97);
+}
+
+/* ── 搜索工具条 ── */
+.goofish-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+}
+.goofish-toolbar__input {
+  flex: 0 1 360px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--gray-200, #e5e5ea);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--gray-800, #1d1d1f);
+  font-size: 12px;
+  outline: none;
+}
+.goofish-toolbar__input:focus {
+  border-color: var(--goofish-accent-strong);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--goofish-accent) 30%, transparent);
+}
+.goofish-toolbar__input::placeholder {
+  color: var(--gray-400, #a1a1a6);
+}
+.goofish-toolbar__go {
+  min-height: 30px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--goofish-accent);
+  color: #1d1d1f;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.goofish-toolbar__go:hover {
+  filter: brightness(0.96);
+}
+
+/* ── 嵌入区 ── */
+.goofish-frame {
+  position: relative; /* guest 由主进程 WebContentsView 渲染, 此容器仅占位/量测 */
+  flex: 1;
+  min-height: 0;
+  margin: 8px 18px 0;
+  padding-bottom: 12px;
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  border: 1px solid color-mix(in oklch, var(--gray-200, #e5e5ea) 70%, transparent);
+  overflow: hidden;
+}
+/* 遮挡冻结帧: 抽屉/弹窗压框时显示 guest 的最后一帧截图, 避免"空框"观感 */
+.goofish-frame__freeze {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  pointer-events: none;
+  user-select: none;
+}

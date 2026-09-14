@@ -388,6 +388,20 @@ export const api = {
   openUrl: (url: IpcChannelMap["open-url:open"]["args"][0]) =>
     invokeChannel("open-url:open", url),
 
+  // 闲鱼嵌入 (v3.3: 主进程 WebContentsView, guest 由 goofish-embed 管理)
+  goofishSync: (payload: IpcChannelMap["goofish:sync"]["args"][0]) =>
+    invokeChannel("goofish:sync", payload),
+  goofishNav: (payload: IpcChannelMap["goofish:nav"]["args"][0]) =>
+    invokeChannel("goofish:nav", payload),
+  goofishSnapshot: () => invokeChannel("goofish:snapshot"),
+  onGoofishUrl: (cb: Callback<string>) => subscribe("goofish:url", cb),
+  onGoofishUnread: (cb: Callback<number>) => subscribe("goofish:unread", cb),
+  onGoofishOpenRequest: (cb: Callback<void>) =>
+    subscribeVoid("goofish:open-request", cb as () => void),
+  onGoofishAlert: (
+    cb: Callback<{ title?: string; body?: string; unread?: number }>,
+  ) => subscribe("goofish:alert", cb),
+
   // 微信热搜 (v2.24)
   wechatHotLoad: () => invokeChannel("wechat-hot:load"),
   wechatHotRefresh: () => invokeChannel("wechat-hot:refresh"),

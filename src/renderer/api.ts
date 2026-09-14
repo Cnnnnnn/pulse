@@ -223,6 +223,14 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     onMainError: pick(overrides, "onMainError"),
     // Universal "open URL in system browser" bridge (validates http/https in main).
     openUrl: pick(overrides, "openUrl"),
+    // 闲鱼嵌入 (v3.3: 主进程 WebContentsView)
+    goofishSync: pick(overrides, "goofishSync"),
+    goofishNav: pick(overrides, "goofishNav"),
+    goofishSnapshot: pick(overrides, "goofishSnapshot"),
+    onGoofishUrl: pick(overrides, "onGoofishUrl"),
+    onGoofishUnread: pick(overrides, "onGoofishUnread"),
+    onGoofishOpenRequest: pick(overrides, "onGoofishOpenRequest"),
+    onGoofishAlert: pick(overrides, "onGoofishAlert"),
     // 微博热搜 (v2.24.1, 原微信热搜 v2.24.0)
     wechatHotLoad: pick(overrides, "wechatHotLoad"),
     wechatHotRefresh: pick(overrides, "wechatHotRefresh"),

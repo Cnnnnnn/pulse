@@ -198,6 +198,10 @@ function wireRendererListeners() {
       }).catch(() => {});
     });
     import('./nav/navStore.ts').then(({ installNavWatch }) => installNavWatch());
+    // 闲鱼未读徽标: 全局订阅 (与 goofish 面板挂载解耦, 任何 tab 下都能亮)
+    import('./goofish/store.ts').then(({ installGoofishUnreadWatch }) =>
+      installGoofishUnreadWatch(),
+    );
   }
 }
 
