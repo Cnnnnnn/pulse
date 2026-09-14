@@ -17,8 +17,8 @@ import {
   pickTopUnreadSession,
   type GoofishChatSession,
   type SessionSyncResult,
-} from "./mtop-session.ts";
-import { inQuietHours } from "../notification-policy.ts";
+} from "./mtop-session";
+import { inQuietHours } from "../notification-policy";
 
 export type GoofishAuthStatus =
   | "unknown"
@@ -236,9 +236,14 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
   try {
     const sync = deps.sync || fetchSessionSync;
     const win = deps.getWindow ? deps.getWindow() : null;
-    let result = await sync();
+    let result: SessionSyncResult = await sync();
 
-    if (!result.ok && result.reason === "auth_expired" && deps.refreshSession && win) {
+    if (
+      result.ok === false &&
+      result.reason === "auth_expired" &&
+      deps.refreshSession &&
+      win
+    ) {
       authFailStreak += 1;
       log(`auth_expired streak=${authFailStreak}, refreshing guest…`);
       try {
@@ -251,10 +256,11 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       }
     }
 
-    if (!result.ok) {
-      const st = authFromFail(result);
+    if (result.ok === false) {
+      const fail = result;
+      const st = authFromFail(fail);
       pushAuth(win, st);
-      if (result.reason === "auth_expired" || result.reason === "no_token") {
+      if (fail.reason === "auth_expired" || fail.reason === "no_token") {
         if (authFailStreak <= 1 || st === "logged_out") {
           try {
             if (win && !win.isDestroyed()) {
@@ -271,7 +277,7 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
           }
         }
       } else {
-        log(`sync fail: ${result.reason} ${result.detail || ""}`);
+        log(`sync fail: ${fail.reason} ${fail.detail || ""}`);
       }
       return;
     }
