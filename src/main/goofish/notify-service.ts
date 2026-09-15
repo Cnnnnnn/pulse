@@ -402,8 +402,9 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     authFailStreak = 0;
     pushAuth(win, "ok");
     const onlyHumans = humansOnly(deps);
-    // 徽标跟站点未读对齐（真人 unread 常恒 0）；humansOnly 只影响是否弹通知
-    const badge = result.allUnread;
+    // 协议 allUnread 含大量运营号（常 ~50+），与站点右侧「消息」角标不是同一口径。
+    // 徽标改由 DOM 右侧栏轮询主导；协议层只在「非仅真人」时用 allUnread 推徽标。
+    const badge = onlyHumans ? result.humanUnread : result.allUnread;
     const notifyUnread = onlyHumans ? result.humanUnread : result.allUnread;
     const msgDiff = diffHumanMessageUpdates(result.sessions, lastHumanMsgFp);
 
@@ -412,7 +413,10 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       lastUnread = notifyUnread;
       lastBadge = badge;
       lastHumanMsgFp = msgDiff.next;
-      pushUnreadBadge(win, badge);
+      // humansOnly 时 seed 可能是 0，留给 DOM 轨角标覆盖，避免先闪 57
+      if (!onlyHumans || badge > 0) {
+        pushUnreadBadge(win, badge);
+      }
       const byType: Record<string, number> = {};
       for (const s of result.sessions) {
         if (!(s.unread > 0)) continue;
@@ -426,9 +430,12 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     }
 
     if (badge !== lastBadge) {
-      pushUnreadBadge(win, badge);
-      log(`badge ${lastBadge} -> ${badge}`);
-      lastBadge = badge;
+      // humansOnly 且协议徽标为 0：不把 DOM 已显示的真实角标打回 0
+      if (!(onlyHumans && badge === 0 && lastBadge > 0)) {
+        pushUnreadBadge(win, badge);
+        log(`badge ${lastBadge} -> ${badge}`);
+        lastBadge = badge;
+      }
     }
 
     if (notifyUnread > lastUnread && notifyUnread > 0) {
@@ -525,6 +532,32 @@ export function goofishNotifyOnWsWake(): void {
     log("ws-wake → sync");
     void tick(activeDeps!);
   }, WS_WAKE_DEBOUNCE_MS);
+}
+
+/**
+ * 站点右侧栏「消息」角标（DOM）。闲鱼常要 visibilitychange 才刷新，
+ * 所以探测脚本会先伪装可见再读数——这才是用户看到的「1」，不是协议 allUnread 的 57。
+ */
+export function goofishNotifyOnDomRail(unread: number): void {
+  if (!activeDeps) return;
+  const n = Math.max(0, Math.min(99, Math.floor(Number(unread) || 0)));
+  const win = activeDeps.getWindow();
+  const prev = lastBadge;
+  if (n !== lastBadge) {
+    pushUnreadBadge(win, n);
+    log(`dom-rail badge ${lastBadge} -> ${n}`);
+    lastBadge = n;
+  }
+  if (!seeded) {
+    seeded = true;
+    lastUnread = n;
+    return;
+  }
+  if (n > prev && n > 0) {
+    log(`dom-rail unread ${prev} -> ${n}`);
+    fireNotify(win, activeDeps, n, []);
+    lastUnread = Math.max(lastUnread, n);
+  }
 }
 
 /**

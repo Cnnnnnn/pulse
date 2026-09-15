@@ -204,6 +204,85 @@ const WS_WAKE_HOOK = `(() => {
 const WS_FRAME_MARKER = "__GOOFISH_WS_FRAME__";
 const WS_BIN_MARKER = "__GOOFISH_WS_BIN__";
 
+/**
+ * 读站点右侧「消息」角标。先伪装可见并 focus——闲鱼多数时候只在
+ * visibilitychange 后才刷新该数字（用户切 tab / 点立即检查才会变，就是这个原因）。
+ */
+const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
+  try {
+    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+    Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('focus'));
+  } catch (e) {}
+  setTimeout(() => {
+    const t = String(document.title || '');
+    const tm = t.match(/^\\s*[(（【]\\s*(\\d+)/);
+    const titleCount = tm ? parseInt(tm[1], 10) || 0 : 0;
+    let railCount = 0;
+    for (const n of document.querySelectorAll('div,span,a')) {
+      if (n.childElementCount !== 0) continue;
+      if ((n.textContent || '').trim() !== '消息') continue;
+      let p = n.parentElement;
+      let hit = false;
+      for (let i = 0; i < 4 && p; i++, p = p.parentElement) {
+        if ((p.textContent || '').indexOf('发闲置') === -1) continue;
+        hit = true;
+        const b = p.querySelector('[class*="badge" i], [class*="count" i], [class*="red" i], [class*="num" i]');
+        if (b) {
+          const v = parseInt((b.textContent || '').trim(), 10);
+          if (!Number.isNaN(v) && v > 0) railCount = v;
+        }
+        break;
+      }
+      if (hit) break;
+    }
+    resolve(JSON.stringify({ t: titleCount, r: railCount }));
+  }, 800);
+}))()`;
+
+let railPollTimer: ReturnType<typeof setInterval> | null = null;
+let pendingRail: number | null = null;
+
+function startRailUnreadPoll(): void {
+  if (railPollTimer) return;
+  railPollTimer = setInterval(() => {
+    try {
+      if (!view || view.webContents.isDestroyed()) return;
+      void view.webContents
+        .executeJavaScript(RAIL_UNREAD_PROBE, true)
+        .then((raw: unknown) => {
+          let titleCount = 0;
+          let railCount = 0;
+          try {
+            const parsed = JSON.parse(String(raw));
+            titleCount = Number(parsed.t) || 0;
+            railCount = Number(parsed.r) || 0;
+          } catch {
+            return;
+          }
+          if (railCount > 99) railCount = 99;
+          const unread = Math.max(titleCount, railCount);
+          // 连续两轮一致再采信，避免模糊选择器抖一下
+          if (unread !== pendingRail) {
+            pendingRail = unread;
+            return;
+          }
+          pendingRail = null;
+          try {
+            const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
+            goofishNotifyOnDomRail(unread);
+          } catch {
+            /* noop */
+          }
+        })
+        .catch(() => {});
+    } catch {
+      /* noop */
+    }
+  }, 5_000);
+}
+
 function isGoofishImWsUrl(url: string): boolean {
   const u = String(url || "").toLowerCase();
   return /goofish|dingtalk|idle|im\.|wss?:\/\//i.test(u);
@@ -382,7 +461,6 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       const { applyGoofishGuestFence } = require("./webview-guard.ts");
       applyGoofishGuestFence(view.webContents);
       view.webContents.setBackgroundThrottling(false);
-      installGuestWakeBridge(view.webContents);
       // 推送走模块级 attachedWin (窗口重建后仍指向当前窗口)
       const onNav = (_e: unknown, url: unknown) => {
         if (attachedWin && !attachedWin.isDestroyed()) {
@@ -395,8 +473,10 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       };
       view.webContents.on("did-navigate", onNav);
       view.webContents.on("did-navigate-in-page", onNav);
-      // 未读：session.sync + WS chat；门铃见 installGuestWakeBridge。
+      // 未读：session.sync + WS + 右侧栏「消息」DOM 角标（站点真值，不是协议 57）
       // 首次停在 /im —— 官方 IM WebSocket 只在消息页建连，首页挂不住长连。
+      installGuestWakeBridge(view.webContents);
+      startRailUnreadPoll();
       embedLog("guest view created, loading /im (keepalive)");
       // 先停靠屏外, 等 goofish:sync 给真实矩形再亮出来 — 避免 warm-start / 创建瞬间闪屏
       parkOffscreen();

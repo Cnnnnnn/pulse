@@ -8,6 +8,7 @@ const {
   startGoofishNotifyService,
   goofishNotifyOnWsWake,
   goofishNotifyOnWsChat,
+  goofishNotifyOnDomRail,
   diffHumanMessageUpdates,
   __resetGoofishNotifyForTest,
   __getLastWsWakeAtForTest,
@@ -53,10 +54,39 @@ describe("goofish notify-service", () => {
     });
 
     await svc.tickNow();
+    // humansOnly：协议 allUnread 的 57 不再灌进侧栏（留给 DOM 轨角标）
     expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 57)).toBe(
-      true,
+      false,
     );
     expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+    svc.stop();
+  });
+
+  it("DOM 右侧栏角标上涨时更新徽标并通知", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: true as const,
+      sessions: [],
+      humanUnread: 0,
+      allUnread: 57,
+      ret: ["SUCCESS"],
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      notifyCooldownMs: 0,
+      isHumansOnly: () => true,
+    });
+    await svc.tickNow();
+    goofishNotifyOnDomRail(0); // seed via dom
+    goofishNotifyOnDomRail(1);
+    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 1)).toBe(
+      true,
+    );
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(true);
     svc.stop();
   });
 
