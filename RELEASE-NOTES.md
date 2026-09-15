@@ -2,6 +2,15 @@
 
 ---
 
+## v3.3.6 (🐟 修复「要切 tab 才看到新消息」) — 2026-09-15
+
+**3.3.5 已挂 /im，但整段会话零 `[goofish-ws]`** — 页内 WebSocket hook 未挂上；切 tab 触发整页 reload，看起来像「切一下才有新消息」。真人会话 `unread` 仍恒为 0，单靠未读上涨永远不弹。
+
+- CDP `Network.webSocket*` 旁路嗅探官方 IM 长连（不依赖页内 hook）
+- 轮询对比真人会话 `lastMsg`/`ts`，unread=0 也能发现新消息并通知（默认 20s）
+- 已在 `/im` 时 keepalive 改为软唤醒，避免打断长连
+- 可见性伪装补 `hasFocus` / `focus`
+
 ## v3.3.5 (🐟 修复收不到最新消息通知) — 2026-09-15
 
 **协议 sync 成功但永远不弹** — 实测 `humanUnread` 长期为 0，站点角标 ~50+ 全是运营/系统会话；同时 warm-start 停在首页，官方 IM WebSocket 根本不建连，门铃与帧解析链路空转。

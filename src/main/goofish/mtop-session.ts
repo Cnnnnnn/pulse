@@ -114,7 +114,9 @@ export function formatNotifyBody(
   opts?: { humansOnly?: boolean },
 ): string {
   const humansOnly = opts?.humansOnly !== false;
-  const top = pickTopUnreadSession(sessions, humansOnly);
+  const top =
+    pickTopUnreadSession(sessions, humansOnly) ||
+    pickLatestSession(sessions, humansOnly);
   const total = Math.max(0, Number(unreadTotal) || 0);
   if (!top) {
     return total > 0 ? `${total} 条未读消息，点击查看` : "有新消息，点击查看";
@@ -133,6 +135,21 @@ export function pickTopUnreadSession(
 ): GoofishChatSession | null {
   const list = (sessions || [])
     .filter((s) => s.unread > 0 && (!humansOnly || s.sessionType === 1))
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  return list[0] || null;
+}
+
+/**
+ * 按最后一条消息时间取最新会话（不要求 unread>0）。
+ * 真人会话的 summary.unread 常恒为 0，只能靠 ts/lastMsg 变化发现新消息。
+ */
+export function pickLatestSession(
+  sessions: GoofishChatSession[],
+  humansOnly = true,
+): GoofishChatSession | null {
+  const list = (sessions || [])
+    .filter((s) => !humansOnly || s.sessionType === 1)
+    .filter((s) => !!(s.lastMsg || s.ts))
     .sort((a, b) => (b.ts || 0) - (a.ts || 0));
   return list[0] || null;
 }

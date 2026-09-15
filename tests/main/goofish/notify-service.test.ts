@@ -8,6 +8,7 @@ const {
   startGoofishNotifyService,
   goofishNotifyOnWsWake,
   goofishNotifyOnWsChat,
+  diffHumanMessageUpdates,
   __resetGoofishNotifyForTest,
   __getLastWsWakeAtForTest,
 } = requireMain("goofish/notify-service");
@@ -317,6 +318,83 @@ describe("goofish notify-service", () => {
     );
 
     svc.stop();
+  });
+
+  it("humanUnread=0 但真人 lastMsg/ts 变化时仍通知", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    let lastMsg = "旧消息";
+    let ts = 100;
+    const sync = vi.fn(async () => ({
+      ok: true as const,
+      sessions: [
+        {
+          sessionId: "h1",
+          sessionType: 1,
+          peerNick: "买家乙",
+          peerUserId: "u2",
+          itemId: "",
+          unread: 0,
+          lastMsg,
+          ts,
+        },
+      ],
+      humanUnread: 0,
+      allUnread: 40,
+      ret: ["SUCCESS"],
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      notifyCooldownMs: 0,
+    });
+
+    await svc.tickNow();
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+
+    lastMsg = "新报价";
+    ts = 200;
+    await svc.tickNow();
+    const alert = sends.find((s) => s.ch === "goofish:alert");
+    expect(alert).toBeTruthy();
+    expect(String(alert.payload.body)).toContain("买家乙");
+    expect(String(alert.payload.body)).toContain("新报价");
+
+    svc.stop();
+  });
+
+  it("diffHumanMessageUpdates 只报变化会话", () => {
+    const prev = new Map([["h1", "100\0旧"]]);
+    const { changed, next } = diffHumanMessageUpdates(
+      [
+        {
+          sessionId: "h1",
+          sessionType: 1,
+          peerNick: "A",
+          peerUserId: "u",
+          itemId: "",
+          unread: 0,
+          lastMsg: "新",
+          ts: 200,
+        },
+        {
+          sessionId: "ops",
+          sessionType: 23,
+          peerNick: "运营",
+          peerUserId: "o",
+          itemId: "",
+          unread: 9,
+          lastMsg: "活动",
+          ts: 999,
+        },
+      ],
+      prev,
+    );
+    expect(changed).toHaveLength(1);
+    expect(changed[0].sessionId).toBe("h1");
+    expect(next.get("h1")).toBe("200\0新");
   });
 
   it("no_token 但登录 cookie 仍在 → 降级同步异常，不弹未登录/扫码提示", async () => {

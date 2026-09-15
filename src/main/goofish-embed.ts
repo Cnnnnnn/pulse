@@ -69,6 +69,7 @@ function parkOffscreen(): void {
 
 /**
  * 后台必须停在 /im 才能挂官方 IM WS。用户切走 tab 后若停在首页，长连会断。
+ * 已在 /im 时只软唤醒（visibility/focus），避免整页 reload 打断长连。
  * 登录/扫码页不动。
  */
 function ensureImKeepalive(): void {
@@ -77,7 +78,13 @@ function ensureImKeepalive(): void {
     const url = String(view.webContents.getURL() || "");
     if (!/goofish\.com/i.test(url)) return;
     if (/login|passport|havana|qrcode/i.test(url)) return;
-    if (/\/im(?:\?|$|#)/i.test(url)) return;
+    if (/\/im(?:\?|$|#)/i.test(url)) {
+      void view.webContents
+        .executeJavaScript(VISIBILITY_SPOOF, true)
+        .then(() => embedLog("keepalive soft-wake /im"))
+        .catch(() => {});
+      return;
+    }
     void view.webContents.loadURL(GOOFISH_IM).catch(() => {});
     embedLog("keepalive → /im");
   } catch {
@@ -97,12 +104,22 @@ function isSafeGoofishLoadUrl(raw: unknown): boolean {
   }
 }
 
-/** guest 隐藏后闲鱼可能自行暂停消息同步 (检查 document.hidden), 伪装成可见 */
+/** guest 隐藏/失焦后闲鱼可能自行暂停 IM；伪装成前台可见 */
 const VISIBILITY_SPOOF = `(() => {
   try {
     Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
     Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+    try {
+      Document.prototype.hasFocus = function () { return true; };
+    } catch (e1) {}
+    try {
+      Object.defineProperty(document, 'hasFocus', {
+        value: function () { return true; },
+        configurable: true,
+      });
+    } catch (e2) {}
     document.dispatchEvent(new Event('visibilitychange'));
+    try { window.dispatchEvent(new Event('focus')); } catch (e3) {}
   } catch (e) {}
 })()`;
 
@@ -187,6 +204,96 @@ const WS_WAKE_HOOK = `(() => {
 const WS_FRAME_MARKER = "__GOOFISH_WS_FRAME__";
 const WS_BIN_MARKER = "__GOOFISH_WS_BIN__";
 
+function isGoofishImWsUrl(url: string): boolean {
+  const u = String(url || "").toLowerCase();
+  return /goofish|dingtalk|idle|im\.|wss?:\/\//i.test(u);
+}
+
+/**
+ * CDP Network 直接嗅探官方 IM WebSocket。
+ * 页内 hook 在生产环境经常挂不上（脚本早于注入 / Worker 建连），
+ * 实测 3.3.5 整段会话零 `[goofish-ws]` —— 改走 debugger 旁路。
+ */
+function installCdpWsSniffer(wc: electronType.WebContents): void {
+  const self = wc as unknown as { __gfCdpWsSniffer?: boolean };
+  if (self.__gfCdpWsSniffer) return;
+  self.__gfCdpWsSniffer = true;
+
+  const onDebuggerMessage = (
+    _event: unknown,
+    method: string,
+    params: Record<string, any>,
+  ) => {
+    try {
+      if (method === "Network.webSocketCreated") {
+        const url = String(params?.url || "");
+        if (!isGoofishImWsUrl(url)) return;
+        const { handleGoofishWsOpen } = require("./goofish/ws-frames.ts");
+        handleGoofishWsOpen(`cdp:${url}`);
+        return;
+      }
+      if (method === "Network.webSocketFrameReceived") {
+        const urlHint = String(params?.response?.payloadData || "");
+        const opcode = Number(params?.response?.opcode);
+        const payload = params?.response?.payloadData;
+        if (opcode === 1 && typeof payload === "string") {
+          // 文本帧：门铃 + 有 syncPush 则解析
+          try {
+            const { goofishNotifyOnWsWake } = require("./goofish/notify-service.ts");
+            goofishNotifyOnWsWake();
+          } catch {
+            /* noop */
+          }
+          if (payload.includes("syncPushPackage") || payload.includes("lwp")) {
+            const { handleGoofishWsFrame } = require("./goofish/ws-frames.ts");
+            handleGoofishWsFrame(payload);
+          }
+          return;
+        }
+        if (opcode === 2 && typeof payload === "string") {
+          // 二进制帧：CDP 给 base64
+          try {
+            const { goofishNotifyOnWsWake } = require("./goofish/notify-service.ts");
+            goofishNotifyOnWsWake();
+          } catch {
+            /* noop */
+          }
+          const { handleGoofishWsBinFrame } = require("./goofish/ws-frames.ts");
+          handleGoofishWsBinFrame(payload);
+          return;
+        }
+        void urlHint;
+      }
+      if (method === "Network.webSocketClosed") {
+        embedLog("cdp ws closed");
+      }
+    } catch {
+      /* noop */
+    }
+  };
+
+  try {
+    if (!wc.debugger.isAttached()) {
+      wc.debugger.attach("1.3");
+    }
+    wc.debugger.removeListener("message", onDebuggerMessage as any);
+    wc.debugger.on("message", onDebuggerMessage as any);
+    void wc.debugger
+      .sendCommand("Network.enable", {
+        maxResourceBufferSize: 1_048_576,
+        maxPostDataSize: 65_536,
+      })
+      .then(() => embedLog("cdp Network.enable ok"))
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        embedLog(`cdp Network.enable fail: ${msg}`);
+      });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    embedLog(`cdp attach fail: ${msg}`);
+  }
+}
+
 function installGuestWakeBridge(wc: electronType.WebContents): void {
   const inject = () => {
     try {
@@ -196,7 +303,7 @@ function installGuestWakeBridge(wc: electronType.WebContents): void {
     }
   };
   wc.on("dom-ready", inject);
-  // 尽量赶在页面脚本建连前注入
+  // 尽量赶在页面脚本建连前注入；CDP Network 作主路径
   try {
     if (!wc.debugger.isAttached()) {
       wc.debugger.attach("1.3");
@@ -214,6 +321,7 @@ function installGuestWakeBridge(wc: electronType.WebContents): void {
   } catch {
     /* noop */
   }
+  installCdpWsSniffer(wc);
   wc.on("console-message", (...args: any[]) => {
     try {
       let msg = "";
@@ -223,7 +331,6 @@ function installGuestWakeBridge(wc: electronType.WebContents): void {
         msg = args[2];
       }
       if (msg.startsWith(WS_BIN_MARKER)) {
-        // 二进制帧（base64）：外层大概率 msgpack，独立解析计数
         try {
           const { handleGoofishWsBinFrame } = require("./goofish/ws-frames.ts");
           handleGoofishWsBinFrame(msg.slice(WS_BIN_MARKER.length));
@@ -232,7 +339,6 @@ function installGuestWakeBridge(wc: electronType.WebContents): void {
         }
       }
       if (msg.startsWith(WS_FRAME_MARKER)) {
-        // spike：帧原文交给主进程解析统计；帧本身就是流量，门铃一并触发
         try {
           const { handleGoofishWsFrame } = require("./goofish/ws-frames.ts");
           handleGoofishWsFrame(msg.slice(WS_FRAME_MARKER.length));

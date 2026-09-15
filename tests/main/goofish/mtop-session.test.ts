@@ -10,6 +10,7 @@ const {
   summarizeSessions,
   formatNotifyBody,
   pickTopUnreadSession,
+  pickLatestSession,
   buildImDeepLink,
 } = requireMain("goofish/mtop-session");
 

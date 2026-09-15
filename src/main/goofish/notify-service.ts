@@ -16,6 +16,7 @@ import {
   fetchSessionSync,
   formatNotifyBody,
   hasGoofishLoginHints,
+  pickLatestSession,
   pickTopUnreadSession,
   type GoofishChatSession,
   type SessionSyncResult,
@@ -72,11 +73,14 @@ let lastNotifyAt = 0;
 let lastWsWakeAt = 0;
 let lastRefreshAt = 0;
 let wsWakeTimer: ReturnType<typeof setTimeout> | null = null;
+/** sessionId → `${ts}\\0${lastMsg}`；真人 unread 常为 0，靠摘要变化发现新消息 */
+let lastHumanMsgFp = new Map<string, string>();
 
 const liveNotifications: electronType.Notification[] = [];
 const GOOFISH_IM = "https://www.goofish.com/im";
 const DEFAULT_COOLDOWN_MS = 90_000;
-const DEFAULT_INTERVAL_MS = 60_000;
+/** 无可靠 WS 时 20s 兜底；有 CDP/门铃时仍保留 */
+const DEFAULT_INTERVAL_MS = 20_000;
 const WS_WAKE_DEBOUNCE_MS = 2_500;
 /** 认证失败时最多软刷新 1 次 / 15 分钟，避免整页 reload 风暴把人赶去扫码 */
 const REFRESH_COOLDOWN_MS = 15 * 60_000;
@@ -166,6 +170,33 @@ function quietHoursBlocked(deps: GoofishNotifyDeps): boolean {
   return false;
 }
 
+function humanMsgKey(s: GoofishChatSession): string {
+  return `${Number(s.ts) || 0}\0${String(s.lastMsg || "")}`;
+}
+
+/**
+ * 对比真人会话 lastMsg/ts。unread 恒 0 时仍能发现「有人说话了」。
+ * 返回本次变新的会话（按 ts 新→旧）。
+ */
+export function diffHumanMessageUpdates(
+  sessions: GoofishChatSession[],
+  prev: Map<string, string>,
+): { changed: GoofishChatSession[]; next: Map<string, string> } {
+  const next = new Map<string, string>();
+  const changed: GoofishChatSession[] = [];
+  for (const s of sessions || []) {
+    if (s.sessionType !== 1) continue;
+    const id = String(s.sessionId || s.peerUserId || "");
+    if (!id) continue;
+    const key = humanMsgKey(s);
+    next.set(id, key);
+    const old = prev.get(id);
+    if (old != null && old !== key) changed.push(s);
+  }
+  changed.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  return { changed, next };
+}
+
 function fireNotify(
   win: electronType.BrowserWindow | null,
   deps: GoofishNotifyDeps,
@@ -194,7 +225,9 @@ function fireNotify(
 
   const onlyHumans = humansOnly(deps);
   const body = formatNotifyBody(sessions, unread, { humansOnly: onlyHumans });
-  const top = pickTopUnreadSession(sessions, onlyHumans);
+  const top =
+    pickTopUnreadSession(sessions, onlyHumans) ||
+    pickLatestSession(sessions, onlyHumans);
   const deepLink = buildImDeepLink(top);
   try {
     const { Notification, app } = require("electron") as typeof electronType;
@@ -369,10 +402,12 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     pushAuth(win, "ok");
     const onlyHumans = humansOnly(deps);
     const unread = onlyHumans ? result.humanUnread : result.allUnread;
+    const msgDiff = diffHumanMessageUpdates(result.sessions, lastHumanMsgFp);
 
     if (!seeded) {
       seeded = true;
       lastUnread = unread;
+      lastHumanMsgFp = msgDiff.next;
       pushUnreadBadge(win, unread);
       const byType: Record<string, number> = {};
       for (const s of result.sessions) {
@@ -381,7 +416,7 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
         byType[k] = (byType[k] || 0) + s.unread;
       }
       log(
-        `seed unread=${unread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)}`,
+        `seed unread=${unread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)} humanTracked=${lastHumanMsgFp.size}`,
       );
       return;
     }
@@ -393,10 +428,29 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     if (unread > lastUnread && unread > 0) {
       log(`unread ${lastUnread} -> ${unread}`);
       fireNotify(win, deps, unread, result.sessions);
-    } else if (unread !== lastUnread) {
+      lastUnread = unread;
+      lastHumanMsgFp = msgDiff.next;
+      return;
+    }
+
+    if (unread !== lastUnread) {
       log(`unread ${lastUnread} -> ${unread} (no notify)`);
     }
-    lastUnread = unread;
+
+    // 真人 unread 常为 0：靠 lastMsg/ts 变化补通知
+    if (onlyHumans && msgDiff.changed.length > 0) {
+      const top = msgDiff.changed[0];
+      log(
+        `human-msg delta n=${msgDiff.changed.length} nick=${top.peerNick || "?"} text=${String(top.lastMsg || "").slice(0, 40)}`,
+      );
+      const bump = Math.max(1, unread, lastUnread + msgDiff.changed.length);
+      pushUnreadBadge(win, bump);
+      fireNotify(win, deps, bump, msgDiff.changed);
+      lastUnread = bump;
+    } else {
+      lastUnread = unread;
+    }
+    lastHumanMsgFp = msgDiff.next;
   } finally {
     inflight = false;
   }
@@ -523,6 +577,7 @@ export function __resetGoofishNotifyForTest(): void {
   lastNotifyAt = 0;
   lastWsWakeAt = 0;
   lastRefreshAt = 0;
+  lastHumanMsgFp = new Map();
 }
 
 /** 供 index 注入：读全局 notifications 免打扰 */
