@@ -238,49 +238,93 @@ const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
       if (hit) break;
     }
     resolve(JSON.stringify({ t: titleCount, r: railCount }));
-  }, 800);
+  }, 280);
 }))()`;
 
 let railPollTimer: ReturnType<typeof setInterval> | null = null;
-let pendingRail: number | null = null;
+let railProbeInflight = false;
+let lastAppliedRail = -1;
+/** 仅下降时两轮确认，避免选择器抖一下把徽标打没 */
+let pendingRailDrop: number | null = null;
+let lastRailKickAt = 0;
 
-function startRailUnreadPoll(): void {
-  if (railPollTimer) return;
-  railPollTimer = setInterval(() => {
+function applyRailProbeResult(raw: unknown): void {
+  let titleCount = 0;
+  let railCount = 0;
+  try {
+    const parsed = JSON.parse(String(raw));
+    titleCount = Number(parsed.t) || 0;
+    railCount = Number(parsed.r) || 0;
+  } catch {
+    return;
+  }
+  if (railCount > 99) railCount = 99;
+  const unread = Math.max(titleCount, railCount);
+
+  // 上涨：立刻同步（用户最敏感）
+  if (unread > lastAppliedRail) {
+    lastAppliedRail = unread;
+    pendingRailDrop = null;
     try {
-      if (!view || view.webContents.isDestroyed()) return;
-      void view.webContents
-        .executeJavaScript(RAIL_UNREAD_PROBE, true)
-        .then((raw: unknown) => {
-          let titleCount = 0;
-          let railCount = 0;
-          try {
-            const parsed = JSON.parse(String(raw));
-            titleCount = Number(parsed.t) || 0;
-            railCount = Number(parsed.r) || 0;
-          } catch {
-            return;
-          }
-          if (railCount > 99) railCount = 99;
-          const unread = Math.max(titleCount, railCount);
-          // 连续两轮一致再采信，避免模糊选择器抖一下
-          if (unread !== pendingRail) {
-            pendingRail = unread;
-            return;
-          }
-          pendingRail = null;
-          try {
-            const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
-            goofishNotifyOnDomRail(unread);
-          } catch {
-            /* noop */
-          }
-        })
-        .catch(() => {});
+      const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
+      goofishNotifyOnDomRail(unread);
     } catch {
       /* noop */
     }
-  }, 5_000);
+    return;
+  }
+  if (unread === lastAppliedRail) {
+    pendingRailDrop = null;
+    return;
+  }
+  // 下降：连续两轮一致再采信
+  if (unread !== pendingRailDrop) {
+    pendingRailDrop = unread;
+    return;
+  }
+  pendingRailDrop = null;
+  lastAppliedRail = unread;
+  try {
+    const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
+    goofishNotifyOnDomRail(unread);
+  } catch {
+    /* noop */
+  }
+}
+
+function probeRailUnreadNow(): void {
+  try {
+    if (!view || view.webContents.isDestroyed() || railProbeInflight) return;
+    railProbeInflight = true;
+    void view.webContents
+      .executeJavaScript(RAIL_UNREAD_PROBE, true)
+      .then((raw: unknown) => {
+        applyRailProbeResult(raw);
+      })
+      .catch(() => {})
+      .finally(() => {
+        railProbeInflight = false;
+      });
+  } catch {
+    railProbeInflight = false;
+  }
+}
+
+/** WS/门铃触发时立刻读一次角标（限频，避免帧风暴） */
+export function goofishEmbedKickRailProbe(): void {
+  const now = Date.now();
+  if (now - lastRailKickAt < 800) return;
+  lastRailKickAt = now;
+  probeRailUnreadNow();
+}
+
+function startRailUnreadPoll(): void {
+  if (railPollTimer) return;
+  // 首探尽快，后续 2s 一轮（上涨立刻生效，不必等双确认）
+  setTimeout(() => probeRailUnreadNow(), 1_200);
+  railPollTimer = setInterval(() => {
+    probeRailUnreadNow();
+  }, 2_000);
 }
 
 function isGoofishImWsUrl(url: string): boolean {

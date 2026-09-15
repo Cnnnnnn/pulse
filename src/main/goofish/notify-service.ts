@@ -525,6 +525,12 @@ export function goofishNotifyTickNow(): Promise<void> {
  */
 export function goofishNotifyOnWsWake(): void {
   lastWsWakeAt = Date.now();
+  try {
+    const { goofishEmbedKickRailProbe } = require("../goofish-embed.ts");
+    goofishEmbedKickRailProbe();
+  } catch {
+    /* noop */
+  }
   if (!activeDeps) return;
   if (wsWakeTimer) return;
   wsWakeTimer = setTimeout(() => {

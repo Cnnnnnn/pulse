@@ -361,8 +361,9 @@ function tally(r: GoofishWsFrameResult): void {
   stats.syncFrames += 1;
   // 任意 sync 推送都软唤醒 guest，减轻「切 tab 才刷新」
   try {
-    const { goofishEmbedSoftWake } = require("../goofish-embed.ts");
+    const { goofishEmbedSoftWake, goofishEmbedKickRailProbe } = require("../goofish-embed.ts");
     goofishEmbedSoftWake();
+    goofishEmbedKickRailProbe();
   } catch {
     /* noop */
   }
