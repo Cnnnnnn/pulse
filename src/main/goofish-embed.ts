@@ -86,8 +86,10 @@ const VISIBILITY_SPOOF = `(() => {
 })()`;
 
 /**
- * 钩住官方 IM WebSocket：有流量就 console 打标，主进程防抖后 session.sync。
- * 不解析协议、不代发消息 —— 复用页面已建好的长连当「门铃」。
+ * 钩住官方 IM WebSocket：
+ *   1) 门铃：有流量 console 打标，主进程防抖后 session.sync（保留兜底）
+ *   2) spike：sync 推送帧原文（截断+限频）转发主进程，验证帧格式可稳定解析
+ * 不解析协议、不代发消息 —— 复用页面已建好的长连。
  */
 const WS_WAKE_HOOK = `(() => {
   if (window.__gfWsWakeHook) return;
@@ -99,11 +101,21 @@ const WS_WAKE_HOOK = `(() => {
     try {
       const u = String(url || '');
       if (/goofish|dingtalk/i.test(u)) {
-        ws.addEventListener('message', function () {
+        ws.addEventListener('message', function (ev) {
           var now = Date.now();
           if (window.__gfWsLast && now - window.__gfWsLast < 1500) return;
           window.__gfWsLast = now;
           console.info('__GOOFISH_WS__');
+        });
+        ws.addEventListener('message', function (ev) {
+          try {
+            var d = typeof ev.data === 'string' ? ev.data : '';
+            if (d.indexOf('syncPushPackage') === -1) return;
+            var now = Date.now();
+            if (window.__gfWsFrameLast && now - window.__gfWsFrameLast < 2000) return;
+            window.__gfWsFrameLast = now;
+            console.info('__GOOFISH_WS_FRAME__' + d.slice(0, 32768));
+          } catch (e) {}
         });
       }
     } catch (e) {}
@@ -116,6 +128,7 @@ const WS_WAKE_HOOK = `(() => {
   Wrapped.CLOSED = Orig.CLOSED;
   window.WebSocket = Wrapped;
 })()`;
+const WS_FRAME_MARKER = "__GOOFISH_WS_FRAME__";
 
 function installGuestWakeBridge(wc: electronType.WebContents): void {
   const inject = () => {
@@ -151,6 +164,15 @@ function installGuestWakeBridge(wc: electronType.WebContents): void {
         msg = String(args[0].message);
       } else if (typeof args[2] === "string") {
         msg = args[2];
+      }
+      if (msg.startsWith(WS_FRAME_MARKER)) {
+        // spike：帧原文交给主进程解析统计；帧本身就是流量，门铃一并触发
+        try {
+          const { handleGoofishWsFrame } = require("./goofish/ws-frames.ts");
+          handleGoofishWsFrame(msg.slice(WS_FRAME_MARKER.length));
+        } catch {
+          /* noop */
+        }
       }
       if (!msg.includes("__GOOFISH_WS__")) return;
       const { goofishNotifyOnWsWake } = require("./goofish/notify-service.ts");

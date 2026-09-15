@@ -2,6 +2,18 @@
 
 ---
 
+## v3.3.4 (🐟 修复「没过期却说过期」) — 2026-09-15
+
+**登录态健康（Havana cookie 有效数月）却被催重新扫码** — 根因是 mtop 短时令牌 `_m_h5_tk`（约 44 分钟滚动）在睡眠/长期后台后过期被清，同步层拿不到令牌就报 `no_token`，通知层直接映射成「未登录/过期」，且这两条提示分支不写日志，事后无从排查。
+
+- 同步层：令牌缺失时先在 guest 页内发一次无令牌 mtop 请求，借服务端 `TOKEN_EMPTY` + `Set-Cookie` 引导出新 `_m_h5_tk` 再继续
+- 通知层：`no_token`/`auth_expired` 但登录 cookie 仍在 → 降级为「消息同步异常」，不再弹「尚未登录/请扫码」；真登出（cookie 没了）才提示扫码
+- 软刷新兜底扩展到 no_token 场景（复用 15 分钟冷却）
+- `pushAuth` 每次状态变化补日志，误报从此可查
+- `ILLEGAL_ACCESS`（网关/签名问题）不再归入 `auth_expired`，走 error 口径
+- **WS 帧解析 spike**：guest 页内官方 IM WebSocket 的 sync 推送帧（截断+限频）转发主进程解析统计，验证「WS 从门铃升级为数据源」路线；观测看日志 `[goofish-ws]`（每 5 分钟 summary）
+- 启动加固：AI wiring 初始化整体纳入保护，非关键步骤不再能静默中断 whenReady 链
+
 ## v3.3.3 (🐟 修复假「请扫码」) — 2026-09-14
 
 **登录态还在却被要求扫码** — 根因是主进程 `session.fetch` 带不齐分区 cookie，误报 `auth_expired`，再每分钟整页 `reload` 把人赶到扫码页。
