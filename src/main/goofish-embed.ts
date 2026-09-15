@@ -205,11 +205,10 @@ const WS_FRAME_MARKER = "__GOOFISH_WS_FRAME__";
 const WS_BIN_MARKER = "__GOOFISH_WS_BIN__";
 
 /**
- * 读站点右侧「消息」角标。先伪装可见并 focus——闲鱼多数时候只在
- * visibilitychange 后才刷新该数字。
+ * 读站点右侧「消息」角标。先伪装可见并 focus。
  *
- * 注意：只在「消息」文案附近 2～3 层内找角标，绝不能在整块侧栏
- * querySelector（会误抓到其它 99 / 营销数字，侧栏先闪 99 再回落）。
+ * - /im 保活页可能没有「发闲置」，不能只靠该文案判定侧栏
+ * - 角标只认「消息」节点邻近的短数字；99 单独两轮确认，避免闪一下
  */
 const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
   try {
@@ -223,46 +222,68 @@ const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
     const tm = t.match(/^\\s*[(（【]\\s*(\\d{1,2})\\+?/);
     const titleCount = tm ? Math.min(99, parseInt(tm[1], 10) || 0) : 0;
     let railCount = 0;
+    let rail99 = false;
+
     function readBadgeText(el) {
       const raw = String((el && el.textContent) || '').trim();
-      // 只要纯 1～2 位数字或 99+；拒绝价格/其它长数字
-      if (!/^\\d{1,2}\\+?$/.test(raw)) return 0;
+      if (raw === '99+') return 99;
+      if (!/^\\d{1,2}$/.test(raw)) return 0;
       const v = parseInt(raw, 10);
-      return !Number.isNaN(v) && v > 0 ? Math.min(99, v) : 0;
+      return !Number.isNaN(v) && v > 0 ? v : 0;
     }
-    function collectNear(root, out) {
-      if (!root) return;
-      // 同行子节点 + 再下一层叶子
-      for (const child of root.children || []) {
-        const v = readBadgeText(child);
-        if (v > 0) out.push(v);
-        if (child === n) continue;
-        for (const g of child.children || []) {
-          if (g.childElementCount > 0) continue;
-          const gv = readBadgeText(g);
-          if (gv > 0) out.push(gv);
+
+    function isRightRailLabel(n) {
+      try {
+        const r = n.getBoundingClientRect();
+        if (r.width > 0 && r.left > window.innerWidth * 0.72) return true;
+      } catch (e) {}
+      for (let p = n.parentElement, i = 0; p && i < 8; i++, p = p.parentElement) {
+        const tx = p.textContent || '';
+        if (tx.indexOf('发闲置') !== -1 || tx.indexOf('APP内打开') !== -1) return true;
+        try {
+          const st = window.getComputedStyle(p);
+          if (st.position === 'fixed') {
+            const right = parseInt(st.right, 10);
+            if (st.right === '0px' || (!Number.isNaN(right) && right <= 48)) return true;
+          }
+        } catch (e2) {}
+      }
+      return false;
+    }
+
+    function badgeNearMessage(msgNode) {
+      let best = 0;
+      let saw99 = false;
+      const anchors = [msgNode.parentElement, msgNode.parentElement && msgNode.parentElement.parentElement].filter(Boolean);
+      for (const scope of anchors) {
+        const cands = scope.querySelectorAll('[class*="badge" i], [class*="count" i], [class*="red" i], span, div, i, em');
+        for (const b of cands) {
+          if (b.childElementCount > 0) continue;
+          // 必须挂在「消息」同一小枝上（向上 ≤4 层碰到 msg 父级）
+          let close = false;
+          for (let x = b, k = 0; x && k < 5; k++, x = x.parentElement) {
+            if (x === msgNode || x === msgNode.parentElement) { close = true; break; }
+          }
+          if (!close) continue;
+          const v = readBadgeText(b);
+          if (v === 99) { saw99 = true; continue; }
+          if (v > 0 && v < 99) best = Math.max(best, v);
         }
       }
+      return { best: best, saw99: saw99 };
     }
+
     for (const n of document.querySelectorAll('div,span,a')) {
       if (n.childElementCount !== 0) continue;
       if ((n.textContent || '').trim() !== '消息') continue;
-      let rail = false;
-      for (let p = n.parentElement, i = 0; p && i < 6; i++, p = p.parentElement) {
-        if ((p.textContent || '').indexOf('发闲置') !== -1) { rail = true; break; }
-      }
-      if (!rail) continue;
-      const found = [];
-      collectNear(n.parentElement, found);
-      if (n.parentElement && n.parentElement.parentElement) {
-        collectNear(n.parentElement.parentElement, found);
-      }
-      // 取「消息」附近最小的合理角标（侧栏误抓常是更大的无关数字）
-      const sane = found.filter((v) => v > 0 && v < 99);
-      if (sane.length) railCount = Math.min(...sane);
-      else if (found.indexOf(99) >= 0) railCount = 99;
+      if (!isRightRailLabel(n)) continue;
+      const hit = badgeNearMessage(n);
+      if (hit.best > 0) railCount = hit.best;
+      if (hit.saw99) rail99 = true;
       break;
     }
+    // 只有附近没读到 1～98 时才考虑 99+（仍由主进程两轮确认）
+    if (!railCount && rail99) railCount = 99;
     resolve(JSON.stringify({ t: titleCount, r: railCount }));
   }, 280);
 }))()`;
@@ -325,6 +346,15 @@ function probeRailUnreadNow(): void {
     void view.webContents
       .executeJavaScript(RAIL_UNREAD_PROBE, true)
       .then((raw: unknown) => {
+        try {
+          const parsed = JSON.parse(String(raw));
+          // 低频打点，方便确认探测是否读到 0
+          if (Math.random() < 0.08) {
+            embedLog(`rail-probe t=${parsed.t} r=${parsed.r}`);
+          }
+        } catch {
+          /* noop */
+        }
         applyRailProbeResult(raw);
       })
       .catch(() => {})
