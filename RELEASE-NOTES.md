@@ -2,6 +2,18 @@
 
 ---
 
+## v3.3.8 (🐟 WS 帧风暴去重 + 通知防刷屏 + 99+ tooltip) — 2026-09-15
+
+**3.3.7 已修徽标，但仍有 3 类刷屏** — WS sync 帧风暴里同一会话 1s 内连发 3 帧 → 连弹 3 次；不同会话紧挨着也被全局 90s 冷却一起压住；侧栏 `57` 不再好看也看不到真实值。
+
+- **WS chat 帧去重 (A1)**：`cid|itemId|ts` 30s 窗内同会话只弹一次通知（徽标仍每次 +1）
+- **同会话冷却 vs 全局冷却 (B2)**：60s 内同会话不再弹，但其他会话立即可弹（不再被全局 90s 压住）
+- **点击通知直达会话 (B1)**：去掉 `goofish:open-request` 重复 nav bug，单击一次直达深链
+- **协议层不再 push 徽标 (A2)**：徽标统一走「DOM 轨 + WS chat」，协议层只管通知文案；`humanUnread` 涨时弹通知，但不再覆盖真实角标
+- **未解 WS 帧落盘 (A3)**：decode 失败时按 1/min 节流写到 `~/Library/Logs/Pulse/goofish-ws-undiscoded.log`，方便下次升级解析器时回溯字段
+- **会话级免打扰 (B4)**：新增 `prefs.dnd_session_keys[]`，用户对某会话标「不再提醒」后该会话永久静默；其他会话照常弹（沿用 `goofishSetPrefs({dnd_session_keys:[..]})` 写）
+- **侧栏 99+ 封顶 + tooltip (B3)**：徽标 >99 显示「99+」，hover 看真实值；IconRail / NavDrawer 同步生效
+
 ## v3.3.7 (🐟 徽标归零 + WS 帧识别加固) — 2026-09-15
 
 **3.3.6 已连上官方 WS，但角标仍为 0、通知不弹** — `humansOnly` 把徽标绑死在恒为 0 的 `humanUnread`；WS sync 推送大量被标成 `other`（reminder 字段不在 1.10）；真人会话在 session.sync 里可数月不更新 lastMsg。

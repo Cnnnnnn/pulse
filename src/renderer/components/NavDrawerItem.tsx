@@ -180,7 +180,12 @@ export function NavDrawerItem({
       >
         <span class="nav-drawer-icon" aria-hidden="true"><NavIcon navKey={item.key} size={18} /></span>
         {badge > 0 && (
-          <Badge type="navdrawer" ariaLabel={`${badge} 条未读`}>
+          <Badge
+            type="navdrawer"
+            ariaLabel={`${badge} 条未读`}
+            title={item.tooltip || item.label}
+            max={99}
+          >
             {badge}
           </Badge>
         )}

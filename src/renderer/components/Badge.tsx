@@ -18,21 +18,36 @@ export function Badge({
   children,
   title,
   ariaLabel,
+  max,
 }: {
   type?: string;
   className?: string;
   children?: ComponentChildren;
   title?: string;
   ariaLabel?: string;
+  /** 超过 max 显示 `max+`；同时把真实值写到 title (hover tooltip). */
+  max?: number;
 }) {
   const base = TYPE_CLASS[type] || type;
+  const raw = typeof children === "number" ? children : Number(children);
+  const numeric = Number.isFinite(raw) ? raw : null;
+  const capped =
+    numeric != null && typeof max === "number" && max > 0 && numeric > max;
+  const display =
+    capped && numeric != null ? `${max}+` : children;
+  const finalTitle =
+    capped && numeric != null
+      ? title
+        ? `${title} · 真实值 ${numeric}`
+        : `真实值 ${numeric}`
+      : title;
   return (
     <span
-      class={`${base}${className ? ` ${className}` : ""}`}
-      title={title}
+      class={`${base}${className ? ` ${className}` : ""}${capped ? " badge-capped" : ""}`}
+      title={finalTitle}
       aria-label={ariaLabel}
     >
-      {children}
+      {display}
     </span>
   );
 }

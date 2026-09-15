@@ -374,6 +374,16 @@ function createMainWindow(runtimeConfig: any) {
             return true;
           }
         },
+        // B4: 会话级 DND 由 prefs.dnd_session_keys 维护；用户点「不再提醒」时
+        // 通过 goofishSetPrefs 写入。这里按 key O(1) 查一次。
+        isSessionDnd: (sessionKey: string) => {
+          try {
+            const keys = stateStore.loadGoofishPrefs().dnd_session_keys || [];
+            return keys.indexOf(sessionKey) !== -1;
+          } catch {
+            return false;
+          }
+        },
         isInQuietHours: defaultGoofishQuietHoursCheck(
           () => runtimeConfigRef.current || {},
         ),

@@ -389,7 +389,12 @@ function tally(r: GoofishWsFrameResult): void {
       }
     }
   }
-  if (r.detail && r.detail.startsWith("decode_fail")) stats.decodeFail += 1;
+  if (r.detail && r.detail.startsWith("decode_fail")) {
+    stats.decodeFail += 1;
+    // A3: 未解帧落盘采样 — 写入 ~/Library/Logs/Pulse/goofish-ws-undiscoded.log
+    // 限速 1 行/分钟，避免帧风暴撑爆磁盘。
+    sampleUndecodedFrame(r);
+  }
 
   const now = Date.now();
   if (now - lastSummaryAt >= SUMMARY_INTERVAL_MS) {
@@ -397,6 +402,54 @@ function tally(r: GoofishWsFrameResult): void {
     log(
       `summary 5min: received=${stats.received} sync=${stats.syncFrames} chat=${stats.chat} order=${stats.order} other=${stats.other} decodeFail=${stats.decodeFail} nonSync=${stats.nonSync} bin=${stats.binReceived} binSync=${stats.binSync} binFail=${stats.binDecodeFail}`,
     );
+  }
+}
+
+// ─── A3: 未解帧落盘采样 ────────────────────────────────────────
+let lastSampleWriteAt = 0;
+const SAMPLE_GAP_MS = 60_000;
+let samplePathCache: string | null = null;
+let sampleWriteError = false;
+
+function getSamplePath(): string | null {
+  if (samplePathCache) return samplePathCache;
+  try {
+    const os = require("node:os") as typeof import("node:os");
+    const path = require("node:path") as typeof import("node:path");
+    const fs = require("node:fs") as typeof import("node:fs");
+    const dir = path.join(os.homedir(), "Library", "Logs", "Pulse");
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch {
+      /* dir 可能已存在 / 权限问题 → 落盘失败交给上层吃 */
+    }
+    samplePathCache = path.join(dir, "goofish-ws-undiscoded.log");
+    return samplePathCache;
+  } catch {
+    return null;
+  }
+}
+
+function sampleUndecodedFrame(r: GoofishWsFrameResult): void {
+  const now = Date.now();
+  if (sampleWriteError) return;
+  if (now - lastSampleWriteAt < SAMPLE_GAP_MS) return;
+  lastSampleWriteAt = now;
+  const p = getSamplePath();
+  if (!p) return;
+  try {
+    const fs = require("node:fs") as typeof import("node:fs");
+    // 单帧一行：保留头部 300B + 顶层字段名（去除外层 lwp 噪声），
+    // 便于人工看下一次解析器升级时是否漏了字段。
+    const head = JSON.stringify({
+      t: new Date(now).toISOString(),
+      detail: r.detail || "",
+      events: r.events.map((e) => ({ kind: e.kind, ts: e.ts, cid: e.cid })),
+    });
+    fs.appendFileSync(p, head + "\n", "utf8");
+  } catch {
+    sampleWriteError = true;
+    log("ws-undiscoded sample write failed; disabled");
   }
 }
 

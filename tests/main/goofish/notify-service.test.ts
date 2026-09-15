@@ -35,7 +35,7 @@ describe("goofish notify-service", () => {
     __resetGoofishNotifyForTest();
   });
 
-  it("humansOnly 时徽标仍跟 allUnread，不跟 humanUnread", async () => {
+  it("humansOnly 时徽标由 DOM 轨主导；协议层不推", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);
     const sync = vi.fn(async () => ({
@@ -54,10 +54,8 @@ describe("goofish notify-service", () => {
     });
 
     await svc.tickNow();
-    // humansOnly：协议 allUnread 的 57 不再灌进侧栏（留给 DOM 轨角标）
-    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 57)).toBe(
-      false,
-    );
+    // A2: 协议层不推徽标；DOM 轨角标才是真值
+    expect(sends.some((s) => s.ch === "goofish:unread")).toBe(false);
     expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
     svc.stop();
   });
@@ -120,9 +118,8 @@ describe("goofish notify-service", () => {
 
     await svc.tickNow(); // seed
     expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
-    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 1)).toBe(
-      true,
-    );
+    // A2: seed 不再 push 协议层徽标；DOM 轨/WS chat 才是徽标源
+    expect(sends.some((s) => s.ch === "goofish:unread")).toBe(false);
     expect(sends.some((s) => s.ch === "goofish:auth" && s.payload?.status === "ok")).toBe(
       true,
     );
@@ -132,14 +129,11 @@ describe("goofish notify-service", () => {
     const alert = sends.find((s) => s.ch === "goofish:alert");
     expect(alert).toBeTruthy();
     expect(String(alert.payload.body)).toContain("买家");
-    expect(
-      sends.filter((s) => s.ch === "goofish:unread").map((s) => s.payload),
-    ).toContain(3);
 
     svc.stop();
   });
 
-  it("关闭通知开关时仍更新徽标但不弹 toast", async () => {
+  it("关闭通知开关时仍走通知路径但不弹 toast", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);
     let human = 1;
@@ -161,14 +155,13 @@ describe("goofish notify-service", () => {
     await svc.tickNow();
     human = 4;
     await svc.tickNow();
-    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 4)).toBe(
-      true,
-    );
+    // A2: 协议层不再 push 徽标；徽标走 DOM 轨/WS chat。
+    expect(sends.some((s) => s.ch === "goofish:unread")).toBe(false);
     expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
     svc.stop();
   });
 
-  it("冷却期内上涨只更新徽标不重复弹通知", async () => {
+  it("全局冷却期内上涨只走协议逻辑不重复弹通知", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);
     let human = 1;
@@ -195,9 +188,6 @@ describe("goofish notify-service", () => {
     human = 5;
     await svc.tickNow();
     expect(sends.filter((s) => s.ch === "goofish:alert")).toHaveLength(1);
-    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 5)).toBe(
-      true,
-    );
     svc.stop();
   });
 
@@ -225,13 +215,12 @@ describe("goofish notify-service", () => {
     human = 3;
     await svc.tickNow();
     expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
-    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 3)).toBe(
-      true,
-    );
+    // A2: 协议层不再 push 徽标
+    expect(sends.some((s) => s.ch === "goofish:unread")).toBe(false);
     svc.stop();
   });
 
-  it("humansOnly=false 时用 allUnread 驱动徽标", async () => {
+  it("humansOnly=false 时协议层不推徽标（DOM 轨才是真值）", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);
     const sync = vi.fn(async () => ({
@@ -250,9 +239,7 @@ describe("goofish notify-service", () => {
     });
 
     await svc.tickNow();
-    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 8)).toBe(
-      true,
-    );
+    expect(sends.some((s) => s.ch === "goofish:unread")).toBe(false);
     svc.stop();
   });
 
@@ -572,4 +559,178 @@ describe("goofish notify-service", () => {
     ).toBe(true);
     svc.stop();
   }, 15_000);
+
+  // ─── A1: WS chat dedup（30s 窗）───────────────────
+  it("A1: WS chat 同会话短窗内只弹一次", () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync: vi.fn(async () => ({
+        ok: true as const,
+        sessions: [],
+        humanUnread: 0,
+        allUnread: 0,
+        ret: ["SUCCESS"],
+      })),
+      notifyCooldownMs: 0,
+    });
+    const ev = {
+      kind: "chat" as const,
+      nick: "买家A",
+      text: "在吗",
+      senderUserId: "u1",
+      cid: "c1@goofish",
+      itemId: "i1",
+      ts: 12345,
+    };
+    goofishNotifyOnWsChat(ev);
+    goofishNotifyOnWsChat({ ...ev });
+    goofishNotifyOnWsChat({ ...ev });
+    // 同 key 在 30s 内只弹 1 次
+    const alerts = sends.filter((s) => s.ch === "goofish:alert");
+    expect(alerts).toHaveLength(1);
+    // 徽标仍每次 +1（去重只是不再弹 toast，不是数值去重）
+    const badges = sends
+      .filter((s) => s.ch === "goofish:unread")
+      .map((s) => s.payload);
+    expect(badges.length).toBe(3);
+    svc.stop();
+  });
+
+  // ─── B2: 同会话冷却 vs 全局冷却 ─────────────────
+  it("B2: 同会话冷却 — 60s 内同会话不再弹，其他会话可弹", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    let sessions: Array<Record<string, any>> = [];
+    const sync = vi.fn(async () => ({
+      ok: true as const,
+      sessions,
+      humanUnread: sessions.reduce((s, x) => s + (x.unread || 0), 0),
+      allUnread: sessions.reduce((s, x) => s + (x.unread || 0), 0),
+      ret: ["SUCCESS"],
+    }));
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      notifyCooldownMs: 0,
+      isHumansOnly: () => false,
+      isNotifyEnabled: () => true,
+    });
+
+    sessions = [
+      {
+        sessionId: "a",
+        sessionType: 1,
+        peerNick: "买家A",
+        peerUserId: "uA",
+        itemId: "",
+        unread: 1,
+        lastMsg: "你好",
+        ts: 1,
+      },
+    ];
+    await svc.tickNow();
+    // 首次 tick 只建基线 (seed)，不弹通知
+    expect(sends.filter((s) => s.ch === "goofish:alert")).toHaveLength(0);
+
+    sessions = [
+      {
+        sessionId: "a",
+        sessionType: 1,
+        peerNick: "买家A",
+        peerUserId: "uA",
+        itemId: "",
+        unread: 2,
+        lastMsg: "你好",
+        ts: 1,
+      },
+    ];
+    await svc.tickNow();
+    // 上涨 → 弹 1 次
+    expect(sends.filter((s) => s.ch === "goofish:alert")).toHaveLength(1);
+
+    sessions = [
+      {
+        sessionId: "a",
+        sessionType: 1,
+        peerNick: "买家A",
+        peerUserId: "uA",
+        itemId: "",
+        unread: 2,
+        lastMsg: "你好",
+        ts: 1,
+      },
+    ];
+    await svc.tickNow();
+    // 同会话 → 60s 冷却，不再弹
+    expect(sends.filter((s) => s.ch === "goofish:alert")).toHaveLength(1);
+
+    sessions = [
+      {
+        sessionId: "a",
+        sessionType: 1,
+        peerNick: "买家A",
+        peerUserId: "uA",
+        itemId: "",
+        unread: 3,
+        lastMsg: "你好",
+        ts: 1,
+      },
+      {
+        sessionId: "b",
+        sessionType: 1,
+        peerNick: "买家B",
+        peerUserId: "uB",
+        itemId: "",
+        unread: 1,
+        lastMsg: "在吗",
+        ts: 2,
+      },
+    ];
+    await svc.tickNow();
+    // 不同会话 → 可弹
+    const alerts = sends.filter((s) => s.ch === "goofish:alert");
+    expect(alerts.length).toBeGreaterThanOrEqual(2);
+    expect(String(alerts[1].payload.body)).toContain("买家B");
+    svc.stop();
+  });
+
+  // ─── B4: session DND ─────────────────────
+  it("B4: 会话级 DND 让该会话不再弹通知", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    let unread = 0;
+    const sync = vi.fn(async () => ({
+      ok: true as const,
+      sessions: [
+        {
+          sessionId: "a",
+          sessionType: 1,
+          peerNick: "买家A",
+          peerUserId: "uA",
+          itemId: "",
+          unread,
+          lastMsg: "你好",
+          ts: 1,
+        },
+      ],
+      humanUnread: unread,
+      allUnread: unread,
+      ret: ["SUCCESS"],
+    }));
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      notifyCooldownMs: 0,
+      isSessionDnd: (k) => k === "uA",
+    });
+    unread = 1;
+    await svc.tickNow();
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+    svc.stop();
+  });
 });

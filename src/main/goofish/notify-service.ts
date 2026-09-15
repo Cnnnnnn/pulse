@@ -48,6 +48,8 @@ export type GoofishNotifyDeps = {
   isHumansOnly?: () => boolean;
   /** 是否处于全局免打扰时段；默认读 config.notifications */
   isInQuietHours?: () => boolean;
+  /** 该会话是否被用户加「不再提醒」(dnd) */
+  isSessionDnd?: (sessionKey: string) => boolean;
   /** 同会话连续通知最小间隔（ms）；默认 90s */
   notifyCooldownMs?: number;
   /** 轮询兜底间隔；有 WS 唤醒时仍保留。默认 60s */
@@ -70,12 +72,26 @@ let inflight = false;
 let authFailStreak = 0;
 let authStatus: GoofishAuthStatus = "unknown";
 let activeDeps: GoofishNotifyDeps | null = null;
+/** 全局「上次 fire 系统通知」epoch ms —— 90s 全局冷却避免刷屏 */
 let lastNotifyAt = 0;
 let lastWsWakeAt = 0;
 let lastRefreshAt = 0;
 let wsWakeTimer: ReturnType<typeof setTimeout> | null = null;
 /** sessionId → `${ts}\\0${lastMsg}`；真人 unread 常为 0，靠摘要变化发现新消息 */
 let lastHumanMsgFp = new Map<string, string>();
+/**
+ * 同会话通知冷却（解决 WS 帧风暴里同一会话连发多帧 → 连弹 2+ 次通知）：
+ *   key = sessionDeepLinkKey(session)，value = 上次 fire 的 epoch ms。
+ *   WS_CHAT_DEDUP_MS 窗内相同 key 不再弹通知（只更新徽标 + 仍触发 ws-wake）。
+ *
+ * 不同于全局 lastNotifyAt：全局冷却让"买家 A 弹完 30s 内 B 来也压住"；本 map 让
+ * "同一会话连发"被去重，但**其他会话立即可弹**。
+ */
+const WS_CHAT_DEDUP_MS = 30_000;
+const wsChatNotifyLastAt = new Map<string, number>();
+const PER_SESSION_COOLDOWN_MS = 60_000;
+/** sessionDeepLinkKey → 上次 fire 的 epoch ms（避免同一会话被刷屏） */
+const sessionNotifyLastAt = new Map<string, number>();
 
 const liveNotifications: electronType.Notification[] = [];
 const GOOFISH_IM = "https://www.goofish.com/im";
@@ -130,6 +146,15 @@ function humansOnly(deps: GoofishNotifyDeps): boolean {
   return true;
 }
 
+/** 同会话深链稳定 key：peerUserId 优先；缺则用 cid 前缀 */
+function sessionDeepLinkKey(session: GoofishChatSession | null | undefined): string {
+  if (!session) return "_list";
+  const peer = String(session.peerUserId || "").trim();
+  if (peer) return peer;
+  const cid = String(session.sessionId || "").split("@")[0];
+  return cid || "_list";
+}
+
 function focusAndOpenIm(
   win: electronType.BrowserWindow | null,
   deps: GoofishNotifyDeps,
@@ -141,7 +166,8 @@ function focusAndOpenIm(
     win.show();
     win.focus();
     const url = targetUrl || GOOFISH_IM;
-    win.webContents.send("goofish:open-request", { url });
+    // 通知点击走 deps.openIm（已通过 goofishEmbedNav 落进主进程路由），不重复
+    // 走 goofish:open-request IPC —— 否则同一次点击会触发两次 nav load。
     if (typeof deps.openIm === "function") {
       deps.openIm(win, url);
     } else {
@@ -203,6 +229,7 @@ function fireNotify(
   deps: GoofishNotifyDeps,
   unread: number,
   sessions: GoofishChatSession[],
+  opts?: { skipSessionCooldown?: boolean },
 ): void {
   if (deps.isNotifyEnabled && !deps.isNotifyEnabled()) {
     log(`notify skipped: disabled unread=${unread}`);
@@ -212,11 +239,38 @@ function fireNotify(
     log(`notify skipped: quiet_hours unread=${unread}`);
     return;
   }
+  const onlyHumans = humansOnly(deps);
+  const top =
+    pickTopUnreadSession(sessions, onlyHumans) ||
+    pickLatestSession(sessions, onlyHumans);
+  const sessionKey = sessionDeepLinkKey(top);
+  // B4: 用户在该会话上勾了「不再提醒」→ 静默；但仍可被全局开关/会话级外的
+  // 其他会话通知影响。
+  if (
+    sessionKey !== "_list" &&
+    typeof deps.isSessionDnd === "function" &&
+    deps.isSessionDnd(sessionKey)
+  ) {
+    log(`notify skipped: session_dnd key=${sessionKey} unread=${unread}`);
+    return;
+  }
   const cooldown =
     typeof deps.notifyCooldownMs === "number" && deps.notifyCooldownMs >= 0
       ? deps.notifyCooldownMs
       : DEFAULT_COOLDOWN_MS;
   const now = Date.now();
+
+  // 同会话冷却（针对 WS chat 帧风暴）：60s 窗内同一会话不重复弹；
+  // 全局冷却（90s）作为「整个会话聚合层」兜底，避免多会话同时仍刷屏。
+  if (!opts?.skipSessionCooldown && sessionNotifyLastAt.has(sessionKey)) {
+    const last = sessionNotifyLastAt.get(sessionKey) || 0;
+    if (now - last < PER_SESSION_COOLDOWN_MS) {
+      log(
+        `notify session-cooled: key=${sessionKey} unread=${unread} remainMs=${PER_SESSION_COOLDOWN_MS - (now - last)}`,
+      );
+      return;
+    }
+  }
   if (cooldown > 0 && lastNotifyAt > 0 && now - lastNotifyAt < cooldown) {
     log(
       `notify cooled: unread=${unread} remainMs=${cooldown - (now - lastNotifyAt)}`,
@@ -224,11 +278,7 @@ function fireNotify(
     return;
   }
 
-  const onlyHumans = humansOnly(deps);
   const body = formatNotifyBody(sessions, unread, { humansOnly: onlyHumans });
-  const top =
-    pickTopUnreadSession(sessions, onlyHumans) ||
-    pickLatestSession(sessions, onlyHumans);
   const deepLink = buildImDeepLink(top);
   try {
     const { Notification, app } = require("electron") as typeof electronType;
@@ -265,8 +315,16 @@ function fireNotify(
     /* noop */
   }
   lastNotifyAt = now;
+  sessionNotifyLastAt.set(sessionKey, now);
+  // 偶尔清陈旧键避免无限增长（5 分钟无活动会话丢）
+  if (sessionNotifyLastAt.size > 64) {
+    const cutoff = now - PER_SESSION_COOLDOWN_MS;
+    for (const [k, t] of sessionNotifyLastAt) {
+      if (t < cutoff) sessionNotifyLastAt.delete(k);
+    }
+  }
   log(
-    `notify shown: unread=${unread} deepLink=${top?.peerUserId ? "session" : "list"}`,
+    `notify shown: unread=${unread} deepLink=${top?.peerUserId ? "session" : "list"} sessionKey=${sessionKey}`,
   );
 }
 
@@ -403,20 +461,15 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     pushAuth(win, "ok");
     const onlyHumans = humansOnly(deps);
     // 协议 allUnread 含大量运营号（常 ~50+），与站点右侧「消息」角标不是同一口径。
-    // 徽标改由 DOM 右侧栏轮询主导；协议层只在「非仅真人」时用 allUnread 推徽标。
-    const badge = onlyHumans ? result.humanUnread : result.allUnread;
+    // A2: 徽标改由 DOM 轨 + WS chat 为唯一真值；协议层不再 push 徽标，避免
+    // 协议与 DOM 轨互相覆盖闪 0 / 闪 57。
     const notifyUnread = onlyHumans ? result.humanUnread : result.allUnread;
     const msgDiff = diffHumanMessageUpdates(result.sessions, lastHumanMsgFp);
 
     if (!seeded) {
       seeded = true;
       lastUnread = notifyUnread;
-      lastBadge = badge;
       lastHumanMsgFp = msgDiff.next;
-      // humansOnly 时 seed 可能是 0，留给 DOM 轨角标覆盖，避免先闪 57
-      if (!onlyHumans || badge > 0) {
-        pushUnreadBadge(win, badge);
-      }
       const byType: Record<string, number> = {};
       for (const s of result.sessions) {
         if (!(s.unread > 0)) continue;
@@ -424,18 +477,9 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
         byType[k] = (byType[k] || 0) + s.unread;
       }
       log(
-        `seed badge=${badge} notifyUnread=${notifyUnread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)} humanTracked=${lastHumanMsgFp.size}`,
+        `seed notifyUnread=${notifyUnread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)} humanTracked=${lastHumanMsgFp.size}`,
       );
       return;
-    }
-
-    if (badge !== lastBadge) {
-      // humansOnly 且协议徽标为 0：不把 DOM 已显示的真实角标打回 0
-      if (!(onlyHumans && badge === 0 && lastBadge > 0)) {
-        pushUnreadBadge(win, badge);
-        log(`badge ${lastBadge} -> ${badge}`);
-        lastBadge = badge;
-      }
     }
 
     if (notifyUnread > lastUnread && notifyUnread > 0) {
@@ -596,9 +640,32 @@ export function goofishNotifyOnWsChat(ev: GoofishWsEvent): void {
     lastMsg: text || "新消息",
     ts: typeof ev.ts === "number" && ev.ts > 0 ? ev.ts : Date.now(),
   };
+
+  // A1: 同会话短窗去重（30s）。WS 帧风暴时同一会话可能在 ~10ms 内连发
+  // 2~5 帧；fireNotify 内的「同会话冷却」是 60s 太长，仍允许 ws-wake 同步去抖。
+  const dedupKey = `${String(ev.cid || "")}|${String(ev.itemId || "")}|${String(session.ts || 0)}`;
+  const now = Date.now();
+  const lastAt = wsChatNotifyLastAt.get(dedupKey) || 0;
+  const dup = lastAt > 0 && now - lastAt < WS_CHAT_DEDUP_MS;
+
   const badgeNext = Math.max(lastBadge + 1, next);
   pushUnreadBadge(win, badgeNext);
   lastBadge = badgeNext;
+
+  if (dup) {
+    log(`ws-chat dedup ${dedupKey} (${now - lastAt}ms ago)`);
+    wsChatNotifyLastAt.set(dedupKey, now);
+    goofishNotifyOnWsWake();
+    return;
+  }
+  wsChatNotifyLastAt.set(dedupKey, now);
+  if (wsChatNotifyLastAt.size > 256) {
+    const cutoff = now - WS_CHAT_DEDUP_MS;
+    for (const [k, t] of wsChatNotifyLastAt) {
+      if (t < cutoff) wsChatNotifyLastAt.delete(k);
+    }
+  }
+
   log(`ws-chat notify nick=${nick} text=${text.slice(0, 40)}`);
   fireNotify(win, deps, next, [session]);
   lastUnread = Math.max(lastUnread, next);
@@ -627,6 +694,8 @@ export function __resetGoofishNotifyForTest(): void {
   lastWsWakeAt = 0;
   lastRefreshAt = 0;
   lastHumanMsgFp = new Map();
+  wsChatNotifyLastAt.clear();
+  sessionNotifyLastAt.clear();
 }
 
 /** 供 index 注入：读全局 notifications 免打扰 */

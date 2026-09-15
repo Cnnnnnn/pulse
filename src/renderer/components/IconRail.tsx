@@ -109,7 +109,11 @@ export function IconRail({ onHoverSection, onLeaveSection, openSection = null }:
                 <span class="icon-rail-active-bar" aria-hidden="true" />
               )}
               {badge > 0 && (
-                <span class="icon-rail-badge" aria-hidden="true">
+                <span
+                  class="icon-rail-badge"
+                  aria-hidden="true"
+                  title={`${section.label} · ${badge > 99 ? `真实值 ${badge}` : `${badge} 条未读`}`}
+                >
                   {badge > 99 ? "99+" : badge}
                 </span>
               )}

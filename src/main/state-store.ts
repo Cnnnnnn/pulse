@@ -1193,16 +1193,24 @@ export function saveCliPackages(data: any, statePath = defaultPath()) {
   }, statePath);
 }
 
-/** v3.3.x: 闲鱼偏好 { notify_enabled, humans_only } — 默认均开 */
+/** v3.3.x: 闲鱼偏好 { notify_enabled, humans_only, dnd_session_keys } — 默认均开 */
 export function loadGoofishPrefs(statePath = defaultPath()): {
   notify_enabled: boolean;
   humans_only: boolean;
+  dnd_session_keys: string[];
 } {
   const s = load(statePath);
-  const def = { notify_enabled: true, humans_only: true };
+  const def = { notify_enabled: true, humans_only: true, dnd_session_keys: [] };
   if (!s || !s.goofish || typeof s.goofish !== "object" || Array.isArray(s.goofish)) {
     return def;
   }
+  const rawKeys = (s.goofish as any).dnd_session_keys;
+  const dndKeys =
+    Array.isArray(rawKeys)
+      ? rawKeys
+          .filter((k) => typeof k === "string" && k.length > 0 && k.length < 128)
+          .slice(0, 256)
+      : def.dnd_session_keys;
   return {
     notify_enabled:
       typeof s.goofish.notify_enabled === "boolean"
@@ -1212,11 +1220,16 @@ export function loadGoofishPrefs(statePath = defaultPath()): {
       typeof s.goofish.humans_only === "boolean"
         ? s.goofish.humans_only
         : def.humans_only,
+    dnd_session_keys: dndKeys,
   };
 }
 
 export function saveGoofishPrefs(
-  patch: { notify_enabled?: boolean; humans_only?: boolean },
+  patch: {
+    notify_enabled?: boolean;
+    humans_only?: boolean;
+    dnd_session_keys?: string[];
+  },
   statePath = defaultPath(),
 ) {
   if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
@@ -1233,6 +1246,11 @@ export function saveGoofishPrefs(
     }
     if (typeof patch.humans_only === "boolean") {
       merged.humans_only = patch.humans_only;
+    }
+    if (Array.isArray(patch.dnd_session_keys)) {
+      merged.dnd_session_keys = patch.dnd_session_keys
+        .filter((k) => typeof k === "string" && k.length > 0 && k.length < 128)
+        .slice(0, 256);
     }
     next.goofish = merged;
   }, statePath);
