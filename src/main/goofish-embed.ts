@@ -206,7 +206,10 @@ const WS_BIN_MARKER = "__GOOFISH_WS_BIN__";
 
 /**
  * 读站点右侧「消息」角标。先伪装可见并 focus——闲鱼多数时候只在
- * visibilitychange 后才刷新该数字（用户切 tab / 点立即检查才会变，就是这个原因）。
+ * visibilitychange 后才刷新该数字。
+ *
+ * 注意：只在「消息」文案附近 2～3 层内找角标，绝不能在整块侧栏
+ * querySelector（会误抓到其它 99 / 营销数字，侧栏先闪 99 再回落）。
  */
 const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
   try {
@@ -217,25 +220,48 @@ const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
   } catch (e) {}
   setTimeout(() => {
     const t = String(document.title || '');
-    const tm = t.match(/^\\s*[(（【]\\s*(\\d+)/);
-    const titleCount = tm ? parseInt(tm[1], 10) || 0 : 0;
+    const tm = t.match(/^\\s*[(（【]\\s*(\\d{1,2})\\+?/);
+    const titleCount = tm ? Math.min(99, parseInt(tm[1], 10) || 0) : 0;
     let railCount = 0;
+    function readBadgeText(el) {
+      const raw = String((el && el.textContent) || '').trim();
+      // 只要纯 1～2 位数字或 99+；拒绝价格/其它长数字
+      if (!/^\\d{1,2}\\+?$/.test(raw)) return 0;
+      const v = parseInt(raw, 10);
+      return !Number.isNaN(v) && v > 0 ? Math.min(99, v) : 0;
+    }
+    function collectNear(root, out) {
+      if (!root) return;
+      // 同行子节点 + 再下一层叶子
+      for (const child of root.children || []) {
+        const v = readBadgeText(child);
+        if (v > 0) out.push(v);
+        if (child === n) continue;
+        for (const g of child.children || []) {
+          if (g.childElementCount > 0) continue;
+          const gv = readBadgeText(g);
+          if (gv > 0) out.push(gv);
+        }
+      }
+    }
     for (const n of document.querySelectorAll('div,span,a')) {
       if (n.childElementCount !== 0) continue;
       if ((n.textContent || '').trim() !== '消息') continue;
-      let p = n.parentElement;
-      let hit = false;
-      for (let i = 0; i < 4 && p; i++, p = p.parentElement) {
-        if ((p.textContent || '').indexOf('发闲置') === -1) continue;
-        hit = true;
-        const b = p.querySelector('[class*="badge" i], [class*="count" i], [class*="red" i], [class*="num" i]');
-        if (b) {
-          const v = parseInt((b.textContent || '').trim(), 10);
-          if (!Number.isNaN(v) && v > 0) railCount = v;
-        }
-        break;
+      let rail = false;
+      for (let p = n.parentElement, i = 0; p && i < 6; i++, p = p.parentElement) {
+        if ((p.textContent || '').indexOf('发闲置') !== -1) { rail = true; break; }
       }
-      if (hit) break;
+      if (!rail) continue;
+      const found = [];
+      collectNear(n.parentElement, found);
+      if (n.parentElement && n.parentElement.parentElement) {
+        collectNear(n.parentElement.parentElement, found);
+      }
+      // 取「消息」附近最小的合理角标（侧栏误抓常是更大的无关数字）
+      const sane = found.filter((v) => v > 0 && v < 99);
+      if (sane.length) railCount = Math.min(...sane);
+      else if (found.indexOf(99) >= 0) railCount = 99;
+      break;
     }
     resolve(JSON.stringify({ t: titleCount, r: railCount }));
   }, 280);
@@ -244,8 +270,8 @@ const RAIL_UNREAD_PROBE = `(() => new Promise((resolve) => {
 let railPollTimer: ReturnType<typeof setInterval> | null = null;
 let railProbeInflight = false;
 let lastAppliedRail = -1;
-/** 仅下降时两轮确认，避免选择器抖一下把徽标打没 */
-let pendingRailDrop: number | null = null;
+/** 下降或可疑跳变（如误读 99）需两轮确认 */
+let pendingRailConfirm: number | null = null;
 let lastRailKickAt = 0;
 
 function applyRailProbeResult(raw: unknown): void {
@@ -259,30 +285,30 @@ function applyRailProbeResult(raw: unknown): void {
     return;
   }
   if (railCount > 99) railCount = 99;
+  if (titleCount > 99) titleCount = 99;
   const unread = Math.max(titleCount, railCount);
 
-  // 上涨：立刻同步（用户最敏感）
-  if (unread > lastAppliedRail) {
-    lastAppliedRail = unread;
-    pendingRailDrop = null;
-    try {
-      const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
-      goofishNotifyOnDomRail(unread);
-    } catch {
-      /* noop */
-    }
-    return;
-  }
+  const baseline = lastAppliedRail < 0 ? 0 : lastAppliedRail;
+  const jumped =
+    unread >= 99 || (unread > baseline && unread - baseline >= 8);
+
   if (unread === lastAppliedRail) {
-    pendingRailDrop = null;
+    pendingRailConfirm = null;
     return;
   }
-  // 下降：连续两轮一致再采信
-  if (unread !== pendingRailDrop) {
-    pendingRailDrop = unread;
-    return;
+
+  // 小幅上涨（典型 +1）立刻同步；大幅跳变 / 99 / 下降要两轮一致
+  const needsConfirm = jumped || unread < baseline;
+  if (needsConfirm) {
+    if (unread !== pendingRailConfirm) {
+      pendingRailConfirm = unread;
+      return;
+    }
+    pendingRailConfirm = null;
+  } else {
+    pendingRailConfirm = null;
   }
-  pendingRailDrop = null;
+
   lastAppliedRail = unread;
   try {
     const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
