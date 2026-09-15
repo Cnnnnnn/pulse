@@ -2,6 +2,20 @@
 
 ---
 
+## v3.3.9 (🐟 双视图保活：首页上也能 0 延迟收消息) — 2026-09-15
+
+**3.3.8 已修 ws-chat dedup，但用户在首页上仍收不到通知** — 用户主动点工具栏「首页」按钮 → `loadURL(GOOFISH_HOME)` → 整页 reload 把挂在 `/im` 上的官方 IM WebSocket 打断；之后新消息走 session.sync 兜底（20s 间隔 + `humansOnly` 时 `humanUnread` 永远 0），不是 0 延迟也不是 0 漏报。
+
+- **独立屏外 keepalive /im 视图 (`viewKeepaliveIm`)**：与主视图同 partition、共享 cookie；主视图切到首页时 keepalive view 仍在 `/im` 挂着 IM WebSocket；CDP Network.webSocket* 嗅探同时挂到两边，主视图断连也不会丢通知
+- **keepalive 路径只 fire 通知、不动徽标**：`goofishNotifyOnWsChatSkipBadge` 让两端同帧不会把 `lastBadge` 重复 +1；主视图的 ws-chat 仍是徽标唯一来源
+- **主视图 `did-finish-load` 250ms 立刻 probe**（3.3.8 已加）：从 `/im` 切回首页不再等 1.5s 定时器
+- **keepalive 期间不 push 徽标**（3.3.8 已加）：`userViewing=false` 时 `RAIL_UNREAD_PROBE` 读到的 0 不再覆盖用户已看到的徽标
+- **测试覆盖**：新增「keepalive 路径只 fire 通知不 push 徽标」「keepalive + 主 view 同 frame 同时触发，徽标只 +1」两条用例，5141 pass / 0 fail
+
+> ponytail：同 partition 多 webContents 建多 WS — 类似浏览器多 tab；服务端通常允许多 session 同时在线，万一是单设备强制踢屏外，协议层 20s sync 兜底仍通过 `lastMsg/ts` 变化补通知。
+
+---
+
 ## v3.3.8 (🐟 WS 帧风暴去重 + 通知防刷屏 + 99+ tooltip) — 2026-09-15
 
 **3.3.7 已修徽标，但仍有 3 类刷屏** — WS sync 帧风暴里同一会话 1s 内连发 3 帧 → 连弹 3 次；不同会话紧挨着也被全局 90s 冷却一起压住；侧栏 `57` 不再好看也看不到真实值。

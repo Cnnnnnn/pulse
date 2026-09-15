@@ -8,6 +8,7 @@ const {
   startGoofishNotifyService,
   goofishNotifyOnWsWake,
   goofishNotifyOnWsChat,
+  goofishNotifyOnWsChatSkipBadge,
   goofishNotifyOnDomRail,
   diffHumanMessageUpdates,
   __resetGoofishNotifyForTest,
@@ -731,6 +732,69 @@ describe("goofish notify-service", () => {
     unread = 1;
     await svc.tickNow();
     expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+    svc.stop();
+  });
+
+  // ─── keepalive view: skipBadge 不动 lastBadge 但仍 fire 通知 ──────
+  it("keepalive 路径只 fire 通知不 push 徽标", () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync: vi.fn(async () => ({
+        ok: true as const,
+        sessions: [],
+        humanUnread: 0,
+        allUnread: 0,
+        ret: ["SUCCESS"],
+      })),
+      notifyCooldownMs: 0,
+    });
+    const ev = {
+      kind: "chat" as const,
+      nick: "买家",
+      text: "在吗",
+      senderUserId: "u1",
+      cid: "c1@goofish",
+      itemId: "i1",
+      ts: 999,
+    };
+    goofishNotifyOnWsChatSkipBadge(ev);
+    expect(sends.some((s) => s.ch === "goofish:unread")).toBe(false);
+    expect(sends.filter((s) => s.ch === "goofish:alert")).toHaveLength(1);
+    svc.stop();
+  });
+
+  it("keepalive + 主 view 同 frame 同时触发，徽标只 +1", () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync: vi.fn(async () => ({
+        ok: true as const,
+        sessions: [],
+        humanUnread: 0,
+        allUnread: 0,
+        ret: ["SUCCESS"],
+      })),
+      notifyCooldownMs: 0,
+    });
+    const ev = {
+      kind: "chat" as const,
+      nick: "买家",
+      text: "在吗",
+      senderUserId: "u1",
+      cid: "c1@goofish",
+      itemId: "i1",
+      ts: 999,
+    };
+    goofishNotifyOnWsChatSkipBadge(ev);
+    goofishNotifyOnWsChat(ev);
+    // 主 view 推 1 次徽标，keepalive 不推
+    expect(sends.filter((s) => s.ch === "goofish:unread")).toHaveLength(1);
+    expect(sends.filter((s) => s.ch === "goofish:unread")[0].payload).toBe(1);
     svc.stop();
   });
 });

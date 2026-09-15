@@ -325,6 +325,15 @@ export function handleGoofishWsFrame(raw: string): void {
 }
 
 /**
+ * keepalive /im view 入口：解析后只 fire 通知（不动徽标，主 view CDP 会更新徽标）。
+ */
+export function handleGoofishWsFrameSkipBadge(raw: string): void {
+  stats.received += 1;
+  const r = parseGoofishWsFrame(raw);
+  tally(r, { keepalive: true });
+}
+
+/**
  * 二进制帧入口：页内把 Blob/ArrayBuffer 帧以 base64 转发过来。
  * 拿不到 sync 数据时的首要嫌疑就是页面走二进制帧，这里独立计数便于确认。
  */
@@ -353,35 +362,66 @@ export function handleGoofishWsBinFrame(b64: string): void {
   if (r.isSync) stats.binSync += 1;
 }
 
-function tally(r: GoofishWsFrameResult): void {
+/** keepalive view 二进制帧：只 fire 通知 */
+export function handleGoofishWsBinFrameSkipBadge(b64: string): void {
+  stats.binReceived += 1;
+  let bytes: Uint8Array | null = null;
+  try {
+    const buf = Buffer.from(String(b64 || ""), "base64");
+    bytes = buf.length > 0 ? new Uint8Array(buf) : null;
+  } catch {
+    bytes = null;
+  }
+  if (!bytes) {
+    stats.binDecodeFail += 1;
+    return;
+  }
+  const r = parseGoofishWsFrameBytes(bytes);
+  if (!r.isSync && r.detail === "bin_decode_fail") {
+    stats.binDecodeFail += 1;
+    return;
+  }
+  tally(r, { keepalive: true });
+  if (r.isSync) stats.binSync += 1;
+}
+
+function tally(r: GoofishWsFrameResult, opts?: { keepalive?: boolean }): void {
   if (!r.isSync) {
     stats.nonSync += 1;
     return;
   }
   stats.syncFrames += 1;
-  // 任意 sync 推送都软唤醒 guest，减轻「切 tab 才刷新」
-  try {
-    const { goofishEmbedSoftWake, goofishEmbedKickRailProbe } = require("../goofish-embed.ts");
-    goofishEmbedSoftWake();
-    goofishEmbedKickRailProbe();
-  } catch {
-    /* noop */
+  const keepalive = !!opts?.keepalive;
+  // 任意 sync 推送都软唤醒 guest，减轻「切 tab 才刷新」。
+  // keepalive view 上不要触发"软唤醒主 view"（主 view 在首页，正常渲染）。
+  if (!keepalive) {
+    try {
+      const { goofishEmbedSoftWake, goofishEmbedKickRailProbe } = require("../goofish-embed.ts");
+      goofishEmbedSoftWake();
+      goofishEmbedKickRailProbe();
+    } catch {
+      /* noop */
+    }
   }
   for (const ev of r.events) {
     if (ev.kind === "chat") {
       stats.chat += 1;
       rateLimitedEventLog(
-        `msg ${ev.nick || "?"}: ${String(ev.text || "").slice(0, 60)} cid=${ev.cid || "?"} item=${ev.itemId || "-"} from=${ev.senderUserId || "?"}`,
+        `msg${keepalive ? "-keepalive" : ""} ${ev.nick || "?"}: ${String(ev.text || "").slice(0, 60)} cid=${ev.cid || "?"} item=${ev.itemId || "-"} from=${ev.senderUserId || "?"}`,
       );
       try {
-        const { goofishNotifyOnWsChat } = require("./notify-service.ts");
-        goofishNotifyOnWsChat(ev);
+        const { goofishNotifyOnWsChat, goofishNotifyOnWsChatSkipBadge } = require("./notify-service.ts");
+        if (keepalive) {
+          goofishNotifyOnWsChatSkipBadge(ev);
+        } else {
+          goofishNotifyOnWsChat(ev);
+        }
       } catch {
         /* noop */
       }
     } else if (ev.kind === "order") {
       stats.order += 1;
-      rateLimitedEventLog(`order ${ev.redReminder} cid=${ev.cid || "?"}`);
+      rateLimitedEventLog(`order${keepalive ? "-keepalive" : ""} ${ev.redReminder} cid=${ev.cid || "?"}`);
     } else {
       stats.other += 1;
       if (stats.other <= 3 || stats.other % 50 === 0) {

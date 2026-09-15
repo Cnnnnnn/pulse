@@ -618,6 +618,21 @@ export function goofishNotifyOnDomRail(unread: number): void {
  * （实测真人会话 unread 常为 0，站点角标全是运营号 → 仅靠 sync 永远不弹。）
  */
 export function goofishNotifyOnWsChat(ev: GoofishWsEvent): void {
+  return goofishNotifyOnWsChatInternal(ev, false);
+}
+
+/**
+ * keepalive /im view 入口：同一 chat frame 在主 view CDP 也会嗅到，徽标走主 view；
+ * 这里只 fire 通知，避免 lastBadge 重复 +1。
+ */
+export function goofishNotifyOnWsChatSkipBadge(ev: GoofishWsEvent): void {
+  return goofishNotifyOnWsChatInternal(ev, true);
+}
+
+function goofishNotifyOnWsChatInternal(
+  ev: GoofishWsEvent,
+  skipBadge: boolean,
+): void {
   if (!activeDeps || !ev || ev.kind !== "chat") return;
   const deps = activeDeps;
   const text = String(ev.text || "").trim();
@@ -648,12 +663,14 @@ export function goofishNotifyOnWsChat(ev: GoofishWsEvent): void {
   const lastAt = wsChatNotifyLastAt.get(dedupKey) || 0;
   const dup = lastAt > 0 && now - lastAt < WS_CHAT_DEDUP_MS;
 
-  const badgeNext = Math.max(lastBadge + 1, next);
-  pushUnreadBadge(win, badgeNext);
-  lastBadge = badgeNext;
+  if (!skipBadge) {
+    const badgeNext = Math.max(lastBadge + 1, next);
+    pushUnreadBadge(win, badgeNext);
+    lastBadge = badgeNext;
+  }
 
   if (dup) {
-    log(`ws-chat dedup ${dedupKey} (${now - lastAt}ms ago)`);
+    log(`ws-chat dedup${skipBadge ? "-skipbadge" : ""} ${dedupKey} (${now - lastAt}ms ago)`);
     wsChatNotifyLastAt.set(dedupKey, now);
     goofishNotifyOnWsWake();
     return;
@@ -666,9 +683,13 @@ export function goofishNotifyOnWsChat(ev: GoofishWsEvent): void {
     }
   }
 
-  log(`ws-chat notify nick=${nick} text=${text.slice(0, 40)}`);
+  log(`ws-chat notify${skipBadge ? "-skipbadge" : ""} nick=${nick} text=${text.slice(0, 40)}`);
   fireNotify(win, deps, next, [session]);
-  lastUnread = Math.max(lastUnread, next);
+  // keepalive 路径不写 lastUnread — 主 view 的 wsChat 会用 lastUnread+1 计算徽标；
+  // 若 keepalive 也写，主 view next 会被推到 lastUnread+2，造成徽标重复 +1。
+  if (!skipBadge) {
+    lastUnread = Math.max(lastUnread, next);
+  }
   goofishNotifyOnWsWake();
 }
 

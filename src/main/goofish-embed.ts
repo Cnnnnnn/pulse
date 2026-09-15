@@ -44,6 +44,18 @@ let userViewing = false;
  * 用户再次打开闲鱼 tab 时应回到首页，避免「一打开就是消息」。
  */
 let imKeepaliveOnly = false;
+/**
+ * 用户主动切到首页后，view 不再保留 /im → 官方 IM WebSocket 断 → 收不到实时消息。
+ * viewKeepaliveIm 是独立屏外 WebContentsView，始终挂在 /im 挂 WS；用户视图（view）
+ * 走 DOM 探测 / 截图。两者共用 partition (cookie 一致)，CDP 嗅探同时挂两边 —
+ * 用户在首页也能 0 延迟收 chat 通知。
+ *
+ * ponytail: 同 partition 多 webContents 多 WS — 类似浏览器多 tab；服务端通常允许多
+ * session 同时在线，万一踢掉屏外的，协议层 20s sync 兜底仍能通过 lastMsg/ts 变化补通知。
+ */
+let viewKeepaliveIm: electronType.WebContentsView | null = null;
+let viewKeepaliveImAttached = false;
+let keepaliveImInflight = false;
 
 function embedLog(msg: string): void {
   try {
@@ -67,6 +79,11 @@ function parkOffscreen(): void {
     // 关键: 必须 visible=true, 否则 Chromium 可能冻住 guest → WS/轮询停摆
     view.setVisible(true);
     ensureImKeepalive();
+    // 同时确保独立的屏外 /im keepalive view 也在挂 WS — 用户视图切到首页
+    // 之后主 view 的 WS 会断，靠 keepalive view 收 chat 通知。
+    if (attachedWin && !attachedWin.isDestroyed()) {
+      ensureKeepaliveImView(attachedWin);
+    }
   } catch {
     /* noop */
   }
@@ -419,10 +436,18 @@ function isGoofishImWsUrl(url: string): boolean {
  * 页内 hook 在生产环境经常挂不上（脚本早于注入 / Worker 建连），
  * 实测 3.3.5 整段会话零 `[goofish-ws]` —— 改走 debugger 旁路。
  */
-function installCdpWsSniffer(wc: electronType.WebContents): void {
-  const self = wc as unknown as { __gfCdpWsSniffer?: boolean };
+function installCdpWsSniffer(
+  wc: electronType.WebContents,
+  opts?: { keepalive?: boolean },
+): void {
+  const self = wc as unknown as {
+    __gfCdpWsSniffer?: boolean;
+    __gfCdpWsKeepalive?: boolean;
+  };
   if (self.__gfCdpWsSniffer) return;
   self.__gfCdpWsSniffer = true;
+  const keepalive = !!opts?.keepalive;
+  self.__gfCdpWsKeepalive = keepalive;
 
   const onDebuggerMessage = (
     _event: unknown,
@@ -434,7 +459,7 @@ function installCdpWsSniffer(wc: electronType.WebContents): void {
         const url = String(params?.url || "");
         if (!isGoofishImWsUrl(url)) return;
         const { handleGoofishWsOpen } = require("./goofish/ws-frames.ts");
-        handleGoofishWsOpen(`cdp:${url}`);
+        handleGoofishWsOpen(`cdp${keepalive ? ":keepalive" : ""}:${url}`);
         return;
       }
       if (method === "Network.webSocketFrameReceived") {
@@ -450,8 +475,18 @@ function installCdpWsSniffer(wc: electronType.WebContents): void {
             /* noop */
           }
           if (payload.includes("syncPushPackage") || payload.includes("lwp")) {
-            const { handleGoofishWsFrame } = require("./goofish/ws-frames.ts");
-            handleGoofishWsFrame(payload);
+            if (keepalive) {
+              // keepalive view：chat 帧只 fire 通知，不动 lastBadge（主 view 也会嗅到）
+              try {
+                const { handleGoofishWsFrameSkipBadge } = require("./goofish/ws-frames.ts");
+                handleGoofishWsFrameSkipBadge(payload);
+              } catch {
+                /* noop */
+              }
+            } else {
+              const { handleGoofishWsFrame } = require("./goofish/ws-frames.ts");
+              handleGoofishWsFrame(payload);
+            }
           }
           return;
         }
@@ -463,14 +498,23 @@ function installCdpWsSniffer(wc: electronType.WebContents): void {
           } catch {
             /* noop */
           }
-          const { handleGoofishWsBinFrame } = require("./goofish/ws-frames.ts");
-          handleGoofishWsBinFrame(payload);
+          if (keepalive) {
+            try {
+              const { handleGoofishWsBinFrameSkipBadge } = require("./goofish/ws-frames.ts");
+              handleGoofishWsBinFrameSkipBadge(payload);
+            } catch {
+              /* noop */
+            }
+          } else {
+            const { handleGoofishWsBinFrame } = require("./goofish/ws-frames.ts");
+            handleGoofishWsBinFrame(payload);
+          }
           return;
         }
         void urlHint;
       }
       if (method === "Network.webSocketClosed") {
-        embedLog("cdp ws closed");
+        embedLog(`cdp ws closed${keepalive ? " (keepalive)" : ""}`);
       }
     } catch {
       /* noop */
@@ -488,7 +532,7 @@ function installCdpWsSniffer(wc: electronType.WebContents): void {
         maxResourceBufferSize: 1_048_576,
         maxPostDataSize: 65_536,
       })
-      .then(() => embedLog("cdp Network.enable ok"))
+      .then(() => embedLog(`cdp Network.enable ok${keepalive ? " (keepalive)" : ""}`))
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         embedLog(`cdp Network.enable fail: ${msg}`);
@@ -642,12 +686,106 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       attachedWin = win;
       win.once("closed", () => {
         attachedWin = null;
+        destroyKeepaliveImView();
         // view 保留 (session/页面状态在分区里), 仅解除引用
       });
     }
+    // 无论新建还是复用都启动 keepalive view — 用户切到首页时仍能收 chat 通知。
+    ensureKeepaliveImView(win);
     return view;
   } catch {
     return null;
+  }
+}
+
+/**
+ * 屏外 /im keepalive view：与用户视图 view 同 partition、CDP 嗅探共用，
+ * 但单独 webContents，永远不被打断 — 用户在首页时也能 0 延迟收 chat。
+ */
+function ensureKeepaliveImView(win: electronType.BrowserWindow): void {
+  try {
+    if (!win || win.isDestroyed()) return;
+    const { WebContentsView: WCV } = require("electron") as typeof electronType;
+    if (!WCV) return;
+    if (!viewKeepaliveIm || viewKeepaliveIm.webContents.isDestroyed()) {
+      viewKeepaliveIm = new WCV({
+        webPreferences: {
+          partition: GOOFISH_PARTITION,
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+          backgroundThrottling: false,
+        },
+      });
+      // 也加围栏（弹窗全拒 + 导航白名单）— keepalive view 不应触发新窗口
+      try {
+        const { applyGoofishGuestFence } = require("./webview-guard.ts");
+        applyGoofishGuestFence(viewKeepaliveIm.webContents);
+      } catch {
+        /* noop */
+      }
+      viewKeepaliveIm.webContents.setBackgroundThrottling(false);
+      // 注入可见性伪装 + WS 钩子；CDP 主路径同时挂
+      try {
+        void viewKeepaliveIm.webContents
+          .executeJavaScript(VISIBILITY_SPOOF + WS_WAKE_HOOK, true)
+          .catch(() => {});
+      } catch {
+        /* noop */
+      }
+      installCdpWsSniffer(viewKeepaliveIm.webContents, { keepalive: true });
+      viewKeepaliveIm.webContents.on("did-fail-load", (_e, code) => {
+        if (code === -3) return;
+        embedLog(`keepalive /im load fail code=${code}`);
+      });
+    }
+    if (!viewKeepaliveImAttached && !viewKeepaliveIm.webContents.isDestroyed()) {
+      // 屏外停靠；务必 visible=true，否则 chromium 冻结后台 view
+      viewKeepaliveIm.setBounds(PARK_BOUNDS);
+      viewKeepaliveIm.setVisible(true);
+      // 挂到主窗口（不加不渲染但能跑 webContents）
+      try {
+        win.contentView.addChildView(viewKeepaliveIm);
+        viewKeepaliveImAttached = true;
+      } catch {
+        /* noop */
+      }
+      keepaliveImInflight = true;
+      viewKeepaliveIm.webContents
+        .loadURL(GOOFISH_IM)
+        .then(() => {
+          keepaliveImInflight = false;
+          embedLog("keepalive /im view loaded");
+        })
+        .catch(() => {
+          keepaliveImInflight = false;
+        });
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+/** 释放 keepalive view — 窗口销毁或用户主动登出时 */
+function destroyKeepaliveImView(): void {
+  try {
+    if (!viewKeepaliveIm) return;
+    if (viewKeepaliveImAttached && attachedWin && !attachedWin.isDestroyed()) {
+      try {
+        attachedWin.contentView.removeChildView(viewKeepaliveIm);
+      } catch {
+        /* noop */
+      }
+    }
+    viewKeepaliveImAttached = false;
+    try {
+      viewKeepaliveIm.webContents.close();
+    } catch {
+      /* noop */
+    }
+    viewKeepaliveIm = null;
+  } catch {
+    /* noop */
   }
 }
 
@@ -864,4 +1002,5 @@ export function __resetGoofishEmbedForTest(): void {
   imKeepaliveOnly = false;
   view = null;
   attachedWin = null;
+  destroyKeepaliveImView();
 }
