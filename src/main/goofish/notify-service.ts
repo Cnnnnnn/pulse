@@ -35,6 +35,8 @@ export type GoofishNotifyDeps = {
   getGuestWebContents?: () => electronType.WebContents | null;
   /** 轻量续 cookie（勿整页狂 reload） */
   refreshSession?: (win: electronType.BrowserWindow) => void | Promise<void>;
+  /** 分区里是否仍有网页登录痕迹 cookie（unb/tracknick/sgcookie/havana_lgc*）；默认读真实分区 */
+  hasLoginCookies?: () => boolean | Promise<boolean>;
   /** 打开 IM（可带会话深链） */
   openIm?: (win: electronType.BrowserWindow, url: string) => void;
   /** 是否允许系统通知（设置开关）；默认 true */
@@ -97,6 +99,9 @@ function pushUnreadBadge(win: electronType.BrowserWindow | null, unread: number)
 }
 
 function pushAuth(win: electronType.BrowserWindow | null, status: GoofishAuthStatus): void {
+  if (authStatus !== status) {
+    log(`auth status ${authStatus} -> ${status}`);
+  }
   authStatus = status;
   try {
     if (win && !win.isDestroyed()) {
@@ -247,6 +252,18 @@ async function cookiesHintLoggedIn(): Promise<boolean> {
   }
 }
 
+/** 优先 deps 注入（单测），否则读真实分区 */
+async function hasLoginCookies(deps: GoofishNotifyDeps): Promise<boolean> {
+  if (typeof deps.hasLoginCookies === "function") {
+    try {
+      return (await deps.hasLoginCookies()) === true;
+    } catch {
+      /* fallthrough to real check */
+    }
+  }
+  return cookiesHintLoggedIn();
+}
+
 async function runSync(deps: GoofishNotifyDeps): Promise<SessionSyncResult> {
   const sync = deps.sync || fetchSessionSync;
   const guest =
@@ -265,14 +282,22 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     const win = deps.getWindow ? deps.getWindow() : null;
     let result: SessionSyncResult = await runSync(deps);
 
-    if (result.ok === false && result.reason === "auth_expired" && deps.refreshSession && win) {
+    // auth_expired：令牌/会话被 mtop 拒；no_token 且登录 cookie 仍在：
+    // 多半只是 _m_h5_tk 短时令牌过期被清。两者都先软刷新再重试一次。
+    const failReason = result.ok === false ? result.reason : null;
+    const refreshWorthy =
+      failReason === "auth_expired" ||
+      (failReason === "no_token" && (await hasLoginCookies(deps)));
+    if (refreshWorthy && deps.refreshSession && win) {
       authFailStreak += 1;
       const now = Date.now();
       const canRefresh =
         authFailStreak === 1 || now - lastRefreshAt >= REFRESH_COOLDOWN_MS;
       if (canRefresh) {
         lastRefreshAt = now;
-        log(`auth_expired streak=${authFailStreak}, soft-refresh guest…`);
+        log(
+          `${failReason} streak=${authFailStreak}, soft-refresh guest…`,
+        );
         try {
           await Promise.resolve(deps.refreshSession(win));
           await new Promise((r) => setTimeout(r, 2500));
@@ -282,24 +307,31 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
           log(`refresh failed: ${msg}`);
         }
       } else {
-        log(`auth_expired streak=${authFailStreak}, skip refresh (cooldown)`);
+        log(
+          `${failReason} streak=${authFailStreak}, skip refresh (cooldown)`,
+        );
       }
     }
 
     if (result.ok === false) {
       const fail = result;
       let st = authFromFail(fail);
-      // cookie 仍在却 mtop 说过期：多半是主进程带 cookie 不全，别逼用户扫码
-      if (st === "auth_expired" && (await cookiesHintLoggedIn())) {
+      // 登录 cookie 仍在却同步说没登录/过期：多半是 mtop 短时令牌缺失或网关误报，
+      // 降级为同步异常，别逼用户扫码
+      if (
+        (st === "auth_expired" || st === "logged_out") &&
+        (await hasLoginCookies(deps))
+      ) {
         st = "error";
         log(
-          `auth_expired but login cookies present → treat as sync error; ret=${
+          `sync said ${fail.reason} but login cookies present → treat as sync error; ret=${
             Array.isArray(fail.ret) ? fail.ret.join("|") : fail.detail || ""
           }`,
         );
       }
       pushAuth(win, st);
-      if (fail.reason === "no_token") {
+      // 提示按降级后的 st 判定：no_token 但登录 cookie 在时 st 已是 error，不再催扫码
+      if (st === "logged_out") {
         if (authFailStreak <= 1) {
           try {
             if (win && !win.isDestroyed()) {

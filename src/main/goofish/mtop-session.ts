@@ -153,11 +153,8 @@ export function buildImDeepLink(session: GoofishChatSession | null | undefined):
 function classifyRet(ret: unknown): "ok" | "auth_expired" | "risk" | "unknown" {
   const retStr = Array.isArray(ret) ? ret.join(" | ") : String(ret || "");
   if (!retStr || retStr.includes("SUCCESS")) return "ok";
-  if (
-    /SESSION_EXPIRED|TOKEN_EXOIRED|TOKEN_EMPTY|令牌过期|ILLEGAL_ACCESS/i.test(
-      retStr,
-    )
-  ) {
+  // ILLEGAL_ACCESS 多为网关/签名问题，与登录态无关 → 落 unknown 走 error 口径
+  if (/SESSION_EXPIRED|TOKEN_EXOIRED|TOKEN_EMPTY|令牌过期/i.test(retStr)) {
     return "auth_expired";
   }
   if (/RGV587|USER_VALIDATE|哎哟喂|\/punish/i.test(retStr)) return "risk";
@@ -311,8 +308,16 @@ export async function fetchSessionSync(
       /* noop */
     }
 
-    const cookies = await sess.cookies.get({});
-    const token = pickGoofishH5Token(cookies);
+    let cookies = await sess.cookies.get({});
+    let token = pickGoofishH5Token(cookies);
+    if (!token && webContents && !webContents.isDestroyed()) {
+      // _m_h5_tk 是短时令牌，睡眠/长期后台后会过期被清；登录态 cookie 仍在。
+      // guest 里发一次无令牌 mtop 请求，服务端回 TOKEN_EMPTY 并 Set-Cookie
+      // 新令牌，借此引导出新 _m_h5_tk 再继续，而不是直接报"未登录"。
+      await fetchSessionSyncViaGuest(webContents, "");
+      cookies = await sess.cookies.get({});
+      token = pickGoofishH5Token(cookies);
+    }
     if (!token) return { ok: false, reason: "no_token" };
 
     if (webContents && !webContents.isDestroyed()) {

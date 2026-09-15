@@ -275,4 +275,124 @@ describe("goofish notify-service", () => {
     svc.stop();
     vi.useRealTimers();
   });
+
+  it("no_token 但登录 cookie 仍在 → 降级同步异常，不弹未登录/扫码提示", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: false as const,
+      reason: "no_token" as const,
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      hasLoginCookies: () => true,
+    });
+
+    await svc.tickNow();
+    expect(
+      sends.some((s) => s.ch === "goofish:auth" && s.payload?.status === "error"),
+    ).toBe(true);
+    expect(
+      sends.some(
+        (s) =>
+          s.ch === "goofish:auth" && s.payload?.status === "logged_out",
+      ),
+    ).toBe(false);
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+    svc.stop();
+  });
+
+  it("no_token 且登录 cookie 也不在 → 维持 logged_out 并提示扫码", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: false as const,
+      reason: "no_token" as const,
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      hasLoginCookies: () => false,
+    });
+
+    await svc.tickNow();
+    expect(
+      sends.some(
+        (s) => s.ch === "goofish:auth" && s.payload?.status === "logged_out",
+      ),
+    ).toBe(true);
+    const alert = sends.find((s) => s.ch === "goofish:alert");
+    expect(alert).toBeTruthy();
+    expect(String(alert.payload.body)).toContain("尚未登录");
+    svc.stop();
+  });
+
+  it("auth_expired 但登录 cookie 仍在 → 降级同步异常", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: false as const,
+      reason: "auth_expired" as const,
+      ret: ["FAIL_SYS_SESSION_EXPIRED::Session过期"],
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      hasLoginCookies: () => true,
+    });
+
+    await svc.tickNow();
+    expect(
+      sends.some((s) => s.ch === "goofish:auth" && s.payload?.status === "error"),
+    ).toBe(true);
+    expect(
+      sends.some((s) => s.ch === "goofish:auth" && s.payload?.status === "auth_expired"),
+    ).toBe(false);
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+    svc.stop();
+  });
+
+  it("no_token 且登录 cookie 在时触发软刷新并重试", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const refreshSession = vi.fn();
+    let attempts = 0;
+    const sync = vi.fn(async () => {
+      attempts += 1;
+      // 刷新后（第二次 sync）拿到新令牌，恢复正常
+      if (attempts >= 2) {
+        return {
+          ok: true as const,
+          sessions: [],
+          humanUnread: 0,
+          allUnread: 0,
+          ret: ["SUCCESS"],
+        };
+      }
+      return { ok: false as const, reason: "no_token" as const };
+    });
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      hasLoginCookies: () => true,
+      refreshSession,
+    });
+
+    await svc.tickNow(); // 内部含 2.5s 刷新等待
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(sync).toHaveBeenCalledTimes(2);
+    expect(
+      sends.some((s) => s.ch === "goofish:auth" && s.payload?.status === "ok"),
+    ).toBe(true);
+    svc.stop();
+  }, 15_000);
 });

@@ -1,7 +1,7 @@
 /**
  * tests/main/goofish/mtop-session.test.ts
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 const { requireMain } = require("../../_setup/require-main.cjs");
 
 const {
@@ -136,5 +136,79 @@ describe("formatNotifyBody / deep link", () => {
     ).toBe("bbb");
     expect(hasGoofishLoginHints([{ name: "unb", value: "1" }])).toBe(true);
     expect(hasGoofishLoginHints([{ name: "_m_h5_tk", value: "x" }])).toBe(false);
+  });
+});
+
+describe("fetchSessionSync 令牌自愈", () => {
+  it("no_token 时经 guest 无令牌请求引导新 _m_h5_tk 后重试成功", async () => {
+    const { fetchSessionSync } = requireMain("goofish/mtop-session");
+    let cookieJar: any[] = []; // 初始无 _m_h5_tk（睡眠后过期被清的场景）
+    const cookieGets = vi.fn(async () => cookieJar);
+    const mainFetch = vi.fn(async () => {
+      throw new Error("main fetch should not be reached");
+    });
+    const fakeSession = {
+      setUserAgent: () => {},
+      cookies: { get: cookieGets },
+      fetch: mainFetch,
+    };
+    let execCalls = 0;
+    const fakeGuest = {
+      isDestroyed: () => false,
+      executeJavaScript: async () => {
+        execCalls += 1;
+        if (execCalls === 1) {
+          // 无令牌引导请求：服务端回 TOKEN_EMPTY 并 Set-Cookie 新令牌
+          cookieJar = [
+            { name: "_m_h5_tk", domain: ".goofish.com", value: "fresh_123" },
+          ];
+          return {
+            status: 200,
+            text: JSON.stringify({ ret: ["FAIL_SYS_TOKEN_EMPTY::令牌为空"] }),
+          };
+        }
+        return {
+          status: 200,
+          text: JSON.stringify({
+            ret: ["SUCCESS::调用成功"],
+            data: { sessions: [] },
+          }),
+        };
+      },
+    };
+
+    const result = await fetchSessionSync(fakeSession as any, fakeGuest as any);
+    expect(execCalls).toBe(2); // 引导 + 正式 sync
+    expect(cookieGets.mock.calls.length).toBeGreaterThanOrEqual(2); // 引导后重读 cookie
+    expect(result.ok).toBe(true);
+    expect(mainFetch).not.toHaveBeenCalled();
+  });
+
+  it("引导失败（guest 不可用）仍返回 no_token", async () => {
+    const { fetchSessionSync } = requireMain("goofish/mtop-session");
+    const fakeSession = {
+      setUserAgent: () => {},
+      cookies: { get: async () => [] },
+      fetch: async () => {
+        throw new Error("should not be reached");
+      },
+    };
+    const result = await fetchSessionSync(fakeSession as any, null);
+    expect(result.ok).toBe(false);
+    expect((result as any).reason).toBe("no_token");
+  });
+
+  it("ILLEGAL_ACCESS 不再归类为 auth_expired（走 unknown/error 口径）", async () => {
+    const { fetchSessionSyncViaGuest } = requireMain("goofish/mtop-session");
+    const fakeGuest = {
+      isDestroyed: () => false,
+      executeJavaScript: async () => ({
+        status: 200,
+        text: JSON.stringify({ ret: ["FAIL_SYS_ILLEGAL_ACCESS::非法请求"] }),
+      }),
+    };
+    const r = await fetchSessionSyncViaGuest(fakeGuest as any, "tok_1");
+    expect(r.ok).toBe(false);
+    expect((r as any).reason).toBe("unknown");
   });
 });
