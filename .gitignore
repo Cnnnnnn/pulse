@@ -119,3 +119,4 @@ playwright-report/
 docs/*
 # Superpowers local execution ledger and reports
 .superpowers/
+.mimosa/
