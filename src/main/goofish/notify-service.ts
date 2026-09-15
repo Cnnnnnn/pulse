@@ -62,6 +62,7 @@ type StopHandle = {
 };
 
 let lastUnread = 0;
+let lastBadge = 0;
 let seeded = false;
 let timer: ReturnType<typeof setInterval> | null = null;
 let bootTimer: ReturnType<typeof setTimeout> | null = null;
@@ -401,14 +402,17 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     authFailStreak = 0;
     pushAuth(win, "ok");
     const onlyHumans = humansOnly(deps);
-    const unread = onlyHumans ? result.humanUnread : result.allUnread;
+    // 徽标跟站点未读对齐（真人 unread 常恒 0）；humansOnly 只影响是否弹通知
+    const badge = result.allUnread;
+    const notifyUnread = onlyHumans ? result.humanUnread : result.allUnread;
     const msgDiff = diffHumanMessageUpdates(result.sessions, lastHumanMsgFp);
 
     if (!seeded) {
       seeded = true;
-      lastUnread = unread;
+      lastUnread = notifyUnread;
+      lastBadge = badge;
       lastHumanMsgFp = msgDiff.next;
-      pushUnreadBadge(win, unread);
+      pushUnreadBadge(win, badge);
       const byType: Record<string, number> = {};
       for (const s of result.sessions) {
         if (!(s.unread > 0)) continue;
@@ -416,25 +420,27 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
         byType[k] = (byType[k] || 0) + s.unread;
       }
       log(
-        `seed unread=${unread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)} humanTracked=${lastHumanMsgFp.size}`,
+        `seed badge=${badge} notifyUnread=${notifyUnread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)} humanTracked=${lastHumanMsgFp.size}`,
       );
       return;
     }
 
-    if (unread !== lastUnread) {
-      pushUnreadBadge(win, unread);
+    if (badge !== lastBadge) {
+      pushUnreadBadge(win, badge);
+      log(`badge ${lastBadge} -> ${badge}`);
+      lastBadge = badge;
     }
 
-    if (unread > lastUnread && unread > 0) {
-      log(`unread ${lastUnread} -> ${unread}`);
-      fireNotify(win, deps, unread, result.sessions);
-      lastUnread = unread;
+    if (notifyUnread > lastUnread && notifyUnread > 0) {
+      log(`unread ${lastUnread} -> ${notifyUnread}`);
+      fireNotify(win, deps, notifyUnread, result.sessions);
+      lastUnread = notifyUnread;
       lastHumanMsgFp = msgDiff.next;
       return;
     }
 
-    if (unread !== lastUnread) {
-      log(`unread ${lastUnread} -> ${unread} (no notify)`);
+    if (notifyUnread !== lastUnread) {
+      log(`unread ${lastUnread} -> ${notifyUnread} (no notify)`);
     }
 
     // 真人 unread 常为 0：靠 lastMsg/ts 变化补通知
@@ -443,12 +449,11 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       log(
         `human-msg delta n=${msgDiff.changed.length} nick=${top.peerNick || "?"} text=${String(top.lastMsg || "").slice(0, 40)}`,
       );
-      const bump = Math.max(1, unread, lastUnread + msgDiff.changed.length);
-      pushUnreadBadge(win, bump);
+      const bump = Math.max(1, notifyUnread, lastUnread + msgDiff.changed.length);
       fireNotify(win, deps, bump, msgDiff.changed);
       lastUnread = bump;
     } else {
-      lastUnread = unread;
+      lastUnread = notifyUnread;
     }
     lastHumanMsgFp = msgDiff.next;
   } finally {
@@ -549,11 +554,12 @@ export function goofishNotifyOnWsChat(ev: GoofishWsEvent): void {
     lastMsg: text || "新消息",
     ts: typeof ev.ts === "number" && ev.ts > 0 ? ev.ts : Date.now(),
   };
-  pushUnreadBadge(win, next);
+  const badgeNext = Math.max(lastBadge + 1, next);
+  pushUnreadBadge(win, badgeNext);
+  lastBadge = badgeNext;
   log(`ws-chat notify nick=${nick} text=${text.slice(0, 40)}`);
   fireNotify(win, deps, next, [session]);
   lastUnread = Math.max(lastUnread, next);
-  // 随后再 sync，把徽标对齐协议层真相
   goofishNotifyOnWsWake();
 }
 
@@ -570,6 +576,7 @@ export function __getLastWsWakeAtForTest(): number {
 export function __resetGoofishNotifyForTest(): void {
   stopGoofishNotifyService();
   lastUnread = 0;
+  lastBadge = 0;
   seeded = false;
   inflight = false;
   authFailStreak = 0;

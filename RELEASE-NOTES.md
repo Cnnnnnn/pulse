@@ -2,6 +2,14 @@
 
 ---
 
+## v3.3.7 (🐟 徽标归零 + WS 帧识别加固) — 2026-09-15
+
+**3.3.6 已连上官方 WS，但角标仍为 0、通知不弹** — `humansOnly` 把徽标绑死在恒为 0 的 `humanUnread`；WS sync 推送大量被标成 `other`（reminder 字段不在 1.10）；真人会话在 session.sync 里可数月不更新 lastMsg。
+
+- 侧栏徽标改跟站点 `allUnread`；「仅提醒真人」只过滤桌面通知
+- `extractEvent` 深搜 `reminderContent` / 数字 key；sync 推送时软唤醒 guest
+- 设置文案同步说明
+
 ## v3.3.6 (🐟 修复「要切 tab 才看到新消息」) — 2026-09-15
 
 **3.3.5 已挂 /im，但整段会话零 `[goofish-ws]`** — 页内 WebSocket hook 未挂上；切 tab 触发整页 reload，看起来像「切一下才有新消息」。真人会话 `unread` 仍恒为 0，单靠未读上涨永远不弹。

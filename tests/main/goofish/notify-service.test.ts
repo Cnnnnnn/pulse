@@ -34,6 +34,32 @@ describe("goofish notify-service", () => {
     __resetGoofishNotifyForTest();
   });
 
+  it("humansOnly 时徽标仍跟 allUnread，不跟 humanUnread", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: true as const,
+      sessions: [],
+      humanUnread: 0,
+      allUnread: 57,
+      ret: ["SUCCESS"],
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      isHumansOnly: () => true,
+    });
+
+    await svc.tickNow();
+    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload === 57)).toBe(
+      true,
+    );
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+    svc.stop();
+  });
+
   it("首次 sync 只建基线不通知；上涨才通知", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);

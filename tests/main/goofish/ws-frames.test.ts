@@ -197,4 +197,22 @@ describe("goofish ws-frames 解析", () => {
     expect(s.binSync).toBe(1);
     expect(s.chat).toBe(1);
   });
+
+  it("深搜嵌套 reminderContent 也能识别为 chat", () => {
+    const inner = {
+      wrap: {
+        payload: {
+          reminderTitle: "深买家",
+          reminderContent: "嵌套正文",
+          senderUserId: "uDeep",
+        },
+      },
+    };
+    const raw = outerFrame(b64(JSON.stringify(inner)));
+    const r = parseGoofishWsFrame(raw);
+    expect(r.isSync).toBe(true);
+    expect(r.events.some((e: any) => e.kind === "chat" && e.text === "嵌套正文")).toBe(
+      true,
+    );
+  });
 });

@@ -604,6 +604,23 @@ export function goofishEmbedSoftRefresh(
   })();
 }
 
+/**
+ * 软唤醒 guest：伪装可见 + focus，促使闲鱼页处理积压推送。
+ * 限频，避免每帧都 executeJavaScript。
+ */
+let lastSoftWakeAt = 0;
+export function goofishEmbedSoftWake(): void {
+  try {
+    if (!view || view.webContents.isDestroyed()) return;
+    const now = Date.now();
+    if (now - lastSoftWakeAt < 2_000) return;
+    lastSoftWakeAt = now;
+    void view.webContents.executeJavaScript(VISIBILITY_SPOOF, true).catch(() => {});
+  } catch {
+    /* noop */
+  }
+}
+
 /** 供通知服务页内 sync */
 export function goofishEmbedGetWebContents(): electronType.WebContents | null {
   try {

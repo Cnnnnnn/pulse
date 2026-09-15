@@ -116,33 +116,83 @@ function itemIdFromUrl(url: unknown): string | undefined {
 
 /** 从内层解码对象提取事件；判别顺序：订单红点 → 聊天 → 其他 */
 export function extractEvent(decoded: Record<string, any>): GoofishWsEvent {
-  const red = isObj(decoded["3"]) ? asStr(decoded["3"].redReminder) : undefined;
-  const timeline = isObj(decoded["1"]) ? decoded["1"] : null;
-  const cid = timeline ? asStr(timeline["2"]) : undefined;
-  const ts = timeline ? asTs(timeline["5"]) : undefined;
-  const info = timeline && isObj(timeline["10"]) ? timeline["10"] : null;
+  const red = isObj(decoded["3"])
+    ? asStr(decoded["3"].redReminder)
+    : isObj((decoded as any)[3])
+      ? asStr((decoded as any)[3].redReminder)
+      : undefined;
+  const timeline = isObj(decoded["1"])
+    ? decoded["1"]
+    : isObj((decoded as any)[1])
+      ? (decoded as any)[1]
+      : null;
+  const cid = timeline ? asStr(timeline["2"] ?? timeline[2]) : undefined;
+  const ts = timeline ? asTs(timeline["5"] ?? timeline[5]) : undefined;
+  let info =
+    timeline && isObj(timeline["10"])
+      ? timeline["10"]
+      : timeline && isObj(timeline[10])
+        ? timeline[10]
+        : null;
+
+  // msgpack/别名路径：reminder* 不一定挂在 1.10
+  if (!info || (!asStr(info.reminderContent) && !asStr(info.reminderTitle))) {
+    const deep = findReminderFields(decoded, 0);
+    if (deep) info = deep;
+  }
 
   if (red) {
     return {
       kind: "order",
       redReminder: red,
-      cid: cid ? cid.split("@")[0] : undefined,
+      cid: cid ? String(cid).split("@")[0] : undefined,
       ts,
     };
   }
   if (info) {
     const text = asStr(info.reminderContent);
-    return {
-      kind: text ? "chat" : "other",
-      nick: asStr(info.reminderTitle),
-      senderUserId: asStr(info.senderUserId),
-      text,
-      cid: cid ? cid.split("@")[0] : undefined,
-      itemId: itemIdFromUrl(info.reminderUrl),
-      ts,
-    };
+    const nick = asStr(info.reminderTitle);
+    // 有昵称或正文之一即视为聊天（图片/表情可能只有 title）
+    if (text || nick || asStr(info.senderUserId)) {
+      return {
+        kind: "chat",
+        nick,
+        senderUserId: asStr(info.senderUserId),
+        text: text || "[消息]",
+        cid: cid ? String(cid).split("@")[0] : undefined,
+        itemId: itemIdFromUrl(info.reminderUrl),
+        ts,
+      };
+    }
   }
-  return { kind: "other", cid: cid ? cid.split("@")[0] : undefined, ts };
+  return { kind: "other", cid: cid ? String(cid).split("@")[0] : undefined, ts };
+}
+
+/** 深搜 reminderContent / reminderTitle（协议字段偶发不在 1.10） */
+function findReminderFields(
+  node: unknown,
+  depth: number,
+): Record<string, any> | null {
+  if (depth > 8 || !isObj(node)) return null;
+  if (
+    typeof (node as any).reminderContent === "string" ||
+    typeof (node as any).reminderTitle === "string" ||
+    typeof (node as any).senderUserId === "string"
+  ) {
+    return node;
+  }
+  for (const v of Object.values(node)) {
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        const hit = findReminderFields(item, depth + 1);
+        if (hit) return hit;
+      }
+    } else {
+      const hit = findReminderFields(v, depth + 1);
+      if (hit) return hit;
+    }
+  }
+  return null;
 }
 
 function handleOuter(outer: unknown): GoofishWsFrameResult {
@@ -309,13 +359,19 @@ function tally(r: GoofishWsFrameResult): void {
     return;
   }
   stats.syncFrames += 1;
+  // 任意 sync 推送都软唤醒 guest，减轻「切 tab 才刷新」
+  try {
+    const { goofishEmbedSoftWake } = require("../goofish-embed.ts");
+    goofishEmbedSoftWake();
+  } catch {
+    /* noop */
+  }
   for (const ev of r.events) {
     if (ev.kind === "chat") {
       stats.chat += 1;
       rateLimitedEventLog(
         `msg ${ev.nick || "?"}: ${String(ev.text || "").slice(0, 60)} cid=${ev.cid || "?"} item=${ev.itemId || "-"} from=${ev.senderUserId || "?"}`,
       );
-      // chat 帧直接通知：sync 的 humanUnread 常为 0（未读堆在运营号），单靠轮询会漏真人消息
       try {
         const { goofishNotifyOnWsChat } = require("./notify-service.ts");
         goofishNotifyOnWsChat(ev);
@@ -327,6 +383,9 @@ function tally(r: GoofishWsFrameResult): void {
       rateLimitedEventLog(`order ${ev.redReminder} cid=${ev.cid || "?"}`);
     } else {
       stats.other += 1;
+      if (stats.other <= 3 || stats.other % 50 === 0) {
+        rateLimitedEventLog(`other event sample #${stats.other}`);
+      }
     }
   }
   if (r.detail && r.detail.startsWith("decode_fail")) stats.decodeFail += 1;
