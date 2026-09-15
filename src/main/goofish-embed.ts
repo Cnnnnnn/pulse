@@ -352,6 +352,11 @@ function applyRailProbeResult(raw: unknown): void {
   }
 
   lastAppliedRail = unread;
+  // keepalive（/im 后台挂载 / 用户没在切到闲鱼 tab）下，DOM 探测会读到 /im 上
+  // 不存在的右栏角标 → 0；盲目覆盖 lastBadge 反而把用户在首页上看到的真实值
+  // 冲掉。仅在用户实际打开闲鱼 tab（userViewing=true）时 push 给 renderer；
+  // 后台 keepalive 期间只更新 lastAppliedRail，等用户切回时按新值重新对齐。
+  if (!userViewing) return;
   try {
     const { goofishNotifyOnDomRail } = require("./goofish/notify-service.ts");
     goofishNotifyOnDomRail(unread);
@@ -594,6 +599,14 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       };
       view.webContents.on("did-navigate", onNav);
       view.webContents.on("did-navigate-in-page", onNav);
+      // 页面 loadURL 完成（包括 /im → 首页切换）立刻读一次右侧「消息」角标，
+      // 否则定时器最快也要 ~1.2s+0.28s 后才同步，期间有 WS 帧到达也会因新页 DOM
+      // 没出来读到陈旧值。
+      const onFinishLoad = () => {
+        // 250ms 后让首屏把右侧栏 mount 出来再读；kick 内部限频 800ms 容忍重入
+        setTimeout(() => probeRailUnreadNow(), 250);
+      };
+      view.webContents.on("did-finish-load", onFinishLoad);
       // 未读：session.sync + WS + 右侧栏「消息」DOM 角标（站点真值，不是协议 57）
       // 首次停在 /im —— 官方 IM WebSocket 只在消息页建连，首页挂不住长连。
       installGuestWakeBridge(view.webContents);
