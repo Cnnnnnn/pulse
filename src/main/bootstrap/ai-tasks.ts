@@ -17,14 +17,14 @@ import { buildTaskSummaryEngine } from "../../ai-sessions/wiring";
  * @param {object} deps.stateStore
  */
 export function initAiTasksWiring(deps: any) {
-  const { stateStore } = deps;
-  const stateOverride = stateStore.loadAISessionsConfig();
-  const cfgBase =
-    stateOverride && typeof stateOverride === "object"
-      ? stateOverride
-      : { enabled: false, provider: "minimax", cloud: null };
-
   try {
+    const { stateStore } = deps;
+    const stateOverride = stateStore.loadAISessionsConfig();
+    const cfgBase =
+      stateOverride && typeof stateOverride === "object"
+        ? stateOverride
+        : { enabled: false, provider: "minimax", cloud: null };
+
     const wiring = buildTaskSummaryEngine({
       config: cfgBase,
       runtimeOverride: stateStore.loadAISessionsConfig(),
@@ -41,7 +41,11 @@ export function initAiTasksWiring(deps: any) {
       `[tasks] wiring ready: provider=${wiring.providerId} detectors=[${detectorNames}]`,
     );
   } catch (err: any) {
-    mainLog.warn(`[tasks] buildTaskSummaryEngine failed: ${err instanceof Error ? err.message : String(err)}`);
+    // 启动关键路径: wiring 失败只降级, 决不能断掉 whenReady 链
+    // (2026-09-15: 曾因 try 外的 loadAISessionsConfig 抛错导致整个启动静默中断)
+    mainLog.warn(
+      `[tasks] initAiTasksWiring failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
