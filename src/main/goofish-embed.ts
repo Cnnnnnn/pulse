@@ -15,9 +15,9 @@
  *   - 本模块: 创建/附着/设界/显隐/导航 guest, 并把 URL 变化推回 renderer
  *
  * 后台消息 / 系统通知:
- *   - guest warm-start 屏外保活（续 cookie / 浏览态）
- *   - 未读徽标与系统通知由 goofish/notify-service.ts 走 session.sync（协议层独占）
- *   - guest 内钩住官方 IM WebSocket 作门铃 → 防抖触发 sync（近实时）
+ *   - guest warm-start 屏外停在 /im（官方 IM WS 只在此页建连）
+ *   - 未读徽标与系统通知由 goofish/notify-service.ts（session.sync + WS chat）
+ *   - guest 内钩住官方 IM WebSocket：门铃触发 sync；chat 帧可直接弹通知
  *   - 本模块不再做 title/DOM 未读轮询，避免双写抢徽标
  *
  * 安全: guest 围栏 (弹窗全拒 + 导航白名单) 见 webview-guard.applyGoofishGuestFence;
@@ -28,6 +28,8 @@ import type * as electronType from "electron";
 import type { GoofishNavPayload, GoofishSyncPayload } from "../shared/ipc-contracts";
 
 const GOOFISH_HOME = "https://www.goofish.com/";
+/** 消息保活页：官方 IM WebSocket 只在 /im 建连；首页不会挂长连 */
+const GOOFISH_IM = "https://www.goofish.com/im";
 const GOOFISH_PARTITION = "persist:goofish";
 /** 屏外停靠: 保持 guest 存活 (JS/WS), 又不挡主窗口 */
 const PARK_BOUNDS = { x: -12000, y: 0, width: 1280, height: 800 };
@@ -59,6 +61,25 @@ function parkOffscreen(): void {
     view.setBounds(PARK_BOUNDS);
     // 关键: 必须 visible=true, 否则 Chromium 可能冻住 guest → WS/轮询停摆
     view.setVisible(true);
+    ensureImKeepalive();
+  } catch {
+    /* noop */
+  }
+}
+
+/**
+ * 后台必须停在 /im 才能挂官方 IM WS。用户切走 tab 后若停在首页，长连会断。
+ * 登录/扫码页不动。
+ */
+function ensureImKeepalive(): void {
+  try {
+    if (!view || view.webContents.isDestroyed() || userViewing) return;
+    const url = String(view.webContents.getURL() || "");
+    if (!/goofish\.com/i.test(url)) return;
+    if (/login|passport|havana|qrcode/i.test(url)) return;
+    if (/\/im(?:\?|$|#)/i.test(url)) return;
+    void view.webContents.loadURL(GOOFISH_IM).catch(() => {});
+    embedLog("keepalive → /im");
   } catch {
     /* noop */
   }
@@ -96,11 +117,23 @@ const WS_WAKE_HOOK = `(() => {
   window.__gfWsWakeHook = true;
   const Orig = window.WebSocket;
   if (!Orig) return;
+  function u8B64(u8) {
+    var s = '';
+    for (var i = 0; i < u8.length; i += 0x8000) {
+      s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    }
+    return btoa(s);
+  }
   function Wrapped(url, protocols) {
     const ws = protocols !== undefined ? new Orig(url, protocols) : new Orig(url);
     try {
       const u = String(url || '');
       if (/goofish|dingtalk/i.test(u)) {
+        ws.addEventListener('open', function () {
+          if (window.__gfWsOpenAt && Date.now() - window.__gfWsOpenAt < 30000) return;
+          window.__gfWsOpenAt = Date.now();
+          console.info('__GOOFISH_WS_OPEN__' + u.slice(0, 120));
+        });
         ws.addEventListener('message', function (ev) {
           var now = Date.now();
           if (window.__gfWsLast && now - window.__gfWsLast < 1500) return;
@@ -109,12 +142,35 @@ const WS_WAKE_HOOK = `(() => {
         });
         ws.addEventListener('message', function (ev) {
           try {
-            var d = typeof ev.data === 'string' ? ev.data : '';
-            if (d.indexOf('syncPushPackage') === -1) return;
+            var d = ev.data;
             var now = Date.now();
             if (window.__gfWsFrameLast && now - window.__gfWsFrameLast < 2000) return;
-            window.__gfWsFrameLast = now;
-            console.info('__GOOFISH_WS_FRAME__' + d.slice(0, 32768));
+            if (typeof d === 'string') {
+              if (d.indexOf('syncPushPackage') === -1) return;
+              window.__gfWsFrameLast = now;
+              console.info('__GOOFISH_WS_FRAME__' + d.slice(0, 32768));
+              return;
+            }
+            // 二进制帧（Blob/ArrayBuffer）：页面协商二进制时外层是 msgpack，
+            // 文本检查永远不命中 —— base64 转发主进程解
+            var u8 = null;
+            if (d && typeof Blob !== 'undefined' && d instanceof Blob) {
+              d.arrayBuffer().then(function (buf) {
+                try {
+                  var u8b = new Uint8Array(buf);
+                  var now2 = Date.now();
+                  if (window.__gfWsBinLast && now2 - window.__gfWsBinLast < 2000) return;
+                  window.__gfWsBinLast = now2;
+                  console.info('__GOOFISH_WS_BIN__' + u8B64(u8b.subarray(0, 24576)));
+                } catch (e) {}
+              }).catch(function () {});
+              return;
+            }
+            if (d instanceof ArrayBuffer) {
+              u8 = new Uint8Array(d);
+              window.__gfWsFrameLast = now;
+              console.info('__GOOFISH_WS_BIN__' + u8B64(u8.subarray(0, 24576)));
+            }
           } catch (e) {}
         });
       }
@@ -129,6 +185,7 @@ const WS_WAKE_HOOK = `(() => {
   window.WebSocket = Wrapped;
 })()`;
 const WS_FRAME_MARKER = "__GOOFISH_WS_FRAME__";
+const WS_BIN_MARKER = "__GOOFISH_WS_BIN__";
 
 function installGuestWakeBridge(wc: electronType.WebContents): void {
   const inject = () => {
@@ -165,11 +222,28 @@ function installGuestWakeBridge(wc: electronType.WebContents): void {
       } else if (typeof args[2] === "string") {
         msg = args[2];
       }
+      if (msg.startsWith(WS_BIN_MARKER)) {
+        // 二进制帧（base64）：外层大概率 msgpack，独立解析计数
+        try {
+          const { handleGoofishWsBinFrame } = require("./goofish/ws-frames.ts");
+          handleGoofishWsBinFrame(msg.slice(WS_BIN_MARKER.length));
+        } catch {
+          /* noop */
+        }
+      }
       if (msg.startsWith(WS_FRAME_MARKER)) {
         // spike：帧原文交给主进程解析统计；帧本身就是流量，门铃一并触发
         try {
           const { handleGoofishWsFrame } = require("./goofish/ws-frames.ts");
           handleGoofishWsFrame(msg.slice(WS_FRAME_MARKER.length));
+        } catch {
+          /* noop */
+        }
+      }
+      if (msg.startsWith("__GOOFISH_WS_OPEN__")) {
+        try {
+          const { handleGoofishWsOpen } = require("./goofish/ws-frames.ts");
+          handleGoofishWsOpen(msg.slice("__GOOFISH_WS_OPEN__".length));
         } catch {
           /* noop */
         }
@@ -215,15 +289,14 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       };
       view.webContents.on("did-navigate", onNav);
       view.webContents.on("did-navigate-in-page", onNav);
-      // 未读徽标 / 系统通知改由 goofish/notify-service（session.sync）独占，
-      // guest 内官方 WS 仅作门铃（见 installGuestWakeBridge）。
-      // 首次创建即加载首页 — 视图没有 src 概念, 不主动 load 就是白板
-      embedLog("guest view created, loading home");
+      // 未读：session.sync + WS chat；门铃见 installGuestWakeBridge。
+      // 首次停在 /im —— 官方 IM WebSocket 只在消息页建连，首页挂不住长连。
+      embedLog("guest view created, loading /im (keepalive)");
       // 先停靠屏外, 等 goofish:sync 给真实矩形再亮出来 — 避免 warm-start / 创建瞬间闪屏
       parkOffscreen();
       view.webContents
-        .loadURL(GOOFISH_HOME)
-        .then(() => embedLog("guest home loaded"))
+        .loadURL(GOOFISH_IM)
+        .then(() => embedLog("guest /im loaded"))
         .catch(() => {});
       view.webContents.on("did-fail-load", (_e, code, desc, url) => {
         if (code === -3) return; // ERR_ABORTED: 导航被打断, 非错误
@@ -411,10 +484,10 @@ export function goofishEmbedSoftRefresh(
       parkOffscreen();
       try {
         await view.webContents.executeJavaScript(
-          `fetch("https://www.goofish.com/",{credentials:"include",cache:"no-store"}).catch(()=>{})`,
+          `fetch("https://www.goofish.com/im",{credentials:"include",cache:"no-store"}).catch(()=>{})`,
           true,
         );
-        embedLog("soft-refresh ping home");
+        embedLog("soft-refresh ping /im");
       } catch {
         /* noop */
       }

@@ -7,6 +7,7 @@ const { requireMain } = require("../../_setup/require-main.cjs");
 const {
   startGoofishNotifyService,
   goofishNotifyOnWsWake,
+  goofishNotifyOnWsChat,
   __resetGoofishNotifyForTest,
   __getLastWsWakeAtForTest,
 } = requireMain("goofish/notify-service");
@@ -274,6 +275,48 @@ describe("goofish notify-service", () => {
 
     svc.stop();
     vi.useRealTimers();
+  });
+
+  it("WS chat 帧在 humanUnread=0 时仍能直接弹通知", async () => {
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: true as const,
+      sessions: [],
+      humanUnread: 0,
+      allUnread: 54,
+      ret: ["SUCCESS"],
+    }));
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      notifyCooldownMs: 0,
+    });
+
+    await svc.tickNow(); // seed: human=0
+    expect(sends.some((s) => s.ch === "goofish:alert")).toBe(false);
+
+    goofishNotifyOnWsChat({
+      kind: "chat",
+      nick: "张三",
+      text: "还在吗",
+      senderUserId: "u1",
+      cid: "c1@goofish",
+      itemId: "item9",
+      ts: Date.now(),
+    });
+
+    const alert = sends.find((s) => s.ch === "goofish:alert");
+    expect(alert).toBeTruthy();
+    expect(String(alert.payload.body)).toContain("张三");
+    expect(String(alert.payload.body)).toContain("还在吗");
+    expect(sends.some((s) => s.ch === "goofish:unread" && s.payload >= 1)).toBe(
+      true,
+    );
+
+    svc.stop();
   });
 
   it("no_token 但登录 cookie 仍在 → 降级同步异常，不弹未登录/扫码提示", async () => {

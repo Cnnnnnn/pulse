@@ -10,7 +10,9 @@ const { requireMain } = require("../../_setup/require-main.cjs");
 
 const {
   parseGoofishWsFrame,
+  parseGoofishWsFrameBytes,
   handleGoofishWsFrame,
+  handleGoofishWsBinFrame,
   __getGoofishWsFrameStatsForTest,
   __resetGoofishWsFramesForTest,
 } = requireMain("goofish/ws-frames");
@@ -141,5 +143,58 @@ describe("goofish ws-frames 解析", () => {
     expect(s.syncFrames).toBe(1);
     expect(s.chat).toBe(1);
     expect(s.nonSync).toBe(1);
+  });
+
+  it("二进制帧：msgpack 外层 + base64 字符串内层 → 解出 chat 事件", () => {
+    const outer = {
+      lwp: "/r/SyncStatus/push",
+      headers: { mid: "bin1" },
+      body: { syncPushPackage: { data: [{ data: b64(JSON.stringify(CHAT_INNER)) }] } },
+    };
+    const bytes = new Uint8Array(Buffer.from(msgpackEncode(outer)));
+    const r = parseGoofishWsFrameBytes(bytes);
+    expect(r.isSync).toBe(true);
+    expect(r.ok).toBe(true);
+    expect(r.events[0].kind).toBe("chat");
+    expect(r.events[0].nick).toBe("买家甲");
+    expect(r.events[0].cid).toBe("cid123");
+  });
+
+  it("二进制帧：内层 .data 为裸 msgpack 字节 → 也能解出", () => {
+    const innerBytes = new Uint8Array(msgpackEncode(CHAT_INNER));
+    const outer = {
+      lwp: "/r/SyncStatus/push",
+      headers: { mid: "bin2" },
+      body: { syncPushPackage: { data: [{ data: innerBytes }] } },
+    };
+    const r = parseGoofishWsFrameBytes(new Uint8Array(Buffer.from(msgpackEncode(outer))));
+    expect(r.events).toHaveLength(1);
+    expect(r.events[0].text).toBe("在吗？");
+  });
+
+  it("二进制帧：utf8 JSON 字节兜底 + 乱字节计数失败", () => {
+    const r1 = parseGoofishWsFrameBytes(
+      new Uint8Array(Buffer.from(outerFrame(b64(JSON.stringify(CHAT_INNER)), ))),
+    );
+    expect(r1.events[0].kind).toBe("chat");
+
+    const s0 = __getGoofishWsFrameStatsForTest();
+    handleGoofishWsBinFrame(Buffer.from([0x00, 0xff, 0x13]).toString("base64"));
+    const s = __getGoofishWsFrameStatsForTest();
+    expect(s.binReceived).toBe(s0.binReceived + 1);
+    expect(s.binDecodeFail).toBe(s0.binDecodeFail + 1);
+  });
+
+  it("handleGoofishWsBinFrame 有效 msgpack 帧 → binSync 计数", () => {
+    const outer = {
+      lwp: "/r/SyncStatus/push",
+      headers: { mid: "bin3" },
+      body: { syncPushPackage: { data: [{ data: b64(JSON.stringify(CHAT_INNER)) }] } },
+    };
+    handleGoofishWsBinFrame(Buffer.from(msgpackEncode(outer)).toString("base64"));
+    const s = __getGoofishWsFrameStatsForTest();
+    expect(s.binReceived).toBe(1);
+    expect(s.binSync).toBe(1);
+    expect(s.chat).toBe(1);
   });
 });

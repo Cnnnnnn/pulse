@@ -638,7 +638,7 @@ function GoofishSettingsSection() {
         <div class="settings-row__label-block">
           <span class="settings-row__label">仅提醒真人买家</span>
           <span class="settings-row__hint">
-            开启后侧栏徽标与通知忽略官方/营销会话，点击通知会尽量直达对应聊天。
+            开启后忽略官方/营销未读（站点角标常被这些撑大）。真人新消息仍走 IM 推送通知；关掉则把运营未读也算进徽标。
           </span>
         </div>
         <button

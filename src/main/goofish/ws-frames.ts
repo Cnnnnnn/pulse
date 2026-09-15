@@ -58,21 +58,26 @@ function b64ToBytes(data: string): Uint8Array | null {
 }
 
 /**
- * 解内层 payload：base64(JSON) 或 base64(MessagePack)。
+ * 解内层 payload：base64(JSON)、base64(MessagePack)、裸 JSON 或裸 msgpack 字节。
  * 两种形态都存在（明文 JSON 路径 + msgpack 二进制路径）。
  */
-export function decodeSyncItem(data: string): Record<string, any> | null {
-  if (!data || typeof data !== "string") return null;
-  // 纯 JSON 直塞的兜底（个别帧不 base64）
-  try {
-    const direct = JSON.parse(data);
-    if (isObj(direct)) return direct;
-  } catch {
-    /* 不是裸 JSON，继续 base64 路径 */
+export function decodeSyncItem(
+  data: string | Uint8Array | undefined,
+): Record<string, any> | null {
+  if (typeof data !== "string" && !(data instanceof Uint8Array)) return null;
+  if (typeof data === "string") {
+    // 纯 JSON 直塞的兜底（个别帧不 base64）
+    try {
+      const direct = JSON.parse(data);
+      if (isObj(direct)) return direct;
+    } catch {
+      /* 不是裸 JSON，继续 base64 路径 */
+    }
+    return decodeSyncItem(b64ToBytes(data));
   }
-  const bytes = b64ToBytes(data);
-  if (!bytes || bytes.length === 0) return null;
-  // base64(JSON)
+  const bytes = data;
+  if (bytes.length === 0) return null;
+  // 字节即 utf8 JSON
   try {
     const asText = Buffer.from(bytes).toString("utf8");
     if (asText && asText.trimStart().startsWith("{")) {
@@ -82,7 +87,7 @@ export function decodeSyncItem(data: string): Record<string, any> | null {
   } catch {
     /* 走 msgpack */
   }
-  // base64(MessagePack)
+  // MessagePack
   try {
     const decoded: unknown = msgpackDecode(bytes);
     return isObj(decoded) ? decoded : null;
@@ -140,8 +145,33 @@ export function extractEvent(decoded: Record<string, any>): GoofishWsEvent {
   return { kind: "other", cid: cid ? cid.split("@")[0] : undefined, ts };
 }
 
+function handleOuter(outer: unknown): GoofishWsFrameResult {
+  const empty: GoofishWsFrameResult = { ok: false, isSync: false, events: [] };
+  const pkg = isObj(outer) && isObj(outer.body) ? outer.body.syncPushPackage : null;
+  if (!isObj(pkg) || !Array.isArray(pkg.data)) {
+    return { ...empty, detail: "not_sync_push" };
+  }
+  const events: GoofishWsEvent[] = [];
+  let decodeFail = 0;
+  for (const item of pkg.data) {
+    const data = isObj(item) ? item.data : undefined;
+    const decoded = decodeSyncItem(
+      typeof data === "string" ? data : data instanceof Uint8Array ? data : undefined,
+    );
+    if (!decoded) {
+      decodeFail += 1;
+      continue;
+    }
+    events.push(extractEvent(decoded));
+  }
+  if (decodeFail > 0 && events.length === 0) {
+    return { ok: false, isSync: true, events, detail: `decode_fail x${decodeFail}` };
+  }
+  return { ok: events.length > 0, isSync: true, events };
+}
+
 /**
- * 解析一帧原始 WS 文本。非 sync 推送（心跳/ack/任务）返回 isSync=false。
+ * 解析一帧原始 WS 文本（页内 text 帧）。非 sync 推送（心跳/ack）isSync=false。
  * 解析绝不抛错——spike 期间任何形态的帧都只计数不炸。
  */
 export function parseGoofishWsFrame(raw: string): GoofishWsFrameResult {
@@ -155,25 +185,33 @@ export function parseGoofishWsFrame(raw: string): GoofishWsFrameResult {
   } catch {
     return { ...empty, detail: "outer_not_json" };
   }
-  const pkg = isObj(outer) && isObj(outer.body) ? outer.body.syncPushPackage : null;
-  if (!isObj(pkg) || !Array.isArray(pkg.data)) {
-    return { ...empty, detail: "not_sync_push" };
+  return handleOuter(outer);
+}
+
+/**
+ * 解析一帧原始 WS 二进制帧（页内 Blob/ArrayBuffer 帧，base64 转发而来）。
+ * 二进制帧外层大概率是 MessagePack 编码的同一 lwp 结构；也兜底 utf8 JSON。
+ */
+export function parseGoofishWsFrameBytes(bytes: Uint8Array): GoofishWsFrameResult {
+  const empty: GoofishWsFrameResult = { ok: false, isSync: false, events: [] };
+  if (!bytes || bytes.length === 0 || bytes.length > 512 * 1024) {
+    return { ...empty, detail: "bad_input" };
   }
-  const events: GoofishWsEvent[] = [];
-  let decodeFail = 0;
-  for (const item of pkg.data) {
-    const data = isObj(item) ? item.data : undefined;
-    const decoded = decodeSyncItem(typeof data === "string" ? data : "");
-    if (!decoded) {
-      decodeFail += 1;
-      continue;
+  // utf8 JSON 兜底（万一二进制帧里其实装的是 JSON 文本）
+  try {
+    const asText = Buffer.from(bytes).toString("utf8");
+    if (asText && asText.trimStart().startsWith("{")) {
+      return handleOuter(JSON.parse(asText));
     }
-    events.push(extractEvent(decoded));
+  } catch {
+    /* 走 msgpack */
   }
-  if (decodeFail > 0 && events.length === 0) {
-    return { ok: false, isSync: true, events, detail: `decode_fail x${decodeFail}` };
+  try {
+    const outer: unknown = msgpackDecode(bytes);
+    return handleOuter(outer);
+  } catch {
+    return { ...empty, detail: "bin_decode_fail" };
   }
-  return { ok: events.length > 0, isSync: true, events };
 }
 
 // ---- 主进程接线：统计 + 限频日志（spike 观测面） ----
@@ -186,6 +224,9 @@ type WsFrameStats = {
   other: number;
   decodeFail: number;
   nonSync: number;
+  binReceived: number;
+  binSync: number;
+  binDecodeFail: number;
 };
 
 const stats: WsFrameStats = {
@@ -196,6 +237,9 @@ const stats: WsFrameStats = {
   other: 0,
   decodeFail: 0,
   nonSync: 0,
+  binReceived: 0,
+  binSync: 0,
+  binDecodeFail: 0,
 };
 let lastEventLogAt = 0;
 let lastSummaryAt = 0;
@@ -218,10 +262,48 @@ function rateLimitedEventLog(msg: string): void {
   log(msg);
 }
 
+/** IM WebSocket 连接建立时打点——证明钩子已挂 + 长连已建，用于区分“没流量”和“链路断” */
+export function handleGoofishWsOpen(url: string): void {
+  rateLimitedEventLog(`ws connected: ${String(url || "").slice(0, 100)}`);
+}
+
 /** 主进程 console 通道接到原始帧后调用这里 */
 export function handleGoofishWsFrame(raw: string): void {
   stats.received += 1;
   const r = parseGoofishWsFrame(raw);
+  tally(r);
+}
+
+/**
+ * 二进制帧入口：页内把 Blob/ArrayBuffer 帧以 base64 转发过来。
+ * 拿不到 sync 数据时的首要嫌疑就是页面走二进制帧，这里独立计数便于确认。
+ */
+export function handleGoofishWsBinFrame(b64: string): void {
+  stats.binReceived += 1;
+  let bytes: Uint8Array | null = null;
+  try {
+    const buf = Buffer.from(String(b64 || ""), "base64");
+    bytes = buf.length > 0 ? new Uint8Array(buf) : null;
+  } catch {
+    bytes = null;
+  }
+  if (!bytes) {
+    stats.binDecodeFail += 1;
+    return;
+  }
+  const r = parseGoofishWsFrameBytes(bytes);
+  if (!r.isSync && r.detail === "bin_decode_fail") {
+    stats.binDecodeFail += 1;
+    rateLimitedEventLog(
+      `bin undecodable head=${Array.from(bytes.slice(0, 12)).join(",")}`,
+    );
+    return;
+  }
+  tally(r);
+  if (r.isSync) stats.binSync += 1;
+}
+
+function tally(r: GoofishWsFrameResult): void {
   if (!r.isSync) {
     stats.nonSync += 1;
     return;
@@ -233,6 +315,13 @@ export function handleGoofishWsFrame(raw: string): void {
       rateLimitedEventLog(
         `msg ${ev.nick || "?"}: ${String(ev.text || "").slice(0, 60)} cid=${ev.cid || "?"} item=${ev.itemId || "-"} from=${ev.senderUserId || "?"}`,
       );
+      // chat 帧直接通知：sync 的 humanUnread 常为 0（未读堆在运营号），单靠轮询会漏真人消息
+      try {
+        const { goofishNotifyOnWsChat } = require("./notify-service.ts");
+        goofishNotifyOnWsChat(ev);
+      } catch {
+        /* noop */
+      }
     } else if (ev.kind === "order") {
       stats.order += 1;
       rateLimitedEventLog(`order ${ev.redReminder} cid=${ev.cid || "?"}`);
@@ -246,7 +335,7 @@ export function handleGoofishWsFrame(raw: string): void {
   if (now - lastSummaryAt >= SUMMARY_INTERVAL_MS) {
     lastSummaryAt = now;
     log(
-      `summary 5min: received=${stats.received} sync=${stats.syncFrames} chat=${stats.chat} order=${stats.order} other=${stats.other} decodeFail=${stats.decodeFail} nonSync=${stats.nonSync}`,
+      `summary 5min: received=${stats.received} sync=${stats.syncFrames} chat=${stats.chat} order=${stats.order} other=${stats.other} decodeFail=${stats.decodeFail} nonSync=${stats.nonSync} bin=${stats.binReceived} binSync=${stats.binSync} binFail=${stats.binDecodeFail}`,
     );
   }
 }
@@ -263,6 +352,9 @@ export function __resetGoofishWsFramesForTest(): void {
   stats.other = 0;
   stats.decodeFail = 0;
   stats.nonSync = 0;
+  stats.binReceived = 0;
+  stats.binSync = 0;
+  stats.binDecodeFail = 0;
   lastEventLogAt = 0;
   lastSummaryAt = 0;
 }

@@ -3,6 +3,7 @@
  *
  * 闲鱼未读通知服务（协议层）:
  *   定时 / WS 唤醒 → session.sync → 未读上涨 → Notification + toast
+ *   WS chat 帧可直接弹（不依赖 humanUnread；站点未读常堆在运营号）
  *   与「检查更新」同构：自己拉完结果再弹，不刮 DOM。
  *
  * P2: guest 内官方 WS 唤醒即时 sync；通知冷却 + 全局免打扰时段。
@@ -19,6 +20,7 @@ import {
   type GoofishChatSession,
   type SessionSyncResult,
 } from "./mtop-session";
+import type { GoofishWsEvent } from "./ws-frames";
 import { inQuietHours } from "../notification-policy";
 
 export type GoofishAuthStatus =
@@ -372,8 +374,14 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       seeded = true;
       lastUnread = unread;
       pushUnreadBadge(win, unread);
+      const byType: Record<string, number> = {};
+      for (const s of result.sessions) {
+        if (!(s.unread > 0)) continue;
+        const k = String(s.sessionType || 0);
+        byType[k] = (byType[k] || 0) + s.unread;
+      }
       log(
-        `seed unread=${unread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans}`,
+        `seed unread=${unread} human=${result.humanUnread} all=${result.allUnread} sessions=${result.sessions.length} humansOnly=${onlyHumans} unreadByType=${JSON.stringify(byType)}`,
       );
       return;
     }
@@ -458,6 +466,41 @@ export function goofishNotifyOnWsWake(): void {
     log("ws-wake → sync");
     void tick(activeDeps!);
   }, WS_WAKE_DEBOUNCE_MS);
+}
+
+/**
+ * 已解析的 WS chat 事件：不依赖 session.sync 的 humanUnread 上涨。
+ * （实测真人会话 unread 常为 0，站点角标全是运营号 → 仅靠 sync 永远不弹。）
+ */
+export function goofishNotifyOnWsChat(ev: GoofishWsEvent): void {
+  if (!activeDeps || !ev || ev.kind !== "chat") return;
+  const deps = activeDeps;
+  const text = String(ev.text || "").trim();
+  const nick = String(ev.nick || "").trim() || "买家";
+  if (!text && !ev.senderUserId) return;
+
+  const win = deps.getWindow();
+  if (!seeded) {
+    seeded = true;
+    lastUnread = 0;
+  }
+  const next = Math.max(1, lastUnread + 1);
+  const session: GoofishChatSession = {
+    sessionId: String(ev.cid || ""),
+    sessionType: 1,
+    peerNick: nick,
+    peerUserId: String(ev.senderUserId || ""),
+    itemId: String(ev.itemId || ""),
+    unread: 1,
+    lastMsg: text || "新消息",
+    ts: typeof ev.ts === "number" && ev.ts > 0 ? ev.ts : Date.now(),
+  };
+  pushUnreadBadge(win, next);
+  log(`ws-chat notify nick=${nick} text=${text.slice(0, 40)}`);
+  fireNotify(win, deps, next, [session]);
+  lastUnread = Math.max(lastUnread, next);
+  // 随后再 sync，把徽标对齐协议层真相
+  goofishNotifyOnWsWake();
 }
 
 export function getGoofishAuthStatus(): GoofishAuthStatus {
