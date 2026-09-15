@@ -563,6 +563,9 @@ export function goofishNotifyOnDomRail(unread: number): void {
     log(`dom-rail unread ${prev} -> ${n}`);
     fireNotify(win, activeDeps, n, []);
     lastUnread = Math.max(lastUnread, n);
+  } else if (n < prev) {
+    // 已读后角标下降，对齐内部计数
+    lastUnread = n;
   }
 }
 

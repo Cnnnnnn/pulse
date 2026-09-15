@@ -39,6 +39,11 @@ let attachedWin: electronType.BrowserWindow | null = null;
 let loggedFirstSync = false;
 /** 用户正在看嵌入页 (tab 可见且未被浮层遮挡) */
 let userViewing = false;
+/**
+ * guest 当前停在 /im 只是为了后台挂 WS，并非用户主动进消息页。
+ * 用户再次打开闲鱼 tab 时应回到首页，避免「一打开就是消息」。
+ */
+let imKeepaliveOnly = false;
 
 function embedLog(msg: string): void {
   try {
@@ -85,8 +90,25 @@ function ensureImKeepalive(): void {
         .catch(() => {});
       return;
     }
+    imKeepaliveOnly = true;
     void view.webContents.loadURL(GOOFISH_IM).catch(() => {});
     embedLog("keepalive → /im");
+  } catch {
+    /* noop */
+  }
+}
+
+/** 用户打开闲鱼面板时：若只是保活态 /im，退回首页 */
+function maybeLeaveKeepaliveIm(): void {
+  try {
+    if (!imKeepaliveOnly || !view || view.webContents.isDestroyed()) return;
+    const url = String(view.webContents.getURL() || "");
+    imKeepaliveOnly = false;
+    // 深链会话保留；裸 /im 才回首页
+    if (/\/im(?:\?|$|#)/i.test(url) && !/[?&]peerUserId=/i.test(url)) {
+      void view.webContents.loadURL(GOOFISH_HOME).catch(() => {});
+      embedLog("user open → home (leave keepalive /im)");
+    }
   } catch {
     /* noop */
   }
@@ -310,6 +332,7 @@ function applyRailProbeResult(raw: unknown): void {
   const unread = Math.max(titleCount, railCount);
 
   const baseline = lastAppliedRail < 0 ? 0 : lastAppliedRail;
+  // 只有「飙到 99 / 一次跳 ≥8」才两轮确认；下降（含清零）立刻同步
   const jumped =
     unread >= 99 || (unread > baseline && unread - baseline >= 8);
 
@@ -318,9 +341,7 @@ function applyRailProbeResult(raw: unknown): void {
     return;
   }
 
-  // 小幅上涨（典型 +1）立刻同步；大幅跳变 / 99 / 下降要两轮一致
-  const needsConfirm = jumped || unread < baseline;
-  if (needsConfirm) {
+  if (jumped) {
     if (unread !== pendingRailConfirm) {
       pendingRailConfirm = unread;
       return;
@@ -580,6 +601,7 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       embedLog("guest view created, loading /im (keepalive)");
       // 先停靠屏外, 等 goofish:sync 给真实矩形再亮出来 — 避免 warm-start / 创建瞬间闪屏
       parkOffscreen();
+      imKeepaliveOnly = true;
       view.webContents
         .loadURL(GOOFISH_IM)
         .then(() => embedLog("guest /im loaded"))
@@ -693,6 +715,9 @@ export function goofishEmbedSync(
     const v = ensureView(win);
     if (!v) return { ok: false, reason: "view_unavailable" };
     userViewing = true;
+    maybeLeaveKeepaliveIm();
+    // 打开面板时立刻对一下角标（已读后应尽快降下来）
+    goofishEmbedKickRailProbe();
     v.setBounds({
       x: Math.round(rect.x),
       y: Math.round(rect.y),
@@ -717,6 +742,7 @@ export function goofishEmbedNav(
     if (!target) return { ok: false, reason: "view_unavailable" };
     const action = payload && payload.action;
     if (action === "home") {
+      imKeepaliveOnly = false;
       target.webContents.loadURL(GOOFISH_HOME).catch(() => {});
     } else if (action === "reload") {
       target.webContents.reload();
@@ -724,6 +750,7 @@ export function goofishEmbedNav(
       if (!isSafeGoofishLoadUrl(payload.url)) {
         return { ok: false, reason: "unsafe_url" };
       }
+      imKeepaliveOnly = false;
       target.webContents.loadURL(String(payload.url)).catch(() => {});
     } else {
       return { ok: false, reason: "unknown_action" };
@@ -821,6 +848,7 @@ export function goofishEmbedHide(): void {
 export function __resetGoofishEmbedForTest(): void {
   userViewing = false;
   loggedFirstSync = false;
+  imKeepaliveOnly = false;
   view = null;
   attachedWin = null;
 }
