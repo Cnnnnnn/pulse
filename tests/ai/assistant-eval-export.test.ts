@@ -34,6 +34,34 @@ describe("assistant-eval-export", () => {
     expect(block).toContain("navigate");
   });
 
+  it("formatEvalCandidateAsCase 把点踩原因写入 tags", () => {
+    const block = formatEvalCandidateAsCase(
+      {
+        id: "2",
+        userText: "帮我看看持仓",
+        reason: "reason:no_tool",
+        pipeline: { finalUi: null },
+      },
+      1,
+    );
+    expect(block).toContain('"reason:no_tool"');
+  });
+
+  it("candidateToEvalCase 把点踩原因写入结构化 tags", () => {
+    const c = candidateToEvalCase(
+      {
+        id: "3",
+        userText: "总结今天的要点",
+        reason: "reason:wrong",
+        pipeline: { finalUi: null },
+      },
+      2,
+    );
+    expect(c).not.toBeNull();
+    expect(c!.tags).toContain("reason:wrong");
+    expect(c!.tags).toContain("downvote");
+  });
+
   it("formatEvalCandidatesBlock handles empty", () => {
     expect(formatEvalCandidatesBlock([])).toContain("暂无");
   });

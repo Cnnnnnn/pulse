@@ -64,7 +64,7 @@ import {
   loadExportIncludeTimestamps,
   saveExportIncludeTimestamps,
 } from "./chat-export-prefs.ts";
-import { nextMessageFeedback, type MessageFeedback, formatFeedbackSummary, summarizeMessageFeedback } from "./chat-message-feedback.ts";
+import { nextMessageFeedback, feedbackReasonTag, isFeedbackReason, type FeedbackReason, type MessageFeedback, formatFeedbackSummary, summarizeMessageFeedback } from "./chat-message-feedback.ts";
 import {
   formatThreadStatsTitle,
   summarizeThreadStats,
@@ -555,15 +555,27 @@ export function deleteMessageAt(index: number) {
   persistActiveThread();
 }
 
-export function setMessageFeedback(index: number, vote: MessageFeedback) {
+export function setMessageFeedback(
+  index: number,
+  vote: MessageFeedback,
+  reason?: FeedbackReason,
+) {
   if (chatLoading.value) return;
   const msgs = chatMessages.value;
   if (index < 0 || index >= msgs.length) return;
   const m = msgs[index];
   if (m.role !== "assistant") return;
   const feedback = nextMessageFeedback(m.feedback, vote);
+  // 原因仅 down 时有意义；up / 清除时一并清掉，避免残留陈旧原因
   chatMessages.value = msgs.map((msg, i) =>
-    i === index ? { ...msg, feedback } : msg,
+    i === index
+      ? {
+          ...msg,
+          feedback,
+          feedbackReason:
+            feedback === "down" && isFeedbackReason(reason) ? reason : undefined,
+        }
+      : msg,
   );
   persistActiveThread();
 
@@ -577,6 +589,7 @@ export function setMessageFeedback(index: number, vote: MessageFeedback) {
         pipeline: snap.pipeline,
         activeNav: snap.activeNav,
         ts: m.ts,
+        reason: isFeedbackReason(reason) ? feedbackReasonTag(reason) : undefined,
       });
       refreshChatUiTraceSummary();
     }
@@ -586,6 +599,30 @@ export function setMessageFeedback(index: number, vote: MessageFeedback) {
     removeEvalCandidateByTs(m.ts);
     refreshChatUiTraceSummary();
   }
+}
+
+/**
+ * 单独设置/清除点踩原因 —— 不走 `setMessageFeedback` 的三态逻辑
+ * （那里同 vote 再点会连反馈一起清除，而 chip 的语义是「只改原因」）。
+ */
+export function setMessageFeedbackReason(
+  index: number,
+  reason?: FeedbackReason,
+) {
+  if (chatLoading.value) return;
+  const msgs = chatMessages.value;
+  if (index < 0 || index >= msgs.length) return;
+  const m = msgs[index];
+  if (m.role !== "assistant" || m.feedback !== "down") return;
+  chatMessages.value = msgs.map((msg, i) =>
+    i === index
+      ? {
+          ...msg,
+          feedbackReason: isFeedbackReason(reason) ? reason : undefined,
+        }
+      : msg,
+  );
+  persistActiveThread();
 }
 
 export function clearMessageFeedback() {

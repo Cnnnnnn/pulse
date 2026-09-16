@@ -8,7 +8,13 @@ import {
   regenerateLastResponse,
   resendFromUserMessage,
   setMessageFeedback,
+  setMessageFeedbackReason,
 } from "./assistant-store.ts";
+import {
+  FEEDBACK_REASON_LABELS,
+  FEEDBACK_REASONS,
+  type FeedbackReason,
+} from "./chat-message-feedback.ts";
 import { formatMessageTime } from "./chat-message-time.ts";
 import { IconThumbsDown, IconThumbsUp } from "../components/icons.tsx";
 
@@ -170,6 +176,31 @@ export function ChatMessageActions({
           </button>
         )}
       </div>
+      {message.feedback === "down" && canFeedback && messageIndex != null && (
+        <div class="global-chat-msg__feedback-reasons" role="group" aria-label="点踩原因">
+          {FEEDBACK_REASONS.map((r: FeedbackReason) => (
+            <button
+              key={r}
+              type="button"
+              class={`global-chat-msg__reason${
+                message.feedbackReason === r
+                  ? " global-chat-msg__reason--active"
+                  : ""
+              }`}
+              disabled={disabled}
+              aria-pressed={message.feedbackReason === r}
+              onClick={() =>
+                setMessageFeedbackReason(
+                  messageIndex,
+                  message.feedbackReason === r ? undefined : r,
+                )
+              }
+            >
+              {FEEDBACK_REASON_LABELS[r]}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -658,6 +658,12 @@ export interface AiChatMessage {
   ts?: number;
   /** 用户对助手回复的评价（本地持久化） */
   feedback?: "up" | "down";
+  /**
+   * 点踩原因（仅 `feedback === "down"` 时有值）。
+   * 把二值反馈变成可用于迭代 prompt 的结构化信号：知道「该调工具没调」
+   * 就能直接补 CORE_RULES，而只知道「踩了」无从下手。
+   */
+  feedbackReason?: "wrong" | "no_tool" | "off_topic" | "verbose";
   /** system 消息附带的跳转/查询操作（底部主操作） */
   systemAction?: AiChatAction;
   /** system 消息内逐条可点项 */

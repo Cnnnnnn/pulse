@@ -39,6 +39,8 @@ export type EvalCandidate = {
   userText: string;
   assistantText: string;
   activeNav?: string;
+  /** 点踩原因 tag（形如 `reason:no_tool`）—— 进 golden case 的 tags，让导出的样本带「为什么踩」 */
+  reason?: string;
   modelActions: AssistantAction[];
   pipeline: Pick<
     UiActionPipelineResult,
@@ -212,6 +214,8 @@ export function captureEvalCandidateFromDownvote(input: {
   pipeline: UiActionPipelineResult;
   activeNav?: string;
   ts?: number;
+  /** 点踩原因（形如 `reason:no_tool`）—— 反馈闭环：让候选带「为什么踩」 */
+  reason?: string;
 }): EvalCandidate | null {
   const userText = input.userText.trim();
   const assistantText = input.assistantText.trim();
@@ -223,6 +227,7 @@ export function captureEvalCandidateFromDownvote(input: {
     userText,
     assistantText,
     activeNav: input.activeNav,
+    reason: input.reason,
     modelActions: input.modelActions,
     pipeline: {
       modelUi: input.pipeline.modelUi,

@@ -8,6 +8,8 @@ export type EvalCandidateExport = {
   userText: string;
   assistantText?: string;
   activeNav?: string;
+  /** 点踩原因 tag（形如 `reason:no_tool`）—— 进 golden case 的 tags */
+  reason?: string;
   modelActions?: Array<{ tool: string; params: Record<string, unknown> }>;
   pipeline?: {
     modelUi?: { tool: string; params: Record<string, unknown> } | null;
@@ -42,6 +44,7 @@ export function formatEvalCandidateAsCase(
   const tags: string[] = ["downvote"];
   if (c.pipeline?.inferFallback) tags.push("infer_fallback");
   if (c.pipeline?.claimRepair) tags.push("claim");
+  if (c.reason) tags.push(c.reason);
   if (c.activeNav) tags.push(c.activeNav);
 
   const contextLines: string[] = [];
@@ -114,6 +117,7 @@ export function candidateToEvalCase(
   const tags: string[] = ["downvote"];
   if (c.pipeline?.inferFallback) tags.push("infer_fallback");
   if (c.pipeline?.claimRepair) tags.push("claim");
+  if (c.reason) tags.push(c.reason);
   if (c.activeNav) tags.push(c.activeNav);
 
   const modelActions = c.modelActions?.length ? c.modelActions : undefined;
