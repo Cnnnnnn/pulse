@@ -43,6 +43,25 @@ function fmtPnl(n: number): string {
   return `${sign}${n.toFixed(2)}`;
 }
 
+/**
+ * 已监控应用名列表 — 供工具策略 guard 校验 `upgrade_app` 的目标是否真实存在。
+ *
+ * 返回值语义（勿混淆）：
+ * - `string[]`（含 `[]`）= 名单可用；空数组表示确实没有监控任何应用 → 应照常拒绝。
+ * - `undefined` = 名单不可用（读取异常）→ 调用方应跳过依赖名单的校验。
+ */
+export function listMonitoredApps(): string[] | undefined {
+  try {
+    const state = stateStore.load ? stateStore.load() : null;
+    if (!state) return undefined;
+    const apps = (state as { apps?: unknown }).apps;
+    if (!apps || typeof apps !== "object") return [];
+    return Object.keys(apps as Record<string, unknown>);
+  } catch {
+    return undefined;
+  }
+}
+
 function summarizeApps(): ToolResult {
   const state = stateStore.load ? stateStore.load() : null;
   const apps = (state && state.apps) || {};

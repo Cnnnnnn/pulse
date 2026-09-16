@@ -14,6 +14,7 @@ import { HttpClient } from "../http-client";
 import { resolveSharedAiConfig } from "../../ai/shared-llm";
 import { createMiniMaxDeltaFilter } from "../../ai/minimax-tool-markup";
 import { sanitizePersistedThreads } from "../../ai/assistant-threads-migrate";
+import { clearToolAudit, loadToolAudit, recordToolAudit } from "../assistant-audit";
 import { classifyOpenSessionTarget } from "../security/open-targets";
 import type { IpcMainInvokeEvent } from "electron";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
@@ -409,6 +410,8 @@ export function registerAiHandlers(ctx: any) {
             sendToRenderer("ai:chat-tool-results", { toolResults }),
           isAborted: session.isAborted,
           onAbortRegister: session.setAbortHandler,
+          // 工具调用审计 — 独立落盘，写失败静默不影响执行
+          onAudit: recordToolAudit,
         });
         if (deltaFilter) {
           const tail = deltaFilter.flush();
@@ -484,6 +487,23 @@ export function registerAiHandlers(ctx: any) {
     async () => {
       const { clearMemory } = require("../../ai/assistant-memory");
       clearMemory();
+      return { ok: true };
+    },
+    { log: false },
+  );
+  // 工具调用审计 — 只读诊断入口（写入由 Agent 循环经 onAudit 完成，见 register 上方的 ai:chat）
+  safeHandle(
+    "assistant-audit:list",
+    async (_evt: unknown, limit?: unknown) => {
+      const n = typeof limit === "number" && Number.isFinite(limit) ? limit : undefined;
+      return { ok: true, entries: loadToolAudit(n) };
+    },
+    { log: false },
+  );
+  safeHandle(
+    "assistant-audit:clear",
+    async () => {
+      clearToolAudit();
       return { ok: true };
     },
     { log: false },

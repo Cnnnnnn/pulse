@@ -3000,6 +3000,23 @@ export interface IpcChannelMap {
   "assistant-memory:list": { args: []; result: { ok: boolean; items?: Array<{ id: string; text: string; createdAt: number }>; reason?: string } };
   "assistant-memory:remove": { args: [payload: { id?: string; query?: string; index?: number }]; result: { ok: boolean; removed?: boolean; reason?: string } };
   "assistant-memory:clear": { args: []; result: { ok: boolean; reason?: string } };
+  "assistant-audit:list": {
+    args: [limit?: number];
+    result: {
+      ok: boolean;
+      entries?: Array<{
+        ts: number;
+        tool: string;
+        execution: "main" | "renderer";
+        outcome: "denied" | "ok" | "failed";
+        durationMs?: number;
+        reason?: string;
+        paramsDigest?: string;
+      }>;
+      reason?: string;
+    };
+  };
+  "assistant-audit:clear": { args: []; result: { ok: boolean; reason?: string } };
   "assistant-memory:auto-extract": {
     args: [payload: { messages: Array<{ role?: string; content?: string }> }];
     result: {

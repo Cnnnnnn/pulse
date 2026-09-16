@@ -123,6 +123,8 @@ export async function chatWithTools(
   fcMeta?: FcRoundMeta;
   reason?: string;
   error?: string;
+  /** Step 5b: 本轮 token 消耗 (供 Agent 预算累计；provider 未回传时为 undefined) */
+  totalTokens?: number;
 }> {
   const t0 = Date.now();
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -235,6 +237,7 @@ export async function chatWithTools(
           fc.length > 0
             ? { protocol: "openai", toolCalls: fc }
             : undefined,
+        totalTokens: openaiTokens ?? undefined,
       };
     }
 
@@ -306,6 +309,7 @@ export async function chatWithTools(
           fc.length > 0
             ? { protocol: "anthropic", toolCalls: fc }
             : undefined,
+        totalTokens: anthropicTokens ?? undefined,
       };
     }
 

@@ -376,6 +376,10 @@ export const api = {
   assistantScreenshot: () => invokeChannel("assistant:screenshot"),
   // 长期记忆管理 (设置页)
   assistantMemoryList: () => invokeChannel("assistant-memory:list"),
+  // 工具调用审计（只读诊断入口；写入由 Agent 循环的 onAudit 完成）
+  assistantAuditList: (limit?: number) =>
+    invokeChannel("assistant-audit:list", limit),
+  assistantAuditClear: () => invokeChannel("assistant-audit:clear"),
   assistantMemoryRemove: (
     payload: IpcChannelMap["assistant-memory:remove"]["args"][0],
   ) => invokeChannel("assistant-memory:remove", payload),

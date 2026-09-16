@@ -8,6 +8,7 @@
 import { NAV_REGISTRY } from "../shared/nav-keys";
 import { PULSE_URI_CHEATSHEET } from "../shared/pulse-href";
 import { DIGEST_UI_TITLE } from "../shared/digest-labels";
+import { ASK_TOOLS, MAIN_EXECUTION_TOOLS, RENDERER_EXECUTION_TOOLS } from "../shared/assistant-tool-policy";
 import { formatAssistantFewShotBlock } from "./assistant-prompt-fewshot";
 
 export type AssistantAction = {
@@ -15,60 +16,25 @@ export type AssistantAction = {
   params: Record<string, unknown>;
 };
 
-/** 主进程可执行的工具 */
-export const MAIN_PROCESS_TOOLS = new Set([
-  "query_apps",
-  "search",
-  "list_nav",
-  "query_funds",
-  "query_digest",
-  "query_leaderboard",
-  "query_metals",
-  "query_stocks",
-  "query_github",
-  "query_stock_diagnosis",
-  "query_ai_usage",
-  "query_reminders",
-  "interpret_finance",
-  "summarize_ithome",
-  "advise_stocks",
-  "query_movies",
-  "query_concerts",
-  "remember_fact",
-  "forget_fact",
-  "list_memory",
-]);
+/**
+ * 主进程可执行的工具 — 自策略表派生（`execution === "main"`，单一来源）。
+ * 勿另立名册：新增工具只需改 schema + `TOOL_POLICY` 两处。
+ */
+export const MAIN_PROCESS_TOOLS: Set<string> = new Set(MAIN_EXECUTION_TOOLS);
 
-/** 仅 renderer 可执行的工具 */
-export const RENDERER_TOOLS = new Set([
-  "navigate",
-  "open_search",
-  "trigger_check",
-  "open_settings",
-  "open_digest",
-  "open_reminders",
-  "open_search_result",
-  "upgrade_app",
-  "bulk_upgrade_all",
-  "create_reminder",
-  "open_concerts",
-  "add_concert_watch",
-  "remove_concert_watch",
-  "refresh_concerts",
-  "open_movie_detail",
-  "open_finance_article",
-  "open_ithome_article",
-  "open_stock_diagnosis",
-  "pulse_open",
-]);
+/**
+ * 仅渲染层可执行的工具 — 自策略表派生（`execution === "renderer"`，单一来源）。
+ */
+export const RENDERER_TOOLS: Set<string> = new Set(RENDERER_EXECUTION_TOOLS);
 
-/** 执行前需用户确认的工具 */
-export const CONFIRM_REQUIRED_TOOLS = new Set([
-  "upgrade_app",
-  "bulk_upgrade_all",
-  "trigger_check",
-  "create_reminder",
-]);
+/**
+ * 执行前需用户确认的工具 — 自策略表派生（单一来源）。
+ *
+ * `TOOL_POLICY` 中 risk 为 "ask" 的工具集。新代码请直接用 `TOOL_POLICY` /
+ * `checkToolPolicy`；本导出保留给既有引用与测试断言，勿在别处另立确认名单
+ * —— 策略表增删 ask 档会自动反映到这里。
+ */
+export const CONFIRM_REQUIRED_TOOLS: Set<string> = new Set(ASK_TOOLS);
 
 const NAV_KEYS = NAV_REGISTRY.map((e) => e.key).join(", ");
 

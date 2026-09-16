@@ -19,7 +19,7 @@ import {
   extractMiniMaxToolCalls,
   stripMiniMaxToolMarkup,
 } from "./minimax-tool-markup";
-import { executeMainTool, splitActions, type ToolResult } from "./assistant-tools";
+import { executeMainTool, listMonitoredApps, splitActions, type ToolResult } from "./assistant-tools";
 import { formatToolStatusMessage } from "../shared/assistant-tool-labels";
 import { trimMessagesForLlmAsync } from "./chat-truncate-llm";
 import {
@@ -34,7 +34,18 @@ import {
 import { ensureUiActions, assistantTextBeforeLastUser } from "./assistant-nav-infer";
 import { extractFcPageContext } from "./fc-tool-policy";
 import { validateToolCall } from "./assistant-tools-schema";
+import { checkToolPolicy, type ToolGuardContext } from "../shared/assistant-tool-policy";
+import {
+  DEFAULT_BUDGET,
+  createUsage,
+  recordRound,
+  recordToolCalls,
+  recordTokens,
+  verdict,
+  type AgentBudget,
+} from "./assistant-budget";
 import { formatMemoryForPrompt } from "./assistant-memory";
+import { digestParams, type ToolAuditEntry } from "../main/assistant-audit";
 export type AgentDeps = {
   searchIndex?: any;
   fundScheduler?: any;
@@ -46,6 +57,13 @@ export type AgentDeps = {
   onToolResults?: (toolResults: AgentResult["toolResults"]) => void;
   isAborted?: () => boolean;
   onAbortRegister?: (fn: () => void) => void;
+  /** Step 5: 预算覆盖 (默认 DEFAULT_BUDGET) — 测试与差异化入口可注入 */
+  budget?: AgentBudget;
+  /**
+   * 工具调用审计回调。生产由 `register-ai.ts` 注入 `recordToolAudit`；
+   * 不注入则不记录 —— 测试因此不会真的写盘。
+   */
+  onAudit?: (entry: ToolAuditEntry) => void;
 };
 
 export type AgentResult = {
@@ -70,7 +88,11 @@ export type AgentContext = {
   memory?: string;
 };
 
-export const MAX_ROUNDS = 4;
+/**
+ * 轮数上限 — 自 `DEFAULT_BUDGET.maxRounds` 派生（单一来源）。
+ * Step 5 起循环改由四维预算驱动，本常量保留给既有引用与测试断言。
+ */
+export const MAX_ROUNDS = DEFAULT_BUDGET.maxRounds;
 
 /**
  * 展示文本清洗: 去 <action> 标签 + MiniMax 原生工具标记 (FC 续轮不带
@@ -98,6 +120,27 @@ function finalizeRendererActions(
   });
 }
 
+/** 审计：被结构校验或策略拒绝的调用（未进入执行阶段）。 */
+function auditDenied(
+  deps: AgentDeps,
+  action: AssistantAction,
+  execution: "main" | "renderer",
+  reason: string,
+): void {
+  try {
+    deps.onAudit?.({
+      ts: Date.now(),
+      tool: action.tool,
+      execution,
+      outcome: "denied",
+      reason,
+      paramsDigest: digestParams(action.params),
+    });
+  } catch {
+    /* 审计失败不影响主流程 */
+  }
+}
+
 function formatToolResultsForLlm(results: ToolResult[]): string {
   const blocks = results
     .map((r) => untrustedToolResult(r.tool, r.summary))
@@ -123,6 +166,8 @@ type LlmRoundOutcome = {
   fcMeta?: FcRoundMeta;
   reason?: string;
   error?: string;
+  /** Step 5b: 本轮 token 消耗 (provider 未回传时 undefined) */
+  totalTokens?: number;
 };
 
 /** FC 调用公共 opts — round0 与续轮共享; ui 推断上下文始终来自原始 history */
@@ -153,13 +198,20 @@ function fcOutcomeToRound(fc: {
   text?: string;
   toolCalls?: AssistantAction[];
   fcMeta?: FcRoundMeta;
+  totalTokens?: number;
 }): LlmRoundOutcome {
   const rawText = fc.text || "";
   const actions =
     fc.toolCalls && fc.toolCalls.length > 0
       ? fc.toolCalls
       : parseAllTextActions(rawText);
-  return { ok: true, text: rawText, actions, fcMeta: fc.fcMeta };
+  return {
+    ok: true,
+    text: rawText,
+    actions,
+    fcMeta: fc.fcMeta,
+    totalTokens: fc.totalTokens,
+  };
 }
 
 async function callLlmRound0(
@@ -277,11 +329,32 @@ function toolFailureResult(tool: string, summary: string): ToolResult {
   return { tool, ok: false, summary };
 }
 
+/**
+ * 执行前统一校验 — 两层职责分离:
+ *  1. 结构校验 validateToolCall: tool 名 / required / enum / type
+ *  2. 策略校验 checkToolPolicy: 权限档 (allow/ask/deny) + 参数级守卫
+ * 返回拒绝理由; null = 放行。confirm(ask) 档在此放行 —— 确认由渲染层负责。
+ */
+function toolRejectReason(
+  action: AssistantAction,
+  policyCtx?: ToolGuardContext,
+): string | null {
+  if (!validateToolCall(action.tool, action.params).valid) {
+    return "调用不合法, 已拒绝执行";
+  }
+  const verdict = checkToolPolicy(action.tool, action.params, policyCtx);
+  if (verdict.kind === "deny") {
+    return `工具被策略拒绝: ${verdict.reason}`;
+  }
+  return null;
+}
+
 async function runToolWithTimeout(
   action: AssistantAction,
   deps: AgentDeps,
 ): Promise<ToolResult | null> {
   if (deps.isAborted?.()) return null;
+  const t0 = Date.now();
   let timer: ReturnType<typeof setTimeout> | null = null;
   const work = executeMainTool(action, {
     searchIndex: deps.searchIndex,
@@ -301,7 +374,22 @@ async function runToolWithTimeout(
   });
 
   try {
-    return await Promise.race([work, timeout]);
+    const r = await Promise.race([work, timeout]);
+    // 审计：主进程工具执行结果（含超时/失败）
+    try {
+      deps.onAudit?.({
+        ts: t0,
+        tool: action.tool,
+        execution: "main",
+        outcome: r && r.ok ? "ok" : "failed",
+        durationMs: Date.now() - t0,
+        reason: r && r.ok ? undefined : r?.summary,
+        paramsDigest: digestParams(action.params),
+      });
+    } catch {
+      /* 审计失败不影响主流程 */
+    }
+    return r;
   } finally {
     if (timer) clearTimeout(timer);
   }
@@ -317,15 +405,23 @@ async function runMainToolsParallel(
   // P1-4: 并发上限 + 单工具超时 + allSettled 隔离 — 单个挂起/失败不拖垮整轮
   const capped = actions.slice(0, MAX_PARALLEL_TOOLS);
   const settled = await Promise.allSettled(capped.map((a) => runToolWithTimeout(a, deps)));
-  const results: ToolResult[] = [];
-  settled.forEach((s, i) => {
-    if (s.status === "fulfilled" && s.value != null) {
-      results.push(s.value);
-    } else if (s.status === "rejected") {
-      results.push(toolFailureResult(capped[i].tool, "工具执行失败"));
+
+  // 结果与 actions **严格等长**（按位对齐依赖此保证）：
+  //  - 超出并发上限的调用补「未执行」结果，而非留 null —— 否则回注给模型的
+  //    是「无结果」，模型会误判为「查了但没数据」而重复调用。
+  //  - 执行返回 null（如取消）/ rejected 同样补失败占位，避免结果数变少导致
+  //    后续工具的结果整体串位。
+  return actions.map((action, i) => {
+    if (i >= MAX_PARALLEL_TOOLS) {
+      return toolFailureResult(
+        action.tool,
+        `本轮并发上限 ${MAX_PARALLEL_TOOLS}，该调用未执行，请下一轮重试`,
+      );
     }
+    const s = settled[i];
+    if (s && s.status === "fulfilled" && s.value != null) return s.value;
+    return toolFailureResult(action.tool, "工具执行失败");
   });
-  return results;
 }
 
 export async function runAssistantAgent(
@@ -425,10 +521,38 @@ export async function runAssistantAgent(
   let pendingFcMeta: FcRoundMeta | undefined;
   let pendingFcText = "";
 
-  for (let round = 0; round < MAX_ROUNDS; round++) {
+  // Step 5: 四维预算驱动终止 (轮数 / 工具调用数 / 耗时 / token), 替换固定轮数上限.
+  // usage 为不可变累加, 每次 record* 返回新对象.
+  let usage = createUsage(Date.now());
+  const budget: AgentBudget = agentDeps.budget ?? DEFAULT_BUDGET;
+  // 工具策略上下文: main 侧提供已监控应用名单, 供 upgrade_app 的 guard 校验目标真实性.
+  // 快照语义 —— 对话开始时取一次 (对话期间名单变化概率极低); 取不到时 guard 自动跳过.
+  const policyCtx: ToolGuardContext = { monitoredApps: listMonitoredApps() };
+
+  for (;;) {
     if (agentDeps.isAborted?.()) {
       return { ok: false, reason: "cancelled", toolResults: allToolResults };
     }
+
+    // 进入新一轮前判定. 正常路径下「软耗尽」在上一轮尾部已收尾并 return,
+    // 走到这里只剩两种: 首轮即耗尽 (注入极小预算), 或 elapsed 超限.
+    const pre = verdict(usage, budget, Date.now());
+    if (pre.kind === "exhausted") {
+      return {
+        ok: true,
+        text: finalText,
+        actions: finalizeRendererActions(
+          history,
+          allRendererActions,
+          finalText,
+          ctx?.activeNav,
+        ),
+        toolResults: allToolResults.length > 0 ? allToolResults : undefined,
+      };
+    }
+
+    usage = recordRound(usage);
+    const round = usage.rounds - 1;
 
     let rawText = "";
     let actions: AssistantAction[] = [];
@@ -447,6 +571,7 @@ export async function runAssistantAgent(
       actions = r0.actions;
       pendingFcMeta = r0.fcMeta;
       pendingFcText = rawText;
+      usage = recordTokens(usage, r0.totalTokens);
     } else {
       const r = await callLlmFollowupRound(llmThread, ctx, agentDeps, history);
       if (!r.ok) {
@@ -461,6 +586,7 @@ export async function runAssistantAgent(
       actions = r.actions;
       pendingFcMeta = r.fcMeta;
       pendingFcText = rawText;
+      usage = recordTokens(usage, r.totalTokens);
     }
 
     if (agentDeps.isAborted?.()) {
@@ -481,9 +607,19 @@ export async function runAssistantAgent(
     finalText = cleanVisibleText(rawText);
     const { main: rawMain, renderer: rawRenderer } = splitActions(actions);
     // P0-3: 执行前统一校验 tool 名 + 参数 schema, 丢弃模型/注入产出的非法 action.
-    const validFlags = rawMain.map((a) => validateToolCall(a.tool, a.params).valid);
+    // Step 2: 叠加策略校验 (权限档 + 参数级守卫) — 与结构校验职责分离.
+    const rejectReasons = rawMain.map((a) => {
+      const reason = toolRejectReason(a, policyCtx);
+      if (reason !== null) auditDenied(agentDeps, a, "main", reason);
+      return reason;
+    });
+    const validFlags = rejectReasons.map((r) => r === null);
     const main = rawMain.filter((_, i) => validFlags[i]);
-    const renderer = rawRenderer.filter((a) => validateToolCall(a.tool, a.params).valid);
+    const renderer = rawRenderer.filter((a) => {
+      const reason = toolRejectReason(a, policyCtx);
+      if (reason !== null) auditDenied(agentDeps, a, "renderer", reason);
+      return reason === null;
+    });
     allRendererActions.push(...renderer);
 
     if (main.length === 0) {
@@ -501,6 +637,8 @@ export async function runAssistantAgent(
     }
 
     const roundResults = await runMainToolsParallel(main, agentDeps);
+    // 按「发起的调用数」计费 (含超时/失败的), 比结果数更贴近真实消耗
+    usage = recordToolCalls(usage, main.length);
     for (const r of roundResults) {
       allToolResults.push({
         tool: r.tool,
@@ -521,10 +659,10 @@ export async function runAssistantAgent(
       let ri = 0;
       fcResults = actions.map((a) => {
         if (mi >= rawMain.length || rawMain[mi] !== a) return null;
-        const valid = validFlags[mi];
+        const reason = rejectReasons[mi];
         mi += 1;
-        if (!valid) {
-          return toolFailureResult(a.tool, "调用不合法, 已拒绝执行");
+        if (reason !== null) {
+          return toolFailureResult(a.tool, reason);
         }
         const r = roundResults[ri];
         ri += 1;
@@ -532,9 +670,12 @@ export async function runAssistantAgent(
       });
     }
 
-    if (round === MAX_ROUNDS - 1) {
-      // 末轮：先回注工具结果，再做一次「无 tools」综合调用。
-      // 否则 finalText 只是工具调用前的过渡句，用户看到半截回复。
+    // 预算软耗尽 → 回注本轮工具结果并做一次「无 tools」综合调用.
+    // 等价于改造前 round === MAX_ROUNDS - 1 的语义: 否则 finalText 只是工具调用
+    // 前的过渡句, 用户看到半截回复. synthesize=false (elapsed 硬终止) 时跳过
+    // 综合调用 —— 已超时不应再发起 LLM 请求.
+    const post = verdict(usage, budget, Date.now());
+    if (post.kind === "exhausted") {
       if (pendingFcMeta && pendingFcMeta.toolCalls.length > 0 && fcResults) {
         llmThread = appendFcToolResults(
           llmThread,
@@ -554,7 +695,7 @@ export async function runAssistantAgent(
       }
 
       let synthesized = "";
-      if (roundResults.length > 0 && !agentDeps.isAborted?.()) {
+      if (post.synthesize && roundResults.length > 0 && !agentDeps.isAborted?.()) {
         try {
           const syn =
             agentDeps.onDelta

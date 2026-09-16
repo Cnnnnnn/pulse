@@ -6,7 +6,7 @@
 
 import { showToast } from "../store/toast-store.ts";
 import { openConfirm } from "../store/confirmStore.ts";
-import { CONFIRM_REQUIRED_TOOLS } from "../../ai/assistant-prompt.ts";
+import { checkToolPolicy } from "../../shared/assistant-tool-policy.ts";
 import { normalizeUiAction } from "../../shared/pulse-href.ts";
 import {
   CONFIRM_MESSAGE_BUILDERS,
@@ -35,7 +35,15 @@ export async function executeRendererAction(action: AiChatAction) {
 async function executeOne(action: AiChatAction) {
   const normalized = normalizeUiAction(action);
   const params = normalized.params || {};
-  if (CONFIRM_REQUIRED_TOOLS.has(normalized.tool)) {
+  // 策略校验: deny 拒绝; confirm 弹确认; allow 直接执行.
+  // 主进程侧 Agent 循环已过滤一遍, 这里是渲染层第二道闸 —— 队列面板 / 工具卡片 /
+  // 系统消息 / 快捷栏等入口直连本函数, 不经过 Agent 循环。
+  const verdict = checkToolPolicy(normalized.tool, params);
+  if (verdict.kind === "deny") {
+    showToast(`操作被拒绝: ${verdict.reason}`, "error", 3000);
+    return;
+  }
+  if (verdict.kind === "confirm") {
     const buildConfirm = CONFIRM_MESSAGE_BUILDERS[normalized.tool];
     const confirmOpts = buildConfirm?.(params);
     if (confirmOpts) {

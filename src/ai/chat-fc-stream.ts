@@ -404,6 +404,8 @@ export async function chatWithToolsStreamOpenAi(
   fcMeta?: FcRoundMeta;
   reason?: string;
   error?: string;
+  /** Step 5b: 本轮 token 消耗 (供 Agent 预算累计；provider 未回传时为 undefined) */
+  totalTokens?: number;
 }> {
   if (opts.isAborted?.()) {
     return { ok: false, reason: "cancelled" };
@@ -440,6 +442,7 @@ export async function chatWithToolsStreamOpenAi(
       text: sanitizeLlmOutput(String(text || "").trim()),
       toolCalls: actions.length > 0 ? actions : undefined,
       fcMeta: fc.length > 0 ? { protocol: "openai", toolCalls: fc } : undefined,
+      totalTokens: totalTokens > 0 ? totalTokens : undefined,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -468,6 +471,8 @@ export async function chatWithToolsStreamAnthropic(
   fcMeta?: FcRoundMeta;
   reason?: string;
   error?: string;
+  /** Step 5b: 本轮 token 消耗 (供 Agent 预算累计；provider 未回传时为 undefined) */
+  totalTokens?: number;
 }> {
   if (opts.isAborted?.()) {
     return { ok: false, reason: "cancelled" };
@@ -525,6 +530,7 @@ export async function chatWithToolsStreamAnthropic(
       toolCalls: actions.length > 0 ? actions : undefined,
       fcMeta:
         fc.length > 0 ? { protocol: "anthropic", toolCalls: fc } : undefined,
+      totalTokens: totalTokens > 0 ? totalTokens : undefined,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
