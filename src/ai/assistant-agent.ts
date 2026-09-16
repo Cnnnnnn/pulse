@@ -64,6 +64,10 @@ export type AgentDeps = {
    * 不注入则不记录 —— 测试因此不会真的写盘。
    */
   onAudit?: (entry: ToolAuditEntry) => void;
+  /** 多模态历史保留轮数（缺省 DEFAULT_MAX_IMAGE_ROUNDS） */
+  maxImageRounds?: number;
+  /** 单轮最多送出的图片数（缺省 DEFAULT_MAX_IMAGES_PER_ROUND） */
+  maxImagesPerRound?: number;
 };
 
 export type AgentResult = {
@@ -435,14 +439,17 @@ export async function runAssistantAgent(
     ctx = ctx ? { ...ctx, memory } : { memory };
   }
 
-  // P3-13 多模态: 末条带图 user 消息按 provider 协议转 content 数组,
-  // 更早的图片轮次降为纯文本 (协议从 PROVIDER_ENDPOINTS 查)
+  // P3-13 多模态: 最近 N 条带图 user 消息按 provider 协议转 content 数组,
+  // 更早的图片轮次降为纯文本 (协议从 PROVIDER_ENDPOINTS 查; N 与单轮图数见 multimodal 默认值)
   const resolvedCfg = resolveSharedAiConfig();
   const protocol = resolvedCfg.ok
     ? ((PROVIDER_ENDPOINTS as Record<string, any>)[resolvedCfg.providerId as string]
         ?.protocol as "openai" | "anthropic" | undefined) || null
     : null;
-  const normalized = normalizeMultimodalHistory(messages as any, protocol);
+  const normalized = normalizeMultimodalHistory(messages as any, protocol, {
+    maxImageRounds: deps.maxImageRounds,
+    maxImagesPerRound: deps.maxImagesPerRound,
+  });
 
   // content: string | 多模态 content 数组 — 下游 provider 调用原样透传
   const history = (await trimMessagesForLlmAsync(

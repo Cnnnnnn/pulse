@@ -205,6 +205,48 @@ describe("assistant-agent", () => {
     });
   });
 
+  it("多轮图片：最近两轮保留图片，更早的降为文本", async () => {
+    mockedFc.mockImplementation(async () => fcOk({ text: "ok" }));
+    const img = "data:image/png;base64,abc";
+
+    await runAssistantAgent(
+      [
+        { role: "user", content: "第一次", attachments: [{ dataUrl: img }] },
+        { role: "assistant", content: "好" },
+        { role: "user", content: "第二次", attachments: [{ dataUrl: img }] },
+      ] as any,
+      {},
+      {},
+    );
+
+    const msgs: any = mockedFc.mock.calls[0][0];
+    const users = msgs.filter((m: any) => m.role === "user");
+    // 默认 maxImageRounds=2 → 两条 user 消息都带图
+    expect(Array.isArray(users[0].content)).toBe(true);
+    expect(Array.isArray(users[1].content)).toBe(true);
+  });
+
+  it("deps.maxImageRounds=1 时只保留最新一轮图片", async () => {
+    mockedFc.mockImplementation(async () => fcOk({ text: "ok" }));
+    const img = "data:image/png;base64,abc";
+
+    await runAssistantAgent(
+      [
+        { role: "user", content: "第一次", attachments: [{ dataUrl: img }] },
+        { role: "assistant", content: "好" },
+        { role: "user", content: "第二次", attachments: [{ dataUrl: img }] },
+      ] as any,
+      {},
+      { maxImageRounds: 1 },
+    );
+
+    const msgs: any = mockedFc.mock.calls[0][0];
+    const users = msgs.filter((m: any) => m.role === "user");
+    expect(typeof users[0].content).toBe("string");
+    expect(String(users[0].content)).toContain("已省略");
+    expect(Array.isArray(users[1].content)).toBe(true);
+  });
+
   it("策略拒绝的主进程工具不执行, 其余照常; 拒绝理由以失败占位回注", async () => {
     const original = TOOL_POLICY.query_apps.risk;
     TOOL_POLICY.query_apps.risk = "deny";

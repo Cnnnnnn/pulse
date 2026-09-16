@@ -67,22 +67,94 @@ describe("multimodal", () => {
     expect(textContentOf([{ type: "image_url", image_url: { url: "x" } }])).toBe("");
   });
 
-  it("normalizeMultimodalHistory: 末条带图消息按协议转数组, 其余轮次降为文本", () => {
+  it("normalizeMultimodalHistory: 保留最近 N 轮带图，更早的轮次降为文本", () => {
     const img = "data:image/png;base64,abc";
     const messages = [
       { role: "user", content: "第一轮", attachments: [{ dataUrl: img }] },
       { role: "assistant", content: "回复" },
+      { role: "user", content: "第二张", attachments: [{ dataUrl: img }] },
+      { role: "assistant", content: "回复2" },
       { role: "user", content: "这一张呢?", attachments: [{ dataUrl: img }] },
     ];
     const out = normalizeMultimodalHistory(messages as any, "openai");
-    // 末条带图 → openai content 数组
-    const last: any = out[2];
+    // 最早那轮超出默认 2 轮保留窗口 → 文本占位
+    expect(out[0].content).toBe("第一轮\n(该轮附加过 1 张截图, 已省略)");
+    // 最近两轮 → openai content 数组
+    expect(Array.isArray(out[2].content)).toBe(true);
+    const last: any = out[4];
     expect(Array.isArray(last.content)).toBe(true);
     expect(last.content[0]).toEqual({ type: "text", text: "这一张呢?" });
     expect(last.content[1].type).toBe("image_url");
-    // 更早的图片轮次 → 文本占位
-    expect(out[0].content).toBe("第一轮\n(该轮附加过截图, 已省略)");
-    expect(out[1].content).toBe("回复");
+    expect((out[1] as any).content).toBe("回复");
+  });
+
+  it("normalizeMultimodalHistory: 单轮多张图全部送出（此前只发第一张）", () => {
+    const a = "data:image/png;base64,aaa";
+    const b = "data:image/png;base64,bbb";
+    const out = normalizeMultimodalHistory(
+      [
+        {
+          role: "user",
+          content: "两张",
+          attachments: [{ dataUrl: a }, { dataUrl: b }],
+        },
+      ] as any,
+      "openai",
+    );
+    const content = (out[0] as any).content;
+    expect(content).toHaveLength(3); // text + 2 images
+    expect(content[1].image_url.url).toBe(a);
+    expect(content[2].image_url.url).toBe(b);
+  });
+
+  it("normalizeMultimodalHistory: 单轮图片数受 maxImagesPerRound 限制", () => {
+    const mk = (i: number) => ({ dataUrl: `data:image/png;base64,img${i}` });
+    const out = normalizeMultimodalHistory(
+      [{ role: "user", content: "五张", attachments: [1, 2, 3, 4, 5].map(mk) }] as any,
+      "openai",
+      { maxImagesPerRound: 2 },
+    );
+    const content = (out[0] as any).content;
+    expect(content).toHaveLength(3); // text + 2 images（第 3~5 张被裁）
+  });
+
+  it("normalizeMultimodalHistory: maxImageRounds=1 可恢复 v1 行为", () => {
+    const img = "data:image/png;base64,abc";
+    const out = normalizeMultimodalHistory(
+      [
+        { role: "user", content: "旧", attachments: [{ dataUrl: img }] },
+        { role: "user", content: "新", attachments: [{ dataUrl: img }] },
+      ] as any,
+      "openai",
+      { maxImageRounds: 1 },
+    );
+    expect(out[0].content).toBe("旧\n(该轮附加过 1 张截图, 已省略)");
+    expect(Array.isArray(out[1].content)).toBe(true);
+  });
+
+  it("normalizeMultimodalHistory: anthropic 协议多图转 base64", () => {
+    const out = normalizeMultimodalHistory(
+      [
+        {
+          role: "user",
+          content: "两张",
+          attachments: [
+            { dataUrl: "data:image/png;base64,aaa" },
+            { dataUrl: "data:image/jpeg;base64,bbb" },
+          ],
+        },
+      ] as any,
+      "anthropic",
+    );
+    const content = (out[0] as any).content;
+    expect(content[1]).toEqual({
+      type: "image",
+      source: { type: "base64", media_type: "image/png", data: "aaa" },
+    });
+    expect(content[2]).toEqual({
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data: "bbb" },
+    });
   });
 
   it("normalizeMultimodalHistory: 无协议时带图消息也降为文本", () => {
@@ -91,7 +163,7 @@ describe("multimodal", () => {
       [{ role: "user", content: "看", attachments: [{ dataUrl: img }] }] as any,
       null,
     );
-    expect(out[0].content).toBe("看\n(该轮附加过截图, 已省略)");
+    expect(out[0].content).toBe("看\n(该轮附加过 1 张截图, 已省略)");
   });
 
   it("normalizeMultimodalHistory: 无附件消息归一为纯文本", () => {
