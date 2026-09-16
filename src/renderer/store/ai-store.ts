@@ -9,6 +9,7 @@
 
 import { signal, computed } from "@preact/signals";
 import { DEFAULT_MODELS } from "../../ai/default-models.ts";
+import { SUPPORTED_PROVIDERS } from "../../shared/llm-providers.ts";
 import { api } from "../api.ts";
 import { taggedLog } from "../log.ts";
 import { showToast } from "./toast-store.ts";
@@ -258,7 +259,8 @@ export async function loadAISessionsConfig() {
 }
 
 export async function probeAIKeyStatuses() {
-  const providers = ["openai", "anthropic", "deepseek", "minimax", "glm"];
+  // 与后端准入名单同源（src/shared/llm-providers.ts）—— 勿另立副本
+  const providers = [...SUPPORTED_PROVIDERS];
   const next: Record<string, AiKeyStatus> = {};
   await Promise.all(
     providers.map(async (id: any) => {

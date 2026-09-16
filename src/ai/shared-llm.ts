@@ -7,6 +7,7 @@
 
 import { sanitizeLlmOutput } from "./sanitize-llm-output";
 import { DEFAULT_MODELS } from "./default-models";
+import { SUPPORTED_PROVIDERS } from "../shared/llm-providers";
 import { CloudSummarizer } from "../ai-sessions/provider-cloud";
 import {
   isLlmOpen,
@@ -26,7 +27,13 @@ const {
   pruneDays,
 } = require("../main/token-budget.js") as any;
 
-export const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"];
+/**
+ * provider 准入名单 — 单一来源见 `src/shared/llm-providers.ts`（renderer 共用）。
+ * ⚠️ 必须与 `PROVIDER_ENDPOINTS`（ai-sessions/provider-cloud.ts）的 key 集合保持一致
+ * —— 否则 UI 可选但准入被拒，表现为「切换后助手直接不可用」。见
+ * `tests/ai/provider-config.test.ts` 的一致性断言。
+ */
+export { SUPPORTED_PROVIDERS };
 
 let _http: any = null;
 function _getHttp() {

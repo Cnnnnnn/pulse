@@ -44,6 +44,7 @@ const NAV_LIST = NAV_REGISTRY.map(
 
 const CORE_RULES = `- 用简体中文，简洁友好。
 - 结合「当前用户界面」与 pageEntities 回答；有页面数据优先用，不足再调工具。
+- 相对时间（今天/昨天/最近/本周）一律以「当前时间」为准换算，不要用训练数据里的时间；create_reminder 的 triggerAt 必须是「当前时间」之后的毫秒时间戳。
 - 纯问答/闲聊不调工具；打开/跳转/详情/确认上一轮提议时必须调工具。
 - 【硬性】禁止只在正文说「已打开/已跳转」却不调 pulse_open / navigate / open_*。
 - ${DIGEST_UI_TITLE}（UI 名；用户也可能说早报/日报）= 今日要点汇总：应用可升级、微博热搜、IT 头条、基金异动、AI 用量预警。回复中统一称「${DIGEST_UI_TITLE}」，勿写「今日日报」。
@@ -114,6 +115,8 @@ export function buildAssistantSystemPrompt(ctx?: {
   /** P3-14: 用户长期记忆块 (来自 assistant-memory) */
   memory?: string;
   useFunctionCalling?: boolean;
+  /** 当前时间（缺省 `new Date()`；仅测试注入固定值） */
+  now?: Date;
 }): string {
   const ctxParts: string[] = [];
   if (ctx?.activeNav || ctx?.route) {
@@ -126,9 +129,11 @@ export function buildAssistantSystemPrompt(ctx?: {
   }
   // P3-14: 长期记忆注入到上下文末尾
   const memoryLine = ctx?.memory ? `\n\n${ctx.memory}` : "";
-  const ctxLine =
-    (ctxParts.length > 0 ? `\n当前用户界面：\n${ctxParts.join("\n")}` : "") +
-    memoryLine;
+  // 时间置于「当前用户界面」之外单独成行 —— 语义更清晰，且它必然存在
+  const nowLine = `\n当前时间：${formatNowForPrompt(ctx?.now ?? new Date())}`;
+  const uiLine =
+    ctxParts.length > 0 ? `\n当前用户界面：\n${ctxParts.join("\n")}` : "";
+  const ctxLine = nowLine + uiLine + memoryLine;
 
   const useFc = Boolean(ctx?.useFunctionCalling);
   const fewShot = formatAssistantFewShotBlock(useFc);
@@ -176,6 +181,24 @@ export const MAX_TOOL_RESULT_CHARS = 2000;
 
 /** pageSnapshot 注入 system prompt 的长度上限 — 防止页面数据把 prompt 撑爆 */
 export const PROMPT_SNAPSHOT_MAX_CHARS = 4000;
+
+const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+/**
+ * 当前时间的中文可读格式（本地时区）—— 形如 `2026-09-16 (周三) 18:30`。
+ *
+ * 为什么必须有：模型无法从训练数据得知真实当前时间，缺失它会导致
+ * ①「今天/最近/本周」类问题解析错误；② `create_reminder` 无法推算未来
+ * triggerAt（其 guard 要求 ≥ now），只能猜出过去时间而被拒。
+ */
+export function formatNowForPrompt(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const wd = WEEKDAYS[now.getDay()] ?? "";
+  return (
+    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+    ` (${wd}) ${pad(now.getHours())}:${pad(now.getMinutes())}`
+  );
+}
 
 /**
  * P0-2: 把工具结果包成「不可信数据」边界文本并截断.

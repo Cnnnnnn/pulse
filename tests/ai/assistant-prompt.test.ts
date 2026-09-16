@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAssistantSystemPrompt,
+  formatNowForPrompt,
   parseAssistantActions,
   stripActionTags,
   untrustedToolResult,
@@ -65,6 +66,30 @@ describe("assistant-prompt", () => {
     const t = untrustedToolResult("query_apps", long);
     expect(t).toContain("已截断");
     expect(t.length).toBeLessThan(MAX_TOOL_RESULT_CHARS + 150);
+  });
+
+  it("注入当前时间（解析相对时间与推算 triggerAt 的前提）", () => {
+    const prompt = buildAssistantSystemPrompt({
+      now: new Date(2026, 8, 16, 18, 30),
+    });
+    expect(prompt).toContain("当前时间：2026-09-16 (周三) 18:30");
+    expect(prompt).toContain("以「当前时间」为准换算");
+  });
+
+  it("未传 now 时使用真实当前时间，格式合法", () => {
+    const prompt = buildAssistantSystemPrompt({});
+    expect(prompt).toMatch(
+      /当前时间：\d{4}-\d{2}-\d{2} \(周[日一二三四五六]\) \d{2}:\d{2}/,
+    );
+  });
+
+  it("formatNowForPrompt 日期与时间均补零、星期正确", () => {
+    expect(formatNowForPrompt(new Date(2026, 8, 5, 9, 5))).toBe(
+      "2026-09-05 (周六) 09:05",
+    );
+    expect(formatNowForPrompt(new Date(2026, 11, 31, 23, 59))).toBe(
+      "2026-12-31 (周四) 23:59",
+    );
   });
 
   it("system prompt 要求来源标注", () => {

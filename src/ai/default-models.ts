@@ -17,6 +17,8 @@ export const DEFAULT_MODELS = {
   anthropic: "claude-sonnet-4-5",
   deepseek: "deepseek-chat",
   minimax: "MiniMax-M3",
+  // 2026-08 z.ai 国际站目录: GLM-5 代旗舰 (1M 上下文)
+  glm: "glm-5.2",
 };
 
 /** 助手简单问答路由用的轻量模型（ponytail: 与主模型相同时路由无收益） */
@@ -25,6 +27,7 @@ export const FAST_MODELS: Record<string, string> = {
   anthropic: "claude-haiku-4-5",
   deepseek: "deepseek-chat",
   minimax: "MiniMax-M2.1",
+  glm: "glm-5-turbo",
 };
 
 /** P1-6: 助手输出 max_tokens 默认值 */
@@ -40,7 +43,17 @@ export const THINKING_MODEL_MAX_TOKENS: Record<string, number> = {
   o1: 16384,
   "o1-mini": 16384,
   o3: 16384,
+  // GLM-4.5 起全线为 hybrid-reasoning（推理内容写入 reasoning_content, 但计入输出预算）
+  "glm-4.5": 16384,
+  "glm-4.6": 16384,
+  "glm-4.7": 16384,
+  "glm-5": 16384,
+  "glm-5.1": 16384,
+  "glm-5.2": 16384,
 };
+
+/** 思考型模型的前缀兜底 —— 覆盖上表未逐一列出的同代变体（如 glm-4.5-air / glm-5.2-x） */
+const THINKING_MODEL_PREFIXES = ["glm-4.5", "glm-4.6", "glm-4.7", "glm-5"];
 
 /** P1-6: 按模型名解析输出 max_tokens (思考型加大, 否则默认) */
 export function resolveMaxOutputTokens(
@@ -48,5 +61,10 @@ export function resolveMaxOutputTokens(
   fallback: number = DEFAULT_MAX_OUTPUT_TOKENS,
 ): number {
   if (!model) return fallback;
-  return THINKING_MODEL_MAX_TOKENS[model] ?? fallback;
+  const exact = THINKING_MODEL_MAX_TOKENS[model];
+  if (typeof exact === "number") return exact;
+  if (THINKING_MODEL_PREFIXES.some((p) => model.startsWith(p))) {
+    return THINKING_MODEL_MAX_TOKENS["glm-5"];
+  }
+  return fallback;
 }
