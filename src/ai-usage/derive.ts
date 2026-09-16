@@ -10,6 +10,26 @@
 const MAX_BLOW_UP_HOURS = 24; // > 24h 视为速率太低/数据异常, 不显示
 
 /**
+ * 主窗口优先级: 5h → monthly → weekly.
+ *
+ * 大多数 provider 的约束是 5h 滚动窗口; 但 codex 的 business/enterprise 账号
+ * rate_limit 为 null (没有会话窗口), 真正的约束是 spend_control 的月度 credit 池.
+ * 各处 (history 采样 / tray 摘要) 都该用同一套判定, 所以抽成单一来源.
+ *
+ * @param {{windows?: object}|null} snapshot
+ * @returns {{key:string, window:object}|null}
+ */
+export function pickPrimaryWindow(snapshot: any) {
+  const windows = snapshot && snapshot.windows;
+  if (!windows || typeof windows !== 'object') return null;
+  for (const key of ['5h', 'monthly', 'weekly']) {
+    const w = windows[key];
+    if (w && typeof w === 'object') return { key, window: w };
+  }
+  return null;
+}
+
+/**
  * 计算每小时消耗速率 (units per hour).
  * @param {{used: number|null, fetchedAt: number}} cur
  * @param {{used: number|null, fetchedAt: number}|null} prev
@@ -54,7 +74,7 @@ export function computeBlowUpAt(cur: any, prev: any) {
  * @param {number} [now=Date.now()]
  * @returns {string|null}
  */
-export function formatBlowUpIn(epochMs, now = Date.now()) {
+export function formatBlowUpIn(epochMs: number | null, now: number = Date.now()) {
   if (typeof epochMs !== 'number' || epochMs <= now) return null;
   const diffMs = epochMs - now;
   const hours = diffMs / 3_600_000;

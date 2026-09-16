@@ -108,11 +108,11 @@ beforeEach(() => {
 
 describe("register-ai-usage._internals", () => {
   describe("getCached", () => {
-    test("无任何 provider 数据 → { ok, providers:{minimax:null, glm:null}, histories }", async () => {
+    test("无任何 provider 数据 → { ok, providers:{minimax:null, glm:null, codex:null}, histories }", async () => {
       const deps = makeDeps();
       const r = await _internals.getCached({ deps });
       expect(r.ok).toBe(true);
-      expect(r.providers).toEqual({ minimax: null, glm: null });
+      expect(r.providers).toEqual({ minimax: null, glm: null, codex: null });
       expect(r.histories.minimax).toEqual({ days: [] });
       expect(r.histories.glm).toEqual({ days: [] });
     });

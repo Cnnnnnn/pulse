@@ -110,3 +110,45 @@ describe("state-store: AI usage snapshot", () => {
     expect(loadAiUsageSnapshot(statePath)).toBe(null);
   });
 });
+
+// ── ai_usage_alert_prefs 白名单回归 ──────────────────────────────
+//
+// ⚠️ normalizeAiUsageAlertPrefs 是**白名单式**的: 新增 prefs 子字段若没加进
+// 白名单, saveAiUsageAlertPrefs 会静默丢弃 (跟 PRESERVE_FIELDS 同一类坑).
+// 这条用例专门钉住 authWarned 能落盘 + 读回.
+
+describe("state-store — ai_usage_alert_prefs.authWarned 落盘往返", () => {
+  let statePath: string;
+  beforeEach(() => {
+    statePath = tmpStatePath();
+  });
+
+  test("save → load: authWarned 子字段不被白名单过滤掉", () => {
+    const ss = requireMain("state-store");
+    ss.saveAiUsageAlertPrefs({ authWarned: { codex: 1789000000000 } }, statePath);
+    const back = ss.loadAiUsageAlertPrefs(statePath);
+    expect(back.authWarned).toEqual({ codex: 1789000000000 });
+  });
+
+  test("不带 authWarned 的 patch 不会清掉已有记录", () => {
+    const ss = requireMain("state-store");
+    ss.saveAiUsageAlertPrefs({ authWarned: { codex: 111 } }, statePath);
+    ss.saveAiUsageAlertPrefs({ absMinPct: 66 }, statePath);
+    const back = ss.loadAiUsageAlertPrefs(statePath);
+    expect(back.absMinPct).toBe(66);
+    expect(back.authWarned).toEqual({ codex: 111 });
+  });
+
+  test("清空记录 (空对象) 能落盘 —— 恢复路径靠这个", () => {
+    const ss = requireMain("state-store");
+    ss.saveAiUsageAlertPrefs({ authWarned: { codex: 111 } }, statePath);
+    ss.saveAiUsageAlertPrefs({ authWarned: {} }, statePath);
+    expect(ss.loadAiUsageAlertPrefs(statePath).authWarned).toEqual({});
+  });
+
+  test("坏数据 (字符串) 被规整成空对象, 不污染下游", () => {
+    const ss = requireMain("state-store");
+    ss.saveAiUsageAlertPrefs({ authWarned: "garbage" }, statePath);
+    expect(ss.loadAiUsageAlertPrefs(statePath).authWarned).toEqual({});
+  });
+});

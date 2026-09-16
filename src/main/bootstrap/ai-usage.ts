@@ -40,6 +40,7 @@ export function bootstrapAiUsage(deps: any, opts: { warmup?: boolean; registerIp
     storage: deps.storage,
     MiniMaxQuotaClient: deps.MiniMaxQuotaClient,
     GlmQuotaClient: deps.GlmQuotaClient,
+    CodexQuotaClient: deps.CodexQuotaClient,
     pushEvent: deps.sendToRenderer,
   };
 

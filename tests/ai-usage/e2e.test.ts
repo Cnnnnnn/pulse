@@ -271,7 +271,7 @@ describe("AI usage 端到端", () => {
     };
     const r = await _internals.getCached({ deps });
     expect(r.ok).toBe(true);
-    expect(r.providers).toEqual({ minimax: null, glm: null });
+    expect(r.providers).toEqual({ minimax: null, glm: null, codex: null });
     expect(r.histories.minimax).toEqual({ days: [] });
     expect(r.histories.glm).toEqual({ days: [] });
   });

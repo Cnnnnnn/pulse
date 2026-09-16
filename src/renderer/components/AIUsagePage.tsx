@@ -34,6 +34,7 @@ import {
 } from "../store/ai-usage-store.ts";
 import { useNowTick } from "../hooks/useNowTick.tsx";
 import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.ts";
+import { pickPrimaryWindow } from "../../ai-usage/derive.ts";
 import { todayKey } from "../../ai-usage/history-series.ts";
 import { formatTokens } from "../../ai-usage/format-glm.ts";
 import { UsageDashboard } from "./UsageDashboard.tsx";
@@ -59,8 +60,9 @@ function formatAge(ms: number, now: number) {
 const EMPTY_HISTORY = { days: [] };
 
 const PROVIDER_META = {
-  minimax: { title: "Minimax 用量", label: "Minimax", planLabel: "Minimax coding plan 配额" },
-  glm: { title: "GLM 用量", label: "GLM (智谱)", planLabel: "GLM 编程套餐配额" },
+  minimax: { title: "Minimax 用量", label: "Minimax", planLabel: "Minimax coding plan 配额", usedLabel: "今日已用" },
+  glm: { title: "GLM 用量", label: "GLM (智谱)", planLabel: "GLM 编程套餐配额", usedLabel: "今日已用" },
+  codex: { title: "Codex 用量", label: "Codex", planLabel: "OpenAI Codex 配额", usedLabel: "本月已用" },
 };
 
 /**
@@ -72,6 +74,10 @@ function formatTodayUsed(provider: string, used: number | null) {
   if (provider === "glm") {
     const s = formatTokens(used);
     return s ? `${s} tokens` : null;
+  }
+  if (provider === "codex") {
+    // 月度 credit 池的 "used" 是 credit 数, 不是 token 也不是调用次数
+    return `${used.toLocaleString()} credit`;
   }
   return `${used.toLocaleString()} 单位`;
 }
@@ -107,17 +113,21 @@ function ProviderUsageView({ provider }: { provider: string }) {
     [snapshot, now],
   );
 
-  // 今日已用: 5h 窗口的 used 值 (滚动窗口 ≈ 当天累积消耗).
-  // 防御: snapshot / windows / windows["5h"] 任一为空都不崩.
-  const w5h = snapshot?.windows?.["5h"] ?? null;
+  // 今日/本月已用: 主窗口的 used 值.
+  // 主窗口 = 5h → monthly → weekly (codex business 账号没有 5h 窗口, 主约束是月度池).
+  // 防御: snapshot / windows 任一为空都不崩.
+  const primaryWin = useMemo(
+    () => pickPrimaryWindow(snapshot)?.window ?? null,
+    [snapshot],
+  );
   const todayUsed = useMemo(() => {
-    if (!w5h) return null;
-    if (typeof w5h.used === "number" && w5h.used > 0) return w5h.used;
-    if (typeof w5h.usedPercent === "number" && typeof w5h.total === "number" && w5h.total > 0) {
-      return Math.round((w5h.usedPercent / 100) * w5h.total);
+    if (!primaryWin) return null;
+    if (typeof primaryWin.used === "number" && primaryWin.used > 0) return primaryWin.used;
+    if (typeof primaryWin.usedPercent === "number" && typeof primaryWin.total === "number" && primaryWin.total > 0) {
+      return Math.round((primaryWin.usedPercent / 100) * primaryWin.total);
     }
     return null;
-  }, [w5h]);
+  }, [primaryWin]);
 
   const todayLabel = formatTodayUsed(provider, todayUsed);
 
@@ -140,6 +150,10 @@ function ProviderUsageView({ provider }: { provider: string }) {
     [history, prefs, lastNotifiedPercent],
   );
 
+  const failureReason = lastError || dataStateError;
+  // codex 的凭据问题全是"需要用户去终端动一次 codex", 归到同一档文案.
+  const CODEX_AUTH_REASONS = ["codex_auth_missing", "token_expired", "auth_401", "auth_403"];
+
   return (
     <div class="ai-usage-page">
       <div class="ai-usage-header">
@@ -148,11 +162,11 @@ function ProviderUsageView({ provider }: { provider: string }) {
           <div class="ai-usage-subtitle">
             {snapshot ? (
               <>
-                {meta.planLabel} · 今日已用{" "}
+                {meta.planLabel} · {meta.usedLabel}{" "}
                 {todayLabel !== null ? (
                   <span class="ai-usage-today-value">{todayLabel}</span>
-                ) : w5h && typeof w5h.usedPercent === "number" ? (
-                  <span class="ai-usage-today-value">{w5h.usedPercent}%</span>
+                ) : primaryWin && typeof primaryWin.usedPercent === "number" ? (
+                  <span class="ai-usage-today-value">{primaryWin.usedPercent}%</span>
                 ) : (
                   "—"
                 )}
@@ -208,17 +222,28 @@ function ProviderUsageView({ provider }: { provider: string }) {
       {lastError && snapshot && (
         <div class="ai-usage-banner ai-usage-banner--warn">
           上次拉取失败 ({lastError}), 显示的是 {ageLabel} 的快照
+          {provider === "codex" && CODEX_AUTH_REASONS.includes(lastError) && (
+            <span>
+              {" "}· 在终端跑一次 <code>codex</code> 自动续期，过期太久则重新 <code>codex login</code>
+            </span>
+          )}
         </div>
       )}
 
-      {(lastError || dataStateError) && !snapshot && (
+      {failureReason && !snapshot && (
         <>
           <div class="ai-usage-banner ai-usage-banner--error">
-            拉取失败: {lastError || dataStateError}
-            {(lastError || dataStateError) === "api_key_missing" && (
+            拉取失败: {failureReason}
+            {failureReason === "api_key_missing" && (
               <span> · 请在左下角"AI 配置"中填入 {meta.label} 的 API key</span>
             )}
-            {(lastError || dataStateError) === "network_failed" && (
+            {provider === "codex" && CODEX_AUTH_REASONS.includes(failureReason) && (
+              <span>
+                {" "}· Codex 登录态不可用（读 ~/.codex/auth.json）。在终端跑一次{" "}
+                <code>codex</code>，它会自己续期；若提示重新登录则跑 <code>codex login</code>
+              </span>
+            )}
+            {failureReason === "network_failed" && (
               <span> · 请检查网络连接或代理设置</span>
             )}
           </div>
@@ -243,12 +268,8 @@ function ProviderUsageView({ provider }: { provider: string }) {
         </div>
       )}
 
-      {snapshot && provider === "minimax" && (
-        <UsageDashboard snapshot={snapshot} history={history} provider="minimax" />
-      )}
-
-      {snapshot && provider === "glm" && (
-        <UsageDashboard snapshot={snapshot} history={history} provider="glm" />
+      {snapshot && (
+        <UsageDashboard snapshot={snapshot} history={history} provider={provider} />
       )}
 
       {snapshot && snapshot.endpoint && (

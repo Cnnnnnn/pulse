@@ -16,6 +16,7 @@ import {
   calcFundMetrics,
 } from "../funds/fundCalc";
 import { aggregate } from "../main/digest/aggregate";
+import { pickPrimaryWindow } from "../ai-usage/derive";
 import { getLeaderboard } from "../main/ai-leaderboard/index";
 import {
   getQueryCache,
@@ -412,23 +413,26 @@ function summarizeGithub(
 }
 
 function summarizeAiUsage(): ToolResult {
-  const providers = ["minimax", "glm"] as const;
+  const providers = ["minimax", "glm", "codex"] as const;
   const lines: string[] = [];
   const items: ToolCardItem[] = [];
   for (const pid of providers) {
     const snap = stateStore.loadAiUsageSnapshotProvider
       ? stateStore.loadAiUsageSnapshotProvider(pid)
       : null;
-    const label = pid === "glm" ? "GLM (智谱)" : "Minimax";
+    const label =
+      pid === "glm" ? "GLM (智谱)" : pid === "codex" ? "Codex" : "Minimax";
     if (!snap) {
       lines.push(`${label}: 未配置或无数据`);
       continue;
     }
-    const w5h = snap.windows?.["5h"];
+    // codex business 账号没有 5h 窗口, 主约束是月度 credit 池 → 按主窗口兜底.
+    const primary = pickPrimaryWindow(snap);
     const wk = snap.windows?.week || snap.windows?.["7d"];
     const parts: string[] = [];
-    if (w5h && typeof w5h.usedPercent === "number") {
-      parts.push(`5h ${w5h.usedPercent}%`);
+    if (primary && typeof primary.window.usedPercent === "number") {
+      const name = primary.key === "monthly" ? "本月" : "5h";
+      parts.push(`${name} ${primary.window.usedPercent}%`);
     }
     if (wk && typeof wk.usedPercent === "number") {
       parts.push(`周 ${wk.usedPercent}%`);

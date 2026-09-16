@@ -346,7 +346,11 @@ export function buildMenu(opts: BuildMenuOpts): any[] {
   return template;
 }
 
-const PROVIDER_NAME: Record<string, string> = { minimax: "MiniMax", glm: "GLM" };
+const PROVIDER_NAME: Record<string, string> = {
+  minimax: "MiniMax",
+  glm: "GLM",
+  codex: "Codex",
+};
 
 /**
  * 把 aiUsage summary map 渲染成 menu template 行 (v2.22 Task B2).
@@ -359,7 +363,7 @@ const PROVIDER_NAME: Record<string, string> = { minimax: "MiniMax", glm: "GLM" }
 function buildAiUsageLines(summaryMap: any): MenuItemConstructorOptions[] {
   const lines: any[] = [];
   let hasAny = false;
-  for (const pid of ["minimax", "glm"]) {
+  for (const pid of Object.keys(summaryMap || {})) {
     const s = summaryMap[pid];
     if (!s || s.status === "unconfigured") continue;
     hasAny = true;

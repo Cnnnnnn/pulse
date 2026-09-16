@@ -829,7 +829,11 @@ function normalizeAiUsageAlertPrefs(raw: any) {
     spikeRatio: DEFAULT_SPIKE_RATIO,
     reAlertStepPct: DEFAULT_RE_ALERT_STEP_PCT,
     lastNotified: {},
-  };
+    // ⚠️ 白名单式 normalize: 新增 prefs 子字段必须同时加进这里, 否则
+    // saveAiUsageAlertPrefs 会静默丢掉 (跟 PRESERVE_FIELDS 同一类坑).
+    // authWarned: providerId → 上次「登录态失效」提醒时间戳 (去重, 见 ai-usage/auth-watch.ts)
+    authWarned: {},
+  } as Record<string, any>;
   if (!raw || typeof raw !== "object") return out;
   if (raw.enabled === false) out.enabled = false;
   const abs = Number(raw.absMinPct);
@@ -840,6 +844,9 @@ function normalizeAiUsageAlertPrefs(raw: any) {
   if (Number.isFinite(step) && step > 0) out.reAlertStepPct = step;
   if (raw.lastNotified && typeof raw.lastNotified === "object") {
     out.lastNotified = { ...raw.lastNotified };
+  }
+  if (raw.authWarned && typeof raw.authWarned === "object") {
+    out.authWarned = { ...raw.authWarned };
   }
   return out;
 }
@@ -1518,7 +1525,7 @@ export function appendAiUsageHistoryDay(entry: any, statePath = defaultPath()) {
 //   }
 //
 // 历史 v1 (平铺单 minimax) 由 _ensureAiUsageV2 惰性迁移.
-const AI_USAGE_KNOWN_PROVIDERS = ["minimax", "glm"];
+// 注: providerId 不做白名单校验 (只要非空字符串), 所以这里不需要 provider 列表常量.
 
 function _isAiUsageV2(val: any) {
   return (

@@ -1452,7 +1452,7 @@ export interface DigestApiContract {
   onDigestOpen(cb: Callback<DigestOpenPayload>): Unsubscribe;
 }
 
-export type AiUsageProvider = "minimax" | "glm";
+export type AiUsageProvider = "minimax" | "glm" | "codex";
 
 export interface AiUsageWindow {
   total: number | null;
@@ -1525,6 +1525,8 @@ export interface AiUsageAlertPrefs {
   spikeRatio: number;
   reAlertStepPct: number;
   lastNotified: Record<string, { date: string; percent: number }>;
+  /** providerId → 上次「登录态失效」提醒时间戳 (去重; 见 ai-usage/auth-watch.ts) */
+  authWarned?: Record<string, number>;
 }
 
 export interface AiUsageAlertPrefsResponse {

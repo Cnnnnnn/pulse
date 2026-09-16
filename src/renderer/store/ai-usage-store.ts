@@ -24,7 +24,7 @@ import type { AiUsageCachedResponse } from "../../shared/ipc-contracts.ts";
 
 const log = taggedLog("[store/ai-usage]");
 
-export const AI_USAGE_PROVIDERS = ["minimax", "glm"];
+export const AI_USAGE_PROVIDERS = ["minimax", "glm", "codex"];
 
 function emptySlots(value: any): Record<string, any> {
   const out: Record<string, any> = {};

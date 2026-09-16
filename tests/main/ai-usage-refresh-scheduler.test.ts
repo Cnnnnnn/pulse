@@ -41,6 +41,19 @@ function installStubs() {
   createAiUsageRefreshScheduler = mod.createAiUsageRefreshScheduler;
 }
 
+/**
+ * 打桩 ai-usage-cache.createAiUsageCache. scheduler 现在只消费 getTraySummaryMap
+ * (provider 列表由 ai-usage-cache.PROVIDERS 单点维护).
+ */
+function stubCache(summary: any) {
+  const cache = requireMain("ai-usage-cache");
+  const map = { minimax: summary, glm: summary, codex: summary };
+  vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
+    getTraySummary: () => summary,
+    getTraySummaryMap: () => map,
+  });
+}
+
 describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
   beforeEach(() => {
     mockFetch.mockReset();
@@ -51,15 +64,12 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     installStubs();
     mockFetch.mockResolvedValue({ ok: true, provider: "minimax", snapshot: { windows: { "5h": { usedPercent: 42 } } } });
 
-    const cache = requireMain("ai-usage-cache");
-    vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
-      getTraySummary: () => ({ status: "ok", percent: 42, remainLabel: "2h", fetchedAt: Date.now() }),
-    });
+    stubCache({ status: "ok", percent: 42, remainLabel: "2h", fetchedAt: Date.now() });
 
     const helper = createAiUsageRefreshScheduler({ trayMgr: mockTrayMgr, deps: {} });
     await helper.refreshOnce();
 
-    expect(mockFetch).toHaveBeenCalledTimes(2);  // minimax + glm
+    expect(mockFetch).toHaveBeenCalledTimes(3);  // minimax + glm + codex
     expect(mockSetAiUsage).toHaveBeenCalledTimes(1);
     const trayCall = mockSetAiUsage.mock.calls[0][0];
     expect(trayCall.minimax).toMatchObject({ status: "ok" });
@@ -73,15 +83,12 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
       return { ok: true, provider: "glm", snapshot: { windows: { "5h": { usedPercent: 30 } } } };
     });
 
-    const cache = requireMain("ai-usage-cache");
-    vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
-      getTraySummary: () => ({ status: "ok", percent: 30, remainLabel: "1h" }),
-    });
+    stubCache({ status: "ok", percent: 30, remainLabel: "1h" });
 
     const helper = createAiUsageRefreshScheduler({ trayMgr: mockTrayMgr, deps: {} });
     await helper.refreshOnce();
 
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(mockSetAiUsage).toHaveBeenCalledTimes(1);
   });
 
@@ -89,10 +96,7 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     installStubs();
     mockFetch.mockRejectedValue(new Error("network fail"));
 
-    const cache = requireMain("ai-usage-cache");
-    vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
-      getTraySummary: () => ({ status: "ok", percent: 50, remainLabel: "1h" }),
-    });
+    stubCache({ status: "ok", percent: 50, remainLabel: "1h" });
 
     const helper = createAiUsageRefreshScheduler({ trayMgr: mockTrayMgr, deps: {} });
     await expect(helper.refreshOnce()).resolves.not.toThrow();
@@ -101,10 +105,7 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
 
   it("start/stop: setManagedInterval + clearManaged 控制 lifecycle", async () => {
     installStubs();
-    const cache = requireMain("ai-usage-cache");
-    vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
-      getTraySummary: () => ({ status: "ok", percent: 50, remainLabel: "1h" }),
-    });
+    stubCache({ status: "ok", percent: 50, remainLabel: "1h" });
 
     const helper = createAiUsageRefreshScheduler({ trayMgr: mockTrayMgr, deps: {} });
     const refreshSpy = vi.spyOn(helper, "refreshOnce").mockResolvedValue();
@@ -121,5 +122,175 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     const n = refreshSpy.mock.calls.length;
     await new Promise((r) => setTimeout(r, 60));
     expect(refreshSpy.mock.calls.length).toBe(n); // 停止后不再调用
+  });
+});
+
+/**
+ * 登录态失效提醒 (§codex) —— 端到端接线验证.
+ *
+ * 纯决策逻辑单测在 tests/ai-usage/auth-watch.test.ts; 这里只证明
+ * scheduler 真的把它接上了: 拿 fetch 结果 → 读 prefs → 发通知 → 落去重时间戳.
+ */
+describe("ai-usage-refresh-scheduler — 登录态失效提醒", () => {
+  const shownNotifications: any[] = [];
+
+  function installElectronStub() {
+    const electronPath = require.resolve("electron");
+    class FakeNotification {
+      constructor(opts: any) {
+        this.opts = opts;
+      }
+      opts: any;
+      show() {
+        shownNotifications.push(this.opts);
+      }
+      static isSupported() {
+        return true;
+      }
+    }
+    require.cache[electronPath] = {
+      id: electronPath,
+      filename: electronPath,
+      loaded: true,
+      exports: { Notification: FakeNotification },
+    };
+  }
+
+  function makeAlertDeps(overrides: any = {}) {
+    return {
+      providers: ["minimax", "glm", "codex"],
+      loadAlertPrefs: vi.fn(() => ({ authWarned: {} })),
+      saveAlertPrefs: vi.fn(),
+      loadHistoryProvider: vi.fn(() => ({ days: [] })),
+      ...overrides,
+    };
+  }
+
+  /**
+   * 必须连 scheduler 实例一起重载 —— 否则 electron 在首个用例加载时就被记住了,
+   * 后装的 stub 不生效, "没发通知" 的断言会退化成"因为崩了"而假绿.
+   */
+  function freshSchedulerWithElectronStub() {
+    installElectronStub();
+    delete require.cache[schedulerModulePath];
+    installStubs();
+  }
+
+  /** codex 失效、其它正常; 且 codex 历史上成功过 (有快照). */
+  function stubCodexFailure(reason = "token_expired") {
+    freshSchedulerWithElectronStub();
+    mockFetch.mockImplementation(async ({ opts }: any) => {
+      if (opts.provider === "codex") {
+        return { ok: false, provider: "codex", reason };
+      }
+      return { ok: true, provider: opts.provider, snapshot: { windows: { "5h": { usedPercent: 10 } } } };
+    });
+    stubCache({ status: "ok", percent: 10, remainLabel: "1h" });
+    return {
+      stateStore: {
+        loadSnapshotProvider: (pid: string) =>
+          pid === "codex" ? { windows: { monthly: { usedPercent: 74 } } } : null,
+      },
+    };
+  }
+
+  beforeEach(() => {
+    shownNotifications.length = 0;
+  });
+
+  it("codex token 过期 → 发一条通知 + 记下去重时间戳", async () => {
+    const deps = stubCodexFailure("token_expired");
+    const alertDeps = makeAlertDeps();
+    const helper = createAiUsageRefreshScheduler({
+      trayMgr: mockTrayMgr,
+      deps,
+      alertDeps,
+      sendToRenderer: vi.fn(),
+    });
+
+    await helper.refreshOnce();
+
+    expect(shownNotifications.length).toBe(1);
+    expect(shownNotifications[0].title).toContain("Codex");
+    expect(shownNotifications[0].body).toContain("codex login");
+    expect(alertDeps.saveAlertPrefs).toHaveBeenCalledTimes(1);
+    const patch = alertDeps.saveAlertPrefs.mock.calls[0][0];
+    expect(typeof patch.authWarned.codex).toBe("number");
+  });
+
+  it("从没成功过 (无历史快照) → 不打扰", async () => {
+    freshSchedulerWithElectronStub();
+    mockFetch.mockResolvedValue({ ok: false, provider: "codex", reason: "token_expired" });
+    stubCache({ status: "ok", percent: 10, remainLabel: "1h" });
+    const alertDeps = makeAlertDeps();
+    const helper = createAiUsageRefreshScheduler({
+      trayMgr: mockTrayMgr,
+      deps: { stateStore: { loadSnapshotProvider: () => null } },
+      alertDeps,
+      sendToRenderer: vi.fn(),
+    });
+
+    await helper.refreshOnce();
+
+    expect(shownNotifications.length).toBe(0);
+    expect(alertDeps.saveAlertPrefs).not.toHaveBeenCalled();
+  });
+
+  it("3 天内已提醒过 → 不再重复 (30min 一轮不能刷屏)", async () => {
+    const deps = stubCodexFailure("auth_401");
+    const alertDeps = makeAlertDeps({
+      loadAlertPrefs: () => ({ authWarned: { codex: Date.now() - 60_000 } }),
+    });
+    const helper = createAiUsageRefreshScheduler({
+      trayMgr: mockTrayMgr,
+      deps,
+      alertDeps,
+      sendToRenderer: vi.fn(),
+    });
+
+    await helper.refreshOnce();
+
+    expect(shownNotifications.length).toBe(0);
+    expect(alertDeps.saveAlertPrefs).not.toHaveBeenCalled();
+  });
+
+  it("静默时段 → 不发通知, 且不记已提醒 (否则用户永远等不到)", async () => {
+    const deps = stubCodexFailure("token_expired");
+    const alertDeps = makeAlertDeps();
+    const helper = createAiUsageRefreshScheduler({
+      trayMgr: mockTrayMgr,
+      deps,
+      alertDeps,
+      sendToRenderer: vi.fn(),
+      getConfig: () => ({
+        notifications: { quiet_hours_start: "00:00", quiet_hours_end: "23:59" },
+      }),
+    });
+
+    await helper.refreshOnce();
+
+    expect(shownNotifications.length).toBe(0);
+    expect(alertDeps.saveAlertPrefs).not.toHaveBeenCalled();
+  });
+
+  it("codex 恢复正常 → 清掉记录 (下次再失效能重新提醒)", async () => {
+    freshSchedulerWithElectronStub();
+    mockFetch.mockResolvedValue({ ok: true, provider: "codex", snapshot: { windows: {} } });
+    stubCache({ status: "ok", percent: 10, remainLabel: "1h" });
+    const alertDeps = makeAlertDeps({
+      loadAlertPrefs: () => ({ authWarned: { codex: 123 } }),
+    });
+    const helper = createAiUsageRefreshScheduler({
+      trayMgr: mockTrayMgr,
+      deps: { stateStore: { loadSnapshotProvider: () => ({ windows: {} }) } },
+      alertDeps,
+      sendToRenderer: vi.fn(),
+    });
+
+    await helper.refreshOnce();
+
+    expect(shownNotifications.length).toBe(0);
+    const patch = alertDeps.saveAlertPrefs.mock.calls[0][0];
+    expect(patch.authWarned).toEqual({});
   });
 });

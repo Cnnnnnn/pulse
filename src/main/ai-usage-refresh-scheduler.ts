@@ -13,10 +13,64 @@
  */
 import * as registerAiUsage from "./ipc/register-ai-usage";
 import { PROVIDERS } from "./ai-usage-cache";
+import { decideAuthReminder } from "../ai-usage/auth-watch";
 import { inQuietHours } from "./notification-policy";
 import { Notification as ElectronNotification } from "electron";
 
 const { setManagedInterval, clearManaged } = require("./timer-registry.ts");
+
+/**
+ * 「登录态失效, 去终端重新登录」提醒.
+ *
+ * 决策是纯函数 (`ai-usage/auth-watch.decideAuthReminder`), 这里只做 I/O:
+ * 读历史快照判断"是否曾经能用" + 落去重时间戳 + 发通知.
+ *
+ * 只对 codex 生效 —— minimax/glm 是 API key, 失效时 UI 里换个 key 就行, 不值得弹系统通知.
+ *
+ * @returns {number} 本次提醒条数 (0 或 1), 给 badge 用
+ */
+function _runAuthReminder(
+  results: any[],
+  actualDeps: any,
+  alertDeps: any,
+  // 返回是否真的发出去了 (静默时段 / 系统不支持 → false)
+  sendNotification: (n: any) => boolean | void,
+): number {
+  const hadSnapshot: Record<string, boolean> = {};
+  for (const pid of PROVIDERS) {
+    try {
+      hadSnapshot[pid] = Boolean(
+        actualDeps?.stateStore?.loadSnapshotProvider?.(pid),
+      );
+    } catch {
+      hadSnapshot[pid] = false;
+    }
+  }
+
+  const decision = decideAuthReminder({
+    results,
+    prefs: typeof alertDeps.loadAlertPrefs === "function"
+      ? alertDeps.loadAlertPrefs()
+      : null,
+    hadSnapshot,
+  });
+
+  // 只有"该发且真的发出去了"才记已提醒 —— 被静默时段吞掉的不能算已读,
+  // 否则用户永远等不到那条提醒. 纯恢复 patch (无 notification) 无条件落盘,
+  // 否则下次失效不会再提醒.
+  let delivered = true;
+  if (decision.notification) {
+    delivered = sendNotification(decision.notification) !== false;
+  }
+  if (
+    decision.patch &&
+    delivered &&
+    typeof alertDeps.saveAlertPrefs === "function"
+  ) {
+    alertDeps.saveAlertPrefs(decision.patch);
+  }
+  return decision.notification && delivered ? 1 : 0;
+}
 
 export function createAiUsageRefreshScheduler(opts: any = {}): any {
   const trayMgr = opts.trayMgr;
@@ -45,6 +99,7 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
         storage: { loadApiKey: () => null },
         MiniMaxQuotaClient: null,
         GlmQuotaClient: null,
+        CodexQuotaClient: null,
         pushEvent: () => {},
       }
     );
@@ -63,16 +118,17 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
         })),
     );
     // wait all, ignore individual failures (we don't block)
-    await Promise.allSettled(fetchPromises);
+    const settled = await Promise.allSettled(fetchPromises);
+    // 保留本轮结果 — 登录态提醒要用 (每个 fetch 自己 catch 过, 正常都是 fulfilled)
+    const results: any[] = settled.map((s: any) =>
+      s.status === "fulfilled" ? s.value : { ok: false, reason: "exception" },
+    );
     // Now push to tray (state.json was updated by successful fetches)
     if (trayMgr && typeof trayMgr.setAiUsage === "function") {
       try {
         const { createAiUsageCache } = require("./ai-usage-cache.ts");
         const cache = createAiUsageCache({});
-        trayMgr.setAiUsage({
-          minimax: cache.getTraySummary("minimax"),
-          glm: cache.getTraySummary("glm"),
-        });
+        trayMgr.setAiUsage(cache.getTraySummaryMap());
       } catch (err: any) {
         // swallow — tray update failure should not kill the loop
       }
@@ -81,6 +137,8 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
     if (alertDeps) {
       try {
         const { checkAiUsageAlerts } = require("./ai-usage-alerts.ts");
+        // 返回 boolean: 是否真的发出去了. 静默时段/系统不支持时返 false ——
+        // 登录态提醒据此决定"要不要记下已提醒", 否则会被静默吞掉却标记已读.
         const sendNotification = (n: any) => {
           const cfg = getConfig ? getConfig() || {} : {};
           const notif = cfg.notifications || {};
@@ -93,28 +151,44 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
               notif.quiet_hours_end,
             )
           ) {
-            return;
+            return false;
           }
           if (
             !ElectronNotification.isSupported ||
             !ElectronNotification.isSupported()
           ) {
-            return;
+            return false;
           }
           new ElectronNotification({
             title: n.title,
             body: n.body,
             silent: false,
           }).show();
+          return true;
         };
+        // 登录态失效提醒 (codex) — 复用同一个 sendNotification, 已套静默时段
+        let authNotified = 0;
+        try {
+          authNotified = _runAuthReminder(
+            results,
+            actualDeps,
+            alertDeps,
+            sendNotification,
+          );
+        } catch {
+          /* noop */
+        }
+
         const alertOut = await checkAiUsageAlerts({
           ...alertDeps,
           sendNotification,
         });
-        if (alertOut && alertOut.notified > 0 && sendToRenderer) {
+        const totalNotified =
+          (alertOut && alertOut.notified ? alertOut.notified : 0) + authNotified;
+        if (totalNotified > 0 && sendToRenderer) {
           sendToRenderer("sidenav:badge", {
             key: "ai-usage",
-            count: alertOut.notified,
+            count: totalNotified,
           });
         }
       } catch {

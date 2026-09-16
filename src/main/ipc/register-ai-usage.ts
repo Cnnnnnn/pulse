@@ -31,11 +31,19 @@ function errMsg(err: unknown): string {
 
 import * as stateStore from "../state-store";
 import * as aiStorage from "../../ai-sessions/storage";
+import { pickPrimaryWindow } from "../../ai-usage/derive";
 import { MiniMaxQuotaClient } from "../../ai-usage/client";
 import { GlmQuotaClient } from "../../ai-usage/client-glm";
+import { CodexQuotaClient } from "../../ai-usage/client-codex";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
-export const KNOWN_PROVIDERS = ["minimax", "glm"];
+export const KNOWN_PROVIDERS = ["minimax", "glm", "codex"];
+
+/**
+ * codex 的凭据是 codex CLI 自己维护的 ~/.codex/auth.json, 不走 safeStorage apiKey.
+ * 唯一不需要用户在 AI 配置里填 key 的 provider.
+ */
+const NO_API_KEY_PROVIDERS = ["codex"];
 
 /**
  * @param {string} providerId
@@ -44,6 +52,7 @@ export const KNOWN_PROVIDERS = ["minimax", "glm"];
 function _pickClientCtor(deps: any, providerId: any) {
   if (providerId === "minimax") return deps.MiniMaxQuotaClient;
   if (providerId === "glm") return deps.GlmQuotaClient;
+  if (providerId === "codex") return deps.CodexQuotaClient;
   return null;
 }
 
@@ -96,8 +105,10 @@ export const _internals = {
       return { ok: false, provider: providerId, reason: "unknown_provider" };
     }
 
-    const apiKey = _loadApiKeySafe(deps.storage, providerId);
-    if (!apiKey) {
+    const apiKey = NO_API_KEY_PROVIDERS.includes(providerId)
+      ? null
+      : _loadApiKeySafe(deps.storage, providerId);
+    if (apiKey === null && !NO_API_KEY_PROVIDERS.includes(providerId)) {
       return { ok: false, provider: providerId, reason: "api_key_missing" };
     }
 
@@ -159,8 +170,10 @@ export const _internals = {
     deps.stateStore.saveSnapshotProvider(providerId, r.snapshot);
 
     // 追加当天 used 到 history (sparkline 持久化)
-    // 用 5h 窗口的 usedPercent (0-100) 作主指标, used (绝对数) 作 tooltip 辅助
-    const w = r.snapshot && r.snapshot.windows && r.snapshot.windows["5h"];
+    // 用主窗口的 usedPercent (0-100) 作主指标, used (绝对数) 作 tooltip 辅助
+    // codex business/enterprise 账号没有 5h 窗口 (rate_limit=null), 主约束是月度 credit 池,
+    // 所以按 5h → monthly → weekly 兜底取第一个存在的窗口.
+    const w = pickPrimaryWindow(r.snapshot)?.window;
     if (w && typeof w.usedPercent === "number" && w.usedPercent > 0) {
       try {
         const date = _localDateKey();
@@ -228,6 +241,7 @@ export function registerAiUsageHandlers(ctx: any) {
     },
     MiniMaxQuotaClient,
     GlmQuotaClient,
+    CodexQuotaClient,
     pushEvent: sendToRenderer,
   };
 

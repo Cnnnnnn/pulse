@@ -22,6 +22,13 @@ export const DEFAULT_ALERT_PREFS: any = {
   lastNotified: {},
 };
 
+/** 通知标题里的 provider 显示名. */
+const PROVIDER_LABEL: Record<string, string> = {
+  minimax: "MiniMax",
+  glm: "GLM",
+  codex: "Codex",
+};
+
 export function normalizeAlertPrefs(raw: any): any {
   const out: any = {
     enabled: true,
@@ -116,7 +123,7 @@ export function checkAiUsageAlertsPure({ providerId, historyDays, alertPrefs }: 
  */
 export async function checkAiUsageAlerts(deps: any): Promise<any> {
   const {
-    providers = ["minimax", "glm"],
+    providers = ["minimax", "glm", "codex"],
     loadHistoryProvider = stateStore.loadAiUsageHistoryProvider,
     loadAlertPrefs = stateStore.loadAiUsageAlertPrefs,
     saveAlertPrefs = stateStore.saveAiUsageAlertPrefs,
@@ -167,8 +174,8 @@ export async function checkAiUsageAlerts(deps: any): Promise<any> {
 
   if (typeof sendNotification === "function") {
     for (const it of allItems) {
-      const label = it.providerId === "glm" ? "GLM" : "MiniMax";
-      let body = `今日 5h 窗口已用 ${it.todayPercent}%（7 日中位约 ${Math.round(it.baselineMedian)}%）`;
+      const label = PROVIDER_LABEL[it.providerId] || it.providerId;
+      let body = `今日用量 ${it.todayPercent}%（7 日中位约 ${Math.round(it.baselineMedian)}%）`;
       if (suspectTasks.length > 0) {
         const names = suspectTasks.map((t: any) => `「${t.title}」`).join("、");
         body += `\n疑似任务: ${names}`;

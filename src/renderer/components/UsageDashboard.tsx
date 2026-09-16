@@ -69,6 +69,7 @@ function UsageWindowOverview({ snapshot, provider, excludedKeys = [] }: { snapsh
   const windows = (snapshot && snapshot.windows) || {};
   const credit = snapshot && snapshot.credits;
   const isGlm = provider === "glm" || snapshot?.provider === "glm";
+  const isCodex = provider === "codex" || snapshot?.provider === "codex";
   const entries = useMemo(() => {
     const out: any[] = [];
     type WindowMeta = { icon: string; label: string; accent: string; isWeekly?: boolean };
@@ -78,7 +79,13 @@ function UsageWindowOverview({ snapshot, provider, excludedKeys = [] }: { snapsh
           ["weekly", { icon: "📅", label: "周 Token", accent: "var(--model-color-3)", isWeekly: true }],
           ["mcp", { icon: "⌘", label: "MCP 时长（本月）", accent: "var(--accent-teal, var(--model-color-4))" }],
         ]
-      : [
+      : isCodex
+        ? [
+            ["5h", { icon: "⏱", label: "5 小时窗口", accent: "var(--model-color-1)" }],
+            ["weekly", { icon: "📅", label: "周窗口", accent: "var(--model-color-3)", isWeekly: true }],
+            ["monthly", { icon: "🎫", label: "月度 credit 池", accent: "var(--model-color-2)" }],
+          ]
+        : [
           ["5h", { icon: "⏱", label: "5 小时窗口", accent: "var(--model-color-1)" }],
           ["weekly", { icon: "📅", label: "周窗口", accent: "var(--model-color-3)", isWeekly: true }],
           ["video", { icon: "🎬", label: "视频赠送", accent: "var(--model-color-4)" }],
@@ -125,7 +132,7 @@ function UsageWindowOverview({ snapshot, provider, excludedKeys = [] }: { snapsh
       });
     }
     return out;
-  }, [windows, credit, isGlm, excludedKeys]);
+  }, [windows, credit, isGlm, isCodex, excludedKeys]);
 
   if (entries.length === 0) return null;
 
@@ -175,20 +182,26 @@ function UsageWindowOverview({ snapshot, provider, excludedKeys = [] }: { snapsh
 }
 
 function UsageProviderHero({ snapshot, provider }: { snapshot: any; provider?: string }) {
-  const isGlm = provider === "glm" || snapshot?.provider === "glm";
-  const primary = snapshot?.windows?.["5h"];
+  const pid = provider || (snapshot && snapshot.provider) || "minimax";
+  const isGlm = pid === "glm";
+  const isCodex = pid === "codex";
+  // codex 的 business/enterprise 账号 rate_limit 为 null, 主约束是月度 credit 池 →
+  // 按 5h → monthly → weekly 兜底取第一个可用窗口.
+  const primary =
+    snapshot?.windows?.["5h"] ??
+    (isCodex ? snapshot?.windows?.monthly ?? snapshot?.windows?.weekly : undefined);
   const weekly = snapshot?.windows?.weekly;
   const usedPct = typeof primary?.usedPercent === "number" ? primary.usedPercent : null;
   const availablePct = typeof primary?.remainingPercent === "number"
     ? primary.remainingPercent
     : usedPct == null ? null : Math.max(0, 100 - usedPct);
   const rows = [
-    [isGlm ? "5 小时 Token" : "5 小时窗口", primary],
+    [isGlm ? "5 小时 Token" : (isCodex && primary?.label) || "5 小时窗口", primary],
     [isGlm ? "周 Token" : "周窗口", weekly],
   ].filter(([, value]) => value && typeof value === "object") as Array<[string, any]>;
 
   return (
-    <section class={`ai-usage-provider-hero ai-usage-provider-hero--${isGlm ? "glm" : "minimax"}`}>
+    <section class={`ai-usage-provider-hero ai-usage-provider-hero--${pid}`}>
       <div class="ai-usage-provider-hero-main">
         <span>当前可用</span>
         <strong>{availablePct == null ? "—" : `${availablePct}%`}</strong>
@@ -486,6 +499,7 @@ export function UsageDashboard({ snapshot, history, provider }: { snapshot?: any
     snapshot && Array.isArray(snapshot.toolUsageDetails) ? snapshot.toolUsageDetails : null;
   const level = snapshot && typeof snapshot.level === "string" ? snapshot.level : null;
   const isGlm = provider === "glm" || (snapshot && snapshot.provider === "glm");
+  const isCodex = provider === "codex" || (snapshot && snapshot.provider === "codex");
 
   // 任何分区都没有数据 → 不渲染 dashboard
   if (!hasWindows && !hasUsageSummary) return null;
@@ -527,6 +541,29 @@ export function UsageDashboard({ snapshot, history, provider }: { snapshot?: any
             <UsageToolBreakdown items={toolUsageDetails} />
           </section>
         )}
+      </div>
+    );
+  }
+
+  if (isCodex) {
+    return (
+      <div class="ai-usage-dashboard ai-usage-dashboard--codex">
+        <UsageProviderHero snapshot={snapshot} provider="codex" />
+        <section class="ai-usage-glm-summary">
+          {level && <UsagePlanBadge level={level} />}
+          <div class="ai-usage-glm-summary-copy">
+            <span class="ai-usage-zone-eyebrow">OpenAI Codex</span>
+            <strong>会话 / 周窗口与月度 credit 池</strong>
+            <span>数据来自 chatgpt.com wham/usage（本机 codex 登录态）</span>
+          </div>
+        </section>
+
+        <section class="ai-usage-zone">
+          <div class="ai-usage-zone-label">
+            <span class="ai-usage-zone-eyebrow">额度</span>
+          </div>
+          <UsageWindowOverview snapshot={snapshot} provider="codex" />
+        </section>
       </div>
     );
   }
@@ -613,6 +650,13 @@ function UsagePlanBadge({ level }: { level?: any }) {
     if (key === "lite") return { label: "Lite", accent: "var(--model-color-3)" };
     if (key === "pro") return { label: "Pro", accent: "var(--accent-primary)" };
     if (key === "max") return { label: "Max", accent: "var(--model-color-4)" };
+    // Codex / ChatGPT 套餐档
+    if (key === "plus") return { label: "Plus", accent: "var(--model-color-1)" };
+    if (key === "go") return { label: "Go", accent: "var(--model-color-1)" };
+    if (key === "business") return { label: "Business", accent: "var(--model-color-2)" };
+    if (key === "team") return { label: "Team", accent: "var(--model-color-2)" };
+    if (key === "enterprise") return { label: "Enterprise", accent: "var(--model-color-6)" };
+    if (key === "free") return { label: "Free", accent: "var(--text-tertiary)" };
     return { label: level, accent: "var(--text-tertiary)" };
   }, [level]);
   return (

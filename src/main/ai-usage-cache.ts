@@ -15,8 +15,9 @@
  */
 import * as fs from "fs";
 import * as stateStore from "./state-store";
+import { pickPrimaryWindow } from "../ai-usage/derive";
 
-export const PROVIDERS = ["minimax", "glm"];
+export const PROVIDERS = ["minimax", "glm", "codex"];
 
 /**
  * @param {{ statePath?: string }} opts
@@ -58,25 +59,41 @@ export function createAiUsageCache(opts: any = {}): any {
 
   /**
    * 给 tray 用的 summary. 简化展示字段.
+   * 取主窗口 (5h → monthly → weekly): codex 的 business 账号没有 5h 窗口,
+   * 月度 credit 池才是约束.
    * @param providerId
    * @returns {{ status: 'unconfigured' | 'ok' | 'error', percent?: number, remainLabel?: string, fetchedAt?: number, errorReason?: string }}
    */
   function getTraySummary(providerId: string): any {
     const snap = _loadProviderSnapshot(providerId, statePath);
     if (!snap) return { status: "unconfigured" };
-    const w = snap.windows && snap.windows["5h"];
-    if (!w || typeof w.usedPercent !== "number") {
-      return { status: "error", errorReason: "no_5h_window" };
+    const picked = pickPrimaryWindow(snap);
+    if (!picked || typeof picked.window.usedPercent !== "number") {
+      return { status: "error", errorReason: "no_usable_window" };
     }
+    const w = picked.window;
+    const percent = Math.round(w.usedPercent);
     return {
       status: "ok",
-      percent: Math.round(w.usedPercent),
-      remainLabel: _formatRemain(w.used, w.total),
+      percent,
+      // 只有 5h 窗口能按 "剩多少小时" 表述; 月度池按剩余百分比说, 免得拿 5h
+      // 的换算比例去套一个月的量.
+      remainLabel:
+        picked.key === "5h" && w.used != null && w.total != null
+          ? _formatRemain(w.used, w.total)
+          : `${Math.max(0, 100 - percent)}%`,
       fetchedAt: typeof snap.fetchedAt === "number" ? snap.fetchedAt : Date.now(),
     };
   }
 
-  return { loadAll, setSnapshot, getTraySummary, PROVIDERS };
+  /** 所有 provider 的 tray summary, 一次给 tray.setAiUsage 用. */
+  function getTraySummaryMap(): Record<string, any> {
+    const out: Record<string, any> = {};
+    for (const pid of PROVIDERS) out[pid] = getTraySummary(pid);
+    return out;
+  }
+
+  return { loadAll, setSnapshot, getTraySummary, getTraySummaryMap, PROVIDERS };
 }
 
 /**

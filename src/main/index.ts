@@ -498,10 +498,7 @@ function initAiUsageTray() {
     } = require("./ai-usage-refresh-scheduler.ts");
     const aiUsageCache = createAiUsageCache({});
     if (trayMgr) {
-      trayMgr.setAiUsage({
-        minimax: aiUsageCache.getTraySummary("minimax"),
-        glm: aiUsageCache.getTraySummary("glm"),
-      });
+      trayMgr.setAiUsage(aiUsageCache.getTraySummaryMap());
     }
     mainLog.info("ai-usage tray initialized (read-only from state.json)");
 
@@ -527,10 +524,11 @@ function initAiUsageTray() {
         },
         MiniMaxQuotaClient: require("../ai-usage/client.js").MiniMaxQuotaClient,
         GlmQuotaClient: require("../ai-usage/client-glm.js").GlmQuotaClient,
+        CodexQuotaClient: require("../ai-usage/client-codex.js").CodexQuotaClient,
         pushEvent: () => {},
       },
       alertDeps: {
-        providers: ["minimax", "glm"],
+        providers: ["minimax", "glm", "codex"],
         loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
         loadAlertPrefs: stateStore.loadAiUsageAlertPrefs,
         saveAlertPrefs: stateStore.saveAiUsageAlertPrefs,
@@ -755,6 +753,7 @@ function startSchedulers() {
         storage: require("../ai-sessions/storage.js"),
         MiniMaxQuotaClient: require("../ai-usage/client.js").MiniMaxQuotaClient,
         GlmQuotaClient: require("../ai-usage/client-glm.js").GlmQuotaClient,
+        CodexQuotaClient: require("../ai-usage/client-codex.js").CodexQuotaClient,
         sendToRenderer,
       },
       { warmup: true, registerIpc: false },
