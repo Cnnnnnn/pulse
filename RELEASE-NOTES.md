@@ -2,6 +2,16 @@
 
 ---
 
+## v3.3.10 (🧪 contract 测试去 flaky + 12 工具可测性 + prompt 成本测量) — 2026-09-17
+
+- **main-bundle contract 并发竞态修复**：两个 contract 测试文件并发 spawn build-main.cjs 互相覆盖共享 `dist/main/index.js`，读方拿到截断/pre-rewrite 中间态导致 flaky（一天挂两次、每次吃一次全量重跑）。`build-main.cjs` 新增 `PULSE_BUILD_MAIN_OUT` 输出重定向，测试各自构建到 `dist/` 私有临时目录并读私有副本，vitest 期间共享产物只由 pretest 串行产出；删除 retry/busy-wait 兜底，同跑 15/15 稳定
+- **assistant-tools 17 处 CJS require 迁移顶层 ESM import（Phase 7 收尾）**：`query_metals` / `query_stocks` / `query_stock_diagnosis` / `query_reminders` / `remember_fact` / `forget_fact` / `list_memory` / `interpret_finance` / `summarize_ithome` / `advise_stocks` / `query_movies` / `query_concerts` 12 个工具补齐真实执行测试（此前整段执行路径不可测）
+- **修 prod 静默故障**：`query_stock_diagnosis` 的 `require("../../stocks/...")` 路径深度写错（`src/ai` 出发应为 `../stocks`），esbuild 解析失败保留为运行时 require → 打包后必然 MODULE_NOT_FOUND，被 try/catch 吞成英文报错文案——该工具在线上包里一直是坏的；迁移后 bundle 内全部内联、坏路径清零
+- **prompt 请求侧成本测量**：新 `prompt-cost` 模块（CJK 启发式 token 估算 + 组件分解 + 200 条 ring buffer，风格对齐 llm-telemetry），`buildAssistantSystemPrompt`（scaffold/fewshot/ctx 三段）与 `resolvePrompt`（按 prompt key 记 system/rules/fewShot）双埋点，为 prompt 瘦身提供占比归因
+- 测试基线：565 文件 5347 pass + 4 skip；typecheck 5 tsconfig 0 errors
+
+---
+
 ## v3.3.9 (🐟 双视图保活：首页上也能 0 延迟收消息) — 2026-09-15
 
 **3.3.8 已修 ws-chat dedup，但用户在首页上仍收不到通知** — 用户主动点工具栏「首页」按钮 → `loadURL(GOOFISH_HOME)` → 整页 reload 把挂在 `/im` 上的官方 IM WebSocket 打断；之后新消息走 session.sync 兜底（20s 间隔 + `humansOnly` 时 `humanUnread` 永远 0），不是 0 延迟也不是 0 漏报。
