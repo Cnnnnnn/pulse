@@ -88,6 +88,7 @@ export function addMemory(
 
 /**
  * 删除记忆. 选择器优先级: id > query (文本包含) > index (1-based 显示序).
+ * query 模糊匹配命中多条时不删除（调用方先列候选让用户/模型用 id 精确删）.
  * @returns 是否有删除
  */
 export function removeMemory(
@@ -102,10 +103,13 @@ export function removeMemory(
     removed = next.length < items.length;
   } else if (sel.query && sel.query.trim()) {
     const q = sel.query.trim();
-    next = items.filter((i) => !i.text.includes(q));
-    removed = next.length < items.length;
+    const matched = items.filter((i) => i.text.includes(q));
+    if (matched.length !== 1) return false;
+    next = items.filter((i) => i.id !== matched[0].id);
+    removed = true;
   } else if (
     typeof sel.index === "number" &&
+    Number.isInteger(sel.index) &&
     sel.index >= 1 &&
     sel.index <= items.length
   ) {

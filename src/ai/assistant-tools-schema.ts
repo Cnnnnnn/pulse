@@ -279,11 +279,11 @@ export const ASSISTANT_TOOL_DEFS: Array<{
   },
   {
     name: "forget_fact",
-    description: "从长期记忆删除一条（按 id / 文本关键词 / 显示序号）。用户说「忘掉/删掉记忆X」时用",
+    description: "从长期记忆删除一条（按 id / 文本关键词 / 显示序号）。用户说「忘掉/删掉记忆X」时用。关键词命中多条时不删除，会提示先用 list_memory 查候选再按 id 删",
     parameters: obj({
       id: { type: "string", description: "记忆 id（已知时优先）" },
-      query: { type: "string", description: "文本关键词（模糊匹配）" },
-      index: { type: "number", description: "显示序号（1-based）" },
+      query: { type: "string", description: "文本关键词（模糊匹配；唯一命中才删除）" },
+      index: { type: "number", description: "显示序号（1-based 整数）" },
     }),
   },
   {

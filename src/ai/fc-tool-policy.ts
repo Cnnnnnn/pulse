@@ -51,7 +51,7 @@ function resolveAllowedToolNames(
     return uiNames;
   }
 
-  // 未知页面只发核心 11 个，不再全量 39 — 省 token 且降幻觉
+  // 未知页面只发核心工具，不再全量发送 — 省 token 且降幻觉
   if (!pageAllowed) return new Set<string>(ASSISTANT_GLOBAL_CORE_TOOLS);
   const out = new Set<string>();
   for (const n of pageAllowed) {

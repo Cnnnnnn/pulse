@@ -10,6 +10,8 @@
  * 避免「忘记加确认名单即静默放行」这类默认放行风险。
  */
 
+import { parseReminderTime } from "./reminder-time";
+
 export type ToolRisk = "allow" | "ask" | "deny";
 
 /**
@@ -62,13 +64,13 @@ export type ToolPolicyVerdict =
 /** triggerAt 容忍窗口 (ms) —— 允许「此刻」与轻微时钟偏差, 拒绝明显过去的时间 */
 const TRIGGER_AT_PAST_TOLERANCE_MS = 60_000;
 
-/** create_reminder: triggerAt 须为合理未来（数字时间戳，不早于 now - 60s） */
+/** create_reminder: 支持模型时间字符串和 UI 时间戳，不早于 now - 60s。 */
 const guardFutureTrigger: ToolGuard = (params, ctx) => {
-  const at = params.triggerAt;
-  if (typeof at !== "number" || !Number.isFinite(at)) {
-    return "triggerAt 必须是毫秒时间戳";
-  }
   const now = typeof ctx?.now === "number" ? ctx.now : Date.now();
+  const at = parseReminderTime(params.triggerAt, now);
+  if (at === null) {
+    return "triggerAt 必须是有效的 ISO 时间、相对时间或毫秒时间戳";
+  }
   if (at < now - TRIGGER_AT_PAST_TOLERANCE_MS) {
     return "triggerAt 不能是过去时间";
   }

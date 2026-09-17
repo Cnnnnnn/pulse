@@ -837,7 +837,7 @@ export async function retryLastMessage() {
   const text = chatRetryText.value;
   if (!text || chatLoading.value) return;
   chatError.value = null;
-  await sendChatMessage(text);
+  await sendChatMessage(text, { skipUserAppend: true });
 }
 
 export function findLastUserMessageIndex(messages: AiChatMessage[]): number {

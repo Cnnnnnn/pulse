@@ -54,6 +54,18 @@ describe("assistant-memory", () => {
     expect(removeMemory({ query: "不存在" }, store as any)).toBe(false);
   });
 
+  it("关键词匹配多条时不删除，明确 ID 只删除一条", () => {
+    const store = makeStore([
+      { id: "tea", text: "喜欢喝茶", createdAt: 1 },
+      { id: "coffee", text: "喜欢喝咖啡", createdAt: 2 },
+    ]);
+    expect(removeMemory({ query: "喜欢" }, store)).toBe(false);
+    expect(listMemory(store).map((item) => item.id)).toEqual(["tea", "coffee"]);
+    expect(removeMemory({ id: "tea" }, store)).toBe(true);
+    expect(listMemory(store).map((item) => item.id)).toEqual(["coffee"]);
+    expect(removeMemory({ index: 1.5 }, store)).toBe(false);
+  });
+
   it("超 MAX_MEMORY_ITEMS 删最旧", () => {
     const store = makeStore();
     for (let i = 0; i < MAX_MEMORY_ITEMS + 5; i++) {

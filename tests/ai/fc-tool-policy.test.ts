@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { resolveFcToolPolicy } from "../../src/ai/fc-tool-policy";
+import { buildOpenAiFcRequest, buildAnthropicFcRequest, resolveFcToolPolicy } from "../../src/ai/fc-tool-policy";
 import { wantsUiTool } from "../../src/shared/pulse-infer-registry";
 
 describe("fc-tool-policy", () => {
+  it.each([undefined, "home", "movies", "invest", "unknown"])("exposes memory tools in both providers on page %s", (activeNav) => {
+    const ctx = { userText: "记住我喜欢简洁回答" };
+    const opts = { model: "test", pageCtx: activeNav ? { activeNav } : undefined };
+    const openAi = buildOpenAiFcRequest([], ctx, opts).tools.map((tool) => tool.function.name);
+    const anthropic = (buildAnthropicFcRequest([], ctx, opts).body.tools as Array<{ name: string }>).map((tool) => tool.name);
+    for (const names of [openAi, anthropic]) {
+      expect(names).toEqual(expect.arrayContaining(["remember_fact", "forget_fact", "list_memory"]));
+    }
+  });
+
   it("wantsUiTool aligns with resolveFcToolPolicy", () => {
     const ctx = { userText: "打开应用列表页面" };
     expect(wantsUiTool(ctx)).toBe(true);

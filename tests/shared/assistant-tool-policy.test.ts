@@ -7,7 +7,7 @@ import {
   checkToolPolicy,
   getToolPolicy,
 } from "../../src/shared/assistant-tool-policy";
-import { ASSISTANT_TOOL_DEFS } from "../../src/ai/assistant-tools-schema";
+import { ASSISTANT_TOOL_DEFS, validateToolCall } from "../../src/ai/assistant-tools-schema";
 import {
   CONFIRM_REQUIRED_TOOLS,
   MAIN_PROCESS_TOOLS,
@@ -187,6 +187,12 @@ describe("assistant-tool-policy — 参数级 guard（Step 6）", () => {
   });
 
   describe("create_reminder — triggerAt 须为合理未来", () => {
+    it("schema 接受的相对提醒时间通过策略并仍需确认", () => {
+      const params = { title: "喝水", triggerAt: "+1h" };
+      expect(validateToolCall("create_reminder", params)).toEqual({ valid: true });
+      expect(checkToolPolicy("create_reminder", params, { now: NOW })).toEqual({ kind: "confirm" });
+    });
+
     it("超出容忍窗口的过去时间被拒", () => {
       expect(
         checkToolPolicy("create_reminder", { triggerAt: NOW - 120_000 }, { now: NOW }),
@@ -208,13 +214,13 @@ describe("assistant-tool-policy — 参数级 guard（Step 6）", () => {
     it("非数字 triggerAt 被拒", () => {
       expect(
         checkToolPolicy("create_reminder", { triggerAt: "明天" }, { now: NOW }),
-      ).toEqual({ kind: "deny", reason: "triggerAt 必须是毫秒时间戳" });
+      ).toEqual({ kind: "deny", reason: "triggerAt 必须是有效的 ISO 时间、相对时间或毫秒时间戳" });
     });
 
     it("缺 triggerAt 被拒（结构校验之外的第二道闸）", () => {
       expect(checkToolPolicy("create_reminder", {}, { now: NOW })).toEqual({
         kind: "deny",
-        reason: "triggerAt 必须是毫秒时间戳",
+        reason: "triggerAt 必须是有效的 ISO 时间、相对时间或毫秒时间戳",
       });
     });
   });

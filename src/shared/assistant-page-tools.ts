@@ -22,6 +22,9 @@ export const ASSISTANT_GLOBAL_CORE_TOOLS = [
   "query_digest",
   "create_reminder",
   "query_reminders",
+  "remember_fact",
+  "forget_fact",
+  "list_memory",
 ] as const;
 
 /** 页面专属工具（与 GLOBAL_CORE 合并） */

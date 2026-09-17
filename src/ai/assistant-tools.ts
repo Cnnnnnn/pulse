@@ -685,6 +685,7 @@ export async function executeMainTool(
         : { tool: "remember_fact", ok: false, summary: "未能记住（内容为空）" };
     }
     case "forget_fact": {
+      // query 模糊匹配只删唯一命中; 多条命中返回候选, 让模型/用户用 id 精确删
       const removed = removeMemory({
         id: typeof action.params.id === "string" ? action.params.id : undefined,
         query:
@@ -692,8 +693,22 @@ export async function executeMainTool(
         index:
           typeof action.params.index === "number" ? action.params.index : undefined,
       });
-      return removed
-        ? { tool: "forget_fact", ok: true, summary: "已删除该条记忆" }
+      if (removed) {
+        return { tool: "forget_fact", ok: true, summary: "已删除该条记忆" };
+      }
+      const query =
+        typeof action.params.query === "string" ? action.params.query.trim() : "";
+      const ambiguous =
+        query &&
+        !action.params.id &&
+        listMemory().filter((m) => m.text.includes(query)).length > 1;
+      return ambiguous
+        ? {
+            tool: "forget_fact",
+            ok: false,
+            summary:
+              "关键词匹配到多条记忆，未删除。请先调用 list_memory 查看条目，再用 forget_fact 指定 id 删除其中一条。",
+          }
         : { tool: "forget_fact", ok: false, summary: "未找到匹配的记忆" };
     }
     case "list_memory": {

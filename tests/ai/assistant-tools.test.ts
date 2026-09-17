@@ -544,6 +544,29 @@ describe("remember_fact / forget_fact / list_memory", () => {
     expect(miss!.summary).toContain("未找到匹配的记忆");
   });
 
+  it("forget_fact：关键词多命中时不删除并引导用 id 精确删", async () => {
+    // removeMemory 对多命中返回 false（不批量删）—— 工具层应回候选引导文案
+    mockedRemoveMemory.mockReturnValue(false as never);
+    mockedListMemory.mockReturnValue([
+      { id: "m1", text: "喜欢喝绿茶", createdAt: 1 },
+      { id: "m2", text: "喜欢喝红茶", createdAt: 2 },
+    ] as never);
+
+    const r = await executeMainTool({
+      tool: "forget_fact",
+      params: { query: "喜欢" },
+    });
+
+    expect(mockedRemoveMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ query: "喜欢" }),
+    );
+    expect(r!.ok).toBe(false);
+    expect(r!.summary).toContain("多条记忆");
+    expect(r!.summary).toContain("list_memory");
+    // 未删任何一条：removeMemory 仍只被调用了一次（本次查询本身）
+    expect(mockedRemoveMemory).toHaveBeenCalledTimes(1);
+  });
+
   it("list_memory：空与非空两种形态", async () => {
     const empty = await executeMainTool({ tool: "list_memory", params: {} });
     expect(empty!.summary).toContain("目前没有任何长期记忆");
