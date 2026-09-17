@@ -2,6 +2,16 @@
 
 ---
 
+## v3.3.11 (🛡️ 助手 harness 硬化：取消贯通/预算闭环/模型自纠 + 4 个 P0 契约修复) — 2026-09-17
+
+- **abort 贯通全链路（此前取消只在 SSE 流层生效，非流式请求发出后不可停）**：`withRetryBackoff` 支持 AbortSignal（退避可打断、重试前检查取消）；`HttpClient.post` 支持 signal 取消即销毁 socket 返 `error:cancelled`（真实 socket 测试锁定，不再干等到超时）；非流式 FC 请求接入上两层，取消不再误记 `llm_failed` 触发熔断；历史摘要 LLM 4s 超时竞速向底层发 AbortSignal（shared-llm→CloudSummarizer→HTTP 全透传）；工具执行 15s 硬超时竞速加取消轮询，点停止后挂起工具立即以「已取消」收尾，不再白等满 15s
+- **token 预算闭环**：`chatCompletion` / `chatCompletionStream` 回传 usage.totalTokens，XML 降级轮 token 计入 agent 预算——此前该路径 totalTokens 被丢弃，`maxTokens` 维度完全失效，只能靠工具调用上限兜底截断
+- **工具错误反馈契约（模型自纠）**：校验拒绝理由带字段级细节（如 `invalid_enum:query_leaderboard.category`）；全拒轮不再静默 return——拒绝占位按 FC 协议回注后继续循环，模型可修正参数重试（打转由轮数预算兜底），此前模型永远不知道调用被拒、下轮大概率原样重发
+- **P0 契约修复 ×4**：① create_reminder 策略守卫与 schema 类型冲突——新 `shared/reminder-time.ts` 统一解析 ISO/`+1h` 相对/毫秒时间戳，字符串时间不再被误拒，渲染层 reminder-parse 复用同一解析；② remember_fact/forget_fact/list_memory 加入 FC 全局核心工具白名单，此前只在 XML 协议下可见（OpenAI/Anthropic FC 请求全部页面可调）；③ forget_fact 关键词多命中不再批量删除——仅唯一命中才删，多命中返回引导文案让模型用 id 精确删；④ 失败重试不再重复 user 消息且保留附件（`retryLastMessage` 改 `skipUserAppend` 复用原消息，行为级测试锁定）
+- 测试基线：567 文件 5364 pass + 4 skip；typecheck 5 tsconfig 0 errors
+
+---
+
 ## v3.3.10 (🧪 contract 测试去 flaky + 12 工具可测性 + prompt 成本测量) — 2026-09-17
 
 - **main-bundle contract 并发竞态修复**：两个 contract 测试文件并发 spawn build-main.cjs 互相覆盖共享 `dist/main/index.js`，读方拿到截断/pre-rewrite 中间态导致 flaky（一天挂两次、每次吃一次全量重跑）。`build-main.cjs` 新增 `PULSE_BUILD_MAIN_OUT` 输出重定向，测试各自构建到 `dist/` 私有临时目录并读私有副本，vitest 期间共享产物只由 pretest 串行产出；删除 retry/busy-wait 兜底，同跑 15/15 稳定
