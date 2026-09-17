@@ -4,7 +4,15 @@ const path = require("node:path");
 const esbuild = require("esbuild");
 
 const rootDir = path.resolve(__dirname, "..");
-const outfile = path.join(rootDir, "dist", "main", "index.js");
+// vitest 并发跑多个 contract 测试文件时各自 spawn 本脚本。设
+// PULSE_BUILD_MAIN_OUT 把 main bundle 重定向到调用方私有路径，避免并发
+// 构建对共享 dist/main/index.js 先 esbuild 覆盖、后 rewrite 回写的竞态
+// （读方可能拿到截断或 pre-rewrite 的中间态）。worker 产物内容确定且
+// 无并发读方，保持共享路径不动。
+const outOverride = process.env.PULSE_BUILD_MAIN_OUT;
+const outfile = outOverride
+  ? path.resolve(outOverride)
+  : path.join(rootDir, "dist", "main", "index.js");
 const workerOutfile = path.join(rootDir, "dist", "workers", "detect-worker.js");
 
 fs.mkdirSync(path.dirname(outfile), { recursive: true });

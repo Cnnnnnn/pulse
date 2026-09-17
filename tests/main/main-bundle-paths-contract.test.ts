@@ -2,13 +2,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "../..");
 const BUILD_SCRIPT_PATH = path.join(ROOT_DIR, "scripts", "build-main.cjs");
-const MAIN_BUNDLE_PATH = path.join(ROOT_DIR, "dist", "main", "index.js");
+// 构建到本文件私有的临时路径（PULSE_BUILD_MAIN_OUT），与共享 dist/main/index.js
+// 及其它并发测试文件的构建彻底隔离 —— 之前两个 contract 测试文件并发 spawn
+// build-main.cjs 会互相覆盖 bundle，读方拿到截断/pre-rewrite 中间态导致 flaky。
+// 放 dist/ 下（非 os.tmpdir）保证若后续有 require 方式消费时裸包仍能解析到
+// 仓库 node_modules。
+const TMP_DIR = fs.mkdtempSync(
+  path.join(ROOT_DIR, "dist", "main-bundle-paths-contract-"),
+);
+const MAIN_BUNDLE_PATH = path.join(TMP_DIR, "index.js");
 
 // ponytail: contract guard for the post-build literal path rewrite.
 // esbuild bundles src/main/* into dist/main/index.js, so __dirname inside the
@@ -103,27 +111,27 @@ const MUST_EXIST_PATHS = [
   ["dist", "workers", "detect-worker.js"],
 ];
 
+afterAll(() => {
+  fs.rmSync(TMP_DIR, { recursive: true, force: true });
+});
+
 function buildBundle() {
-  // vitest 4 跨 file 并发: main-bundle-contract.test.ts 也调 build-main.cjs,
-  // 两个 build 可能 race 互相覆盖. 简单 retry 兜底 (build-main 是幂等的,
-  // 重跑能拿到当前文件的最终状态).
-  let lastErr = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      execFileSync(process.execPath, [BUILD_SCRIPT_PATH], {
-        cwd: ROOT_DIR,
-        stdio: "pipe",
-      });
-      return;
-    } catch (e) {
-      lastErr = e;
-      // 短暂退避让另一个 build 完成
-      const ms = 200 * (attempt + 1);
-      const end = Date.now() + ms;
-      while (Date.now() < end) { /* busy wait */ }
+  // 输出走 PULSE_BUILD_MAIN_OUT 私有路径，vitest 并发下无共享写目标，
+  // 不再需要 retry 兜底。env 经本进程 process.env 传给子进程继承。
+  const prev = process.env.PULSE_BUILD_MAIN_OUT;
+  process.env.PULSE_BUILD_MAIN_OUT = MAIN_BUNDLE_PATH;
+  try {
+    execFileSync("node", [BUILD_SCRIPT_PATH], {
+      cwd: ROOT_DIR,
+      stdio: "pipe",
+    });
+  } finally {
+    if (prev === undefined) {
+      delete process.env.PULSE_BUILD_MAIN_OUT;
+    } else {
+      process.env.PULSE_BUILD_MAIN_OUT = prev;
     }
   }
-  throw lastErr;
 }
 
 function readBundle() {
