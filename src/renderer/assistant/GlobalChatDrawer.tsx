@@ -558,11 +558,14 @@ export function GlobalChatDrawer() {
   const showTyping = loading && !!status;
   const showCursor = loading && streaming;
 
+  // PR1 v2 头部切换 — 默认 undefined 保持向后兼容, 加 --v2-header 类即开
+  const drawerClass = "global-chat-drawer global-chat-drawer--v2-header";
+
   return (
     <DrawerShell
       open={open}
       onClose={closeGlobalChat}
-      drawerClass="global-chat-drawer"
+      drawerClass={drawerClass}
       bodyClass="global-chat-drawer__body"
       showOverlay
       overlayClass="global-chat-overlay"

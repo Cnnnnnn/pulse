@@ -3196,3 +3196,261 @@
   color: var(--text-secondary);
   border: 1px solid color-mix(in oklch, #f59e0b 30%, transparent);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   UI Optimization: Enhanced AI assistant experience
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Typing indicator with animated dots ── */
+.global-chat-msg__bubble--typing {
+  position: relative;
+  opacity: 0.85;
+  font-style: normal;
+  color: var(--text-secondary);
+}
+.global-chat-msg__bubble--typing::after {
+  content: '';
+  display: inline-block;
+  width: 1.4em;
+  text-align: left;
+  animation: pulse-typing-dots 1.2s steps(4, end) infinite;
+}
+@keyframes pulse-typing-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+/* ── 2. Streaming cursor enhancement ── */
+.global-chat-cursor {
+  border-radius: 1px;
+  animation: pulse-chat-blink 1s step-end infinite;
+}
+@keyframes pulse-chat-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+/* ── 3. Message entrance animations ── */
+.global-chat-msg {
+  animation: pulse-msg-enter 0.25s var(--transition) both;
+}
+.global-chat-msg:nth-child(1) { animation-delay: 0ms; }
+.global-chat-msg:nth-child(2) { animation-delay: 30ms; }
+.global-chat-msg:nth-child(3) { animation-delay: 60ms; }
+.global-chat-msg:nth-child(4) { animation-delay: 90ms; }
+@keyframes pulse-msg-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.global-chat-msg--user {
+  animation-name: pulse-user-msg-in;
+}
+@keyframes pulse-user-msg-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .global-chat-msg, .global-chat-msg--user {
+    animation: none;
+  }
+}
+
+/* ── 4. Quick action chips: enhanced micro-interactions ── */
+.global-chat-quick-actions__chip {
+  transition: transform 0.15s var(--transition), box-shadow 0.15s var(--transition), background 0.15s var(--transition);
+}
+.global-chat-quick-actions__chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.global-chat-quick-actions__chip:active:not(:disabled) {
+  transform: translateY(0);
+}
+.global-chat-quick-actions__chip[aria-busy="true"] {
+  animation: pulse-chip-busy 1.5s ease-in-out infinite;
+}
+@keyframes pulse-chip-busy {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── 5. Drawer open/close smooth transition ── */
+.global-chat-overlay {
+  transition: opacity 0.25s var(--transition);
+}
+.global-chat-drawer {
+  transition: transform 0.3s var(--transition), box-shadow 0.3s var(--transition);
+}
+
+/* ── 6. Tool card status indicators ── */
+.global-chat-tool-card {
+  position: relative;
+  border-left: 3px solid transparent;
+  transition: border-color 0.25s var(--transition);
+}
+.global-chat-tool-card:has(.global-chat-tool-card__item-btn) {
+  border-left-color: var(--accent-green);
+}
+.global-chat-tool-card__item-btn {
+  transition: background 0.15s var(--transition), transform 0.1s var(--transition);
+}
+.global-chat-tool-card__item-btn:hover {
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+  transform: translateX(2px);
+}
+.global-chat-tool-card__item-btn:active {
+  transform: translateX(0);
+}
+
+/* ── 7. Enhanced scroll-to-bottom/up buttons ── */
+.global-chat-scroll-down,
+.global-chat-scroll-up {
+  transition: transform 0.2s var(--transition), opacity 0.2s var(--transition);
+}
+.global-chat-scroll-down:hover,
+.global-chat-scroll-up:hover {
+  transform: scale(1.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   v2 头部应用栏 (PR1 视觉重构, 2026-09-17)
+   ───────────────────────────────────────────────────────────────
+   只重做头部, 不动消息流 / 输入框 / 工具区.
+   通过 .global-chat-drawer--v2-header 修饰类启用, 默认未挂载,
+   旧样式 100% 保留. 在 GlobalChatDrawer 里去掉 "global-chat-drawer--v2-header"
+   即回滚, 不动 TSX 结构.
+   ponytail: 切面 1 行 className, git checkout 即可秒回滚.
+   ═══════════════════════════════════════════════════════════════ */
+
+.global-chat-drawer--v2-header {
+  --header-accent: var(--assistant-accent);
+}
+
+/* 头部: 4 元素布局 — AI 标 + 会话胶囊 + 模型 chip + 关闭 */
+.global-chat-drawer--v2-header .global-chat-drawer__header {
+  padding: 10px 20px 12px;
+  background: var(--surface, var(--bg-primary));
+  border-bottom: 1px solid var(--border-subtle, var(--bg-secondary));
+}
+
+.global-chat-drawer--v2-header .global-chat-drawer__header-top {
+  gap: 10px;
+}
+
+/* AI 标: 紫色渐变小方块替代圆形图标 */
+.global-chat-drawer--v2-header .global-chat-drawer__assistant-mark {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--assistant-accent-grad);
+  box-shadow: 0 2px 8px rgba(88, 86, 214, 0.28);
+}
+
+/* 标题行: 紧凑 */
+.global-chat-drawer--v2-header .global-chat-drawer__title-row {
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.global-chat-drawer--v2-header .global-chat-drawer__header .drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 会话胶囊: orb 改色, 标题去样式 */
+.global-chat-drawer--v2-header .global-chat-session-switcher {
+  margin-left: 4px;
+  gap: 6px;
+}
+
+.global-chat-drawer--v2-header .global-chat-session-switcher__orb {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--assistant-accent-grad);
+  box-shadow: 0 2px 6px rgba(88, 86, 214, 0.25);
+}
+
+.global-chat-drawer--v2-header .global-chat-session-switcher__orb:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(88, 86, 214, 0.32);
+}
+
+.global-chat-drawer--v2-header .global-chat-session-switcher__orb[aria-expanded="true"] {
+  background: var(--assistant-accent-grad);
+}
+
+.global-chat-drawer--v2-header .global-chat-session-switcher__title {
+  max-width: 220px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 头部右侧: 紧凑 actions */
+.global-chat-drawer--v2-header .global-chat-drawer__header-actions {
+  gap: 6px;
+}
+
+/* 新对话按钮: 紫色实色 + 文字 */
+.global-chat-drawer--v2-header .global-chat-drawer__new-btn {
+  min-height: 30px;
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--assistant-accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(88, 86, 214, 0.25);
+}
+
+.global-chat-drawer--v2-header .global-chat-drawer__new-btn:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--assistant-accent) 88%, #000);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(88, 86, 214, 0.35);
+}
+
+/* 更多菜单 summary: 紧凑圆角 */
+.global-chat-drawer--v2-header .global-chat-more > summary {
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+}
+
+/* 关闭按钮: 紧凑 */
+.global-chat-drawer--v2-header .drawer-icon-btn {
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 8px;
+}
+
+.global-chat-drawer--v2-header .drawer-icon-btn:hover {
+  background: var(--bg-elevated, var(--bg-secondary));
+}
+
+/* 模型选择器放在 details menu 里, 这里只让它在小空间里好看 */
+.global-chat-drawer--v2-header .global-chat-drawer__model-select {
+  max-width: 90px;
+  padding: 4px 8px;
+  border-radius: 7px;
+}
+
+.global-chat-drawer--v2-header .global-chat-drawer__model-input {
+  width: 120px;
+  padding: 4px 8px;
+  border-radius: 7px;
+}
+
+/* 在 v2 模式下隐藏 thread stats (太挤, 数据挪到会话胶囊 hover title) */
+.global-chat-drawer--v2-header .global-chat-drawer__stats {
+  display: none;
+}

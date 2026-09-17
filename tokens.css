@@ -58,6 +58,21 @@
   --app-codex: #10A981;
   --app-minimax-code: #F59E0B;
 
+  /* AI 助手界面 v2 token (PR1 视觉重构, 2026-09-17)
+     ponytail: 主色 #5856d6 (Cursor 紫同源) 贯穿头像/发送钮/链接/激活态.
+     用户/助手区分靠说话人标签 + 头像颜色, 不靠气泡底色 (Phase v2 去气泡).
+     --assistant-accent-grad 单独拎出来是因为它跨了 2 个 OKLCH 色相,
+     不能从 --assistant-accent 直接 derive, 必须 literal 值.
+     桌面版本仅 light 主题用到, dark 不变. */
+  --assistant-accent: #5856d6;
+  --assistant-accent-soft: rgba(88, 86, 214, 0.08);
+  --assistant-accent-soft-2: rgba(88, 86, 214, 0.14);
+  --assistant-accent-grad: linear-gradient(135deg, #5856d6, #af52de);
+  --assistant-grad-stop-1: #5856d6;
+  --assistant-grad-stop-2: #af52de;
+  --assistant-divider: rgba(209, 209, 214, 0.32);
+  --assistant-avatar-user: #5856d6;
+
   /* 中性阶梯 primitive (P3 · OKLCH 化基础)
      值与 ui-design-system.md §2.1 一致, 现已迁 OKLCH, 真正的感知均匀阶梯
      (L 97→23% 均匀降, chroma ≈ 0 保持中性, hue ≈ 285° 极浅冷蓝).
@@ -214,4 +229,35 @@
     --chrome-bg: rgba(28, 28, 30, 0.94);
     --content-bg: #141416;
     --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI Optimization: Global focus-visible accessibility
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Consistent focus ring across all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Suppress UA focus ring when :focus-visible is supported */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Tighter ring for buttons and links */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* Dark theme adjustments */
+:root[data-theme="dark"] :focus-visible {
+  outline-color: var(--accent-blue);
 }

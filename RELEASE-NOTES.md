@@ -8,6 +8,7 @@
 - **token 预算闭环**：`chatCompletion` / `chatCompletionStream` 回传 usage.totalTokens，XML 降级轮 token 计入 agent 预算——此前该路径 totalTokens 被丢弃，`maxTokens` 维度完全失效，只能靠工具调用上限兜底截断
 - **工具错误反馈契约（模型自纠）**：校验拒绝理由带字段级细节（如 `invalid_enum:query_leaderboard.category`）；全拒轮不再静默 return——拒绝占位按 FC 协议回注后继续循环，模型可修正参数重试（打转由轮数预算兜底），此前模型永远不知道调用被拒、下轮大概率原样重发
 - **P0 契约修复 ×4**：① create_reminder 策略守卫与 schema 类型冲突——新 `shared/reminder-time.ts` 统一解析 ISO/`+1h` 相对/毫秒时间戳，字符串时间不再被误拒，渲染层 reminder-parse 复用同一解析；② remember_fact/forget_fact/list_memory 加入 FC 全局核心工具白名单，此前只在 XML 协议下可见（OpenAI/Anthropic FC 请求全部页面可调）；③ forget_fact 关键词多命中不再批量删除——仅唯一命中才删，多命中返回引导文案让模型用 id 精确删；④ 失败重试不再重复 user 消息且保留附件（`retryLastMessage` 改 `skipUserAppend` 复用原消息，行为级测试锁定）
+- **助手抽屉 v2 视觉 PR1**：新增 AI 助手 v2 设计 token（#5856d6 主色贯穿头像/发送钮/链接/激活态；`--assistant-accent-grad` 跨双 OKLCH 色相、必须 literal 值单独定义；桌面仅 light 主题生效）；`global-chat-drawer--v2-header` 头部切换类开闸（默认 undefined 向后兼容）；打字指示动态省略号 + 流式光标脉冲 + 消息入场动效；全局 `:focus-visible` 焦点环（按钮/链接收紧 offset，暗色主题独立取色）
 - 测试基线：567 文件 5364 pass + 4 skip；typecheck 5 tsconfig 0 errors
 
 ---
