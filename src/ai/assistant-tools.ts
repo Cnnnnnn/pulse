@@ -23,6 +23,29 @@ import {
   queryCacheKey,
   setQueryCache,
 } from "./assistant-query-cache";
+// ponytail: Phase 7 收尾 — 17 处函数内 CJS require 迁移为顶层 ESM import。
+// 此前 vitest 直连源码模式下 Node 无法解析无扩展名 .ts，12 个工具
+// （金属/股票/提醒/记忆/解读类）在测试里不可达。其中 "../../stocks/*"
+// 两处路径深度写错（src/ai 出发应为 ../stocks），esbuild 解析失败后保留为
+// 运行时 require，prod bundle 里 query_stock_diagnosis 必然
+// MODULE_NOT_FOUND（被 try/catch 吞成英文报错文案）。迁移后依赖进入模块图，
+// 测试侧以 vi.mock 注入（见 tests/ai/assistant-tools.test.ts）。
+import { getTraySnapshot } from "../main/metal-ipc";
+import { METALS } from "../metals/metal-config";
+import * as metalRepo from "../main/metals/metal-repository";
+import { createStockHttpClient } from "../main/chromium-http-client";
+import { searchStocks } from "../stocks/stock-search";
+import { fetchStockDetailAngles } from "../stocks/stock-detail-fetcher";
+import { computeScores } from "../stocks/diagnosis-scorer";
+import * as remindersMod from "../main/reminders";
+import {
+  runInterpretFinance,
+  runSummarizeIthome,
+  runAdviseStocks,
+  runQueryMovies,
+  runQueryConcerts,
+} from "./assistant-interpret-tools";
+import { addMemory, removeMemory, listMemory } from "./assistant-memory";
 
 
 export type ToolCardItem = {
@@ -306,9 +329,6 @@ async function runSearch(
 }
 
 function summarizeMetals(): ToolResult {
-  const { getTraySnapshot } = require("../main/metal-ipc");
-  const { METALS } = require("../metals/metal-config");
-  const metalRepo = require("../main/metals/metal-repository");
   const cfg = metalRepo.load();
   const snap = getTraySnapshot();
   const quotes = snap.quotes || {};
@@ -362,8 +382,6 @@ async function summarizeStocks(
     };
   }
   try {
-    const { createStockHttpClient } = require("../main/chromium-http-client");
-    const { searchStocks } = require("../stocks/stock-search");
     const http = createStockHttpClient({ timeout: 6000, maxRetries: 0 });
     const results = await searchStocks(q, http);
     if (!results || results.length === 0) {
@@ -495,9 +513,6 @@ async function summarizeStockDiagnosis(
     "tech_indicators",
   ];
   try {
-    const { createStockHttpClient } = require("../main/chromium-http-client");
-    const { fetchStockDetailAngles } = require("../../stocks/stock-detail-fetcher");
-    const { computeScores } = require("../../stocks/diagnosis-scorer");
     const http = createStockHttpClient({ timeout: 8000, maxRetries: 1 });
     const data = await fetchStockDetailAngles(http, code, angles);
     if (!data || data.fulfilledCount === 0) {
@@ -565,11 +580,7 @@ function fmtTriggerAt(ms: unknown): string {
 }
 
 function summarizeReminders(): ToolResult {
-  const remindersMod = require("../main/reminders");
-  const all: any[] =
-    remindersMod && typeof remindersMod.list === "function"
-      ? remindersMod.list()
-      : [];
+  const all: any[] = remindersMod.list();
   if (!Array.isArray(all) || all.length === 0) {
     return {
       tool: "query_reminders",
@@ -652,28 +663,17 @@ export async function executeMainTool(
       return summarizeStockDiagnosis(action.params, deps.pageData);
     case "query_reminders":
       return summarizeReminders();
-    case "interpret_finance": {
-      const { runInterpretFinance } = require("./assistant-interpret-tools");
+    case "interpret_finance":
       return runInterpretFinance(action.params, deps.pageData);
-    }
-    case "summarize_ithome": {
-      const { runSummarizeIthome } = require("./assistant-interpret-tools");
+    case "summarize_ithome":
       return runSummarizeIthome(action.params, deps.pageData);
-    }
-    case "advise_stocks": {
-      const { runAdviseStocks } = require("./assistant-interpret-tools");
+    case "advise_stocks":
       return runAdviseStocks(action.params);
-    }
-    case "query_movies": {
-      const { runQueryMovies } = require("./assistant-interpret-tools");
+    case "query_movies":
       return runQueryMovies(action.params);
-    }
-    case "query_concerts": {
-      const { runQueryConcerts } = require("./assistant-interpret-tools");
+    case "query_concerts":
       return runQueryConcerts();
-    }
     case "remember_fact": {
-      const { addMemory } = require("./assistant-memory");
       const fact =
         typeof action.params.fact === "string" ? action.params.fact.trim() : "";
       if (!fact) {
@@ -685,7 +685,6 @@ export async function executeMainTool(
         : { tool: "remember_fact", ok: false, summary: "未能记住（内容为空）" };
     }
     case "forget_fact": {
-      const { removeMemory } = require("./assistant-memory");
       const removed = removeMemory({
         id: typeof action.params.id === "string" ? action.params.id : undefined,
         query:
@@ -698,7 +697,6 @@ export async function executeMainTool(
         : { tool: "forget_fact", ok: false, summary: "未找到匹配的记忆" };
     }
     case "list_memory": {
-      const { listMemory } = require("./assistant-memory");
       const items = listMemory();
       if (items.length === 0) {
         return { tool: "list_memory", ok: true, summary: "目前没有任何长期记忆。" };

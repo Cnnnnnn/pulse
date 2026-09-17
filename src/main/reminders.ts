@@ -28,7 +28,7 @@ import * as crypto from "crypto";
 import * as stateStore from "./state-store";
 import * as recentActivity from "./recent-activity";
 import { mainLog } from "./log";
-const { setManagedInterval, clearManaged } = require("./timer-registry.ts");
+import { setManagedInterval, clearManaged } from "./timer-registry";
 
 const VALID_REPEATS = ["once", "daily", "weekdays", "weekly"] as const;
 type Repeat = (typeof VALID_REPEATS)[number];

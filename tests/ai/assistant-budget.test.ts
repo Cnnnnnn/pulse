@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+// assistant-agent → assistant-tools 顶层 ESM import 链会连带加载 metal-ipc
+// （顶层 import electron，node 测试环境无运行时），mock 隔离
+vi.mock("../../src/main/metal-ipc.ts", () => ({
+  getTraySnapshot: vi.fn(() => ({})),
+}));
 import {
   DEFAULT_BUDGET,
   MAX_TOKENS_LIMIT,

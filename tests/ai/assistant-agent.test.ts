@@ -21,6 +21,11 @@ vi.mock("../../src/ai/shared-llm.ts", () => ({
     config: { providerId: "openai", model: "gpt-mock", apiKey: "k" },
   })),
 }));
+// assistant-tools 迁移为顶层 ESM import 后会连带加载 metal-ipc —— 其顶层
+// import electron，node 测试环境无运行时，先 mock 隔离
+vi.mock("../../src/main/metal-ipc.ts", () => ({
+  getTraySnapshot: vi.fn(() => ({})),
+}));
 vi.mock("../../src/ai/assistant-tools.ts", async (importOriginal) => {
   const actual: any = await importOriginal();
   return {

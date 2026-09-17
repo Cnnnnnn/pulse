@@ -12,19 +12,15 @@
  * setManagedInterval / setManagedTimeout. Existing call sites are
  * intentionally untouched in v1 (spec §2.3).
  *
- * No Electron dependency — pure CommonJS, vitest-requireable.
+ * No Electron dependency — pure module, vitest-requireable.
  */
 
-// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
-//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
-//          rewrite 依赖 path 保留裸名).
-import type * as timersType from "node:timers";
-import type * as fsType from "node:fs";
-import type * as pathType from "node:path";
-
-const timers: typeof timersType = require("node:timers");
-const fs: typeof fsType = require("node:fs");
-const path: typeof pathType = require("node:path");
+// ponytail: builtin 一律走 ESM import（2026-09 assistant-tools 迁移后本模块
+// 进入 vitest 直连源码模块图，运行时 require 在 ESM 语境下 ReferenceError）。
+// 本文件无 __dirname 字面量，不涉及 post-build path rewrite 的裸名约束。
+import * as timers from "node:timers";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 type ManagedHandle = import("../shared/electron/timer-registry-adapter").ManagedHandle;
 type ManagedTimerMeta = import("../shared/electron/timer-registry-adapter").ManagedTimerMeta;
