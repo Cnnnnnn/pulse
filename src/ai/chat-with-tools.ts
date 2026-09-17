@@ -164,6 +164,11 @@ export async function chatWithTools(
     opts.pageCtx ??
     extractFcPageContext(undefined, { activeNav: uiCtx.activeNav });
 
+  const controller = new AbortController();
+  const registerCancellation = () => {
+    opts.onAbortRegister?.(() => controller.abort());
+    if (opts.isAborted?.()) controller.abort();
+  };
   try {
     if (ep.protocol === "openai") {
       if (typeof opts.onDelta === "function") {
@@ -194,6 +199,7 @@ export async function chatWithTools(
         max_tokens: resolveMaxOutputTokens(model),
         pageCtx,
       });
+      registerCancellation();
       const r = await withRetryBackoff<any>(
         () =>
           http.post(
@@ -207,8 +213,9 @@ export async function chatWithTools(
               max_tokens: req.max_tokens,
             },
             { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+            { signal: controller.signal },
           ),
-        { attempts: 3, baseDelayMs: 500, maxDelayMs: 2000 },
+        { attempts: 3, baseDelayMs: 500, maxDelayMs: 2000, signal: controller.signal, isAborted: opts.isAborted },
       );
       if (r.error || r.status < 200 || r.status >= 300) {
         recordLlmFailure(providerId);
@@ -269,6 +276,7 @@ export async function chatWithTools(
         max_tokens: resolveMaxOutputTokens(model),
         pageCtx,
       });
+      registerCancellation();
       const r = await withRetryBackoff<any>(
         () =>
           http.post(
@@ -279,8 +287,9 @@ export async function chatWithTools(
               "x-api-key": apiKey,
               "anthropic-version": ANTHROPIC_VERSION,
             },
+            { signal: controller.signal },
           ),
-        { attempts: 3, baseDelayMs: 500, maxDelayMs: 2000 },
+        { attempts: 3, baseDelayMs: 500, maxDelayMs: 2000, signal: controller.signal, isAborted: opts.isAborted },
       );
       if (r.error || r.status < 200 || r.status >= 300) {
         recordLlmFailure(providerId);
@@ -315,6 +324,9 @@ export async function chatWithTools(
 
     return { ok: false, reason: "unsupported_provider" };
   } catch (err: any) {
+    if (controller.signal.aborted || opts.isAborted?.()) {
+      return { ok: false, reason: "cancelled" };
+    }
     recordLlmFailure(providerId);
     recordLlmOutcome({ t0, providerId, model, ok: false, reason: "llm_failed" });
     return {

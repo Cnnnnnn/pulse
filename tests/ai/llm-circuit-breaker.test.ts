@@ -91,6 +91,23 @@ describe("llm-circuit-breaker", () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
+  it("withRetryBackoff 取消退避后立即结束且不再请求", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const fn = vi.fn().mockResolvedValue({ status: 503 });
+    const settled = vi.fn();
+    const options = { attempts: 3, baseDelayMs: 2000, signal: controller.signal };
+    const pending = withRetryBackoff(fn, options).then(settled, settled);
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toHaveBeenCalledWith(expect.objectContaining({ name: "AbortError" }));
+    await vi.advanceTimersByTimeAsync(10_000);
+    await pending;
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("getLlmBreakerInfo: closed / open / 恢复窗口快照", () => {
     expect(getLlmBreakerInfo("info-p").state).toBe("closed");
     expect(getLlmBreakerInfo("info-p").openUntilMs).toBeNull();

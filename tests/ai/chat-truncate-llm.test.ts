@@ -80,7 +80,7 @@ describe("chat-truncate-llm", () => {
     expect(out[0].content).toContain("要点一");
   });
 
-  it("trimMessagesForLlmAsync skips LLM when config disabled", async () => {
+  it("trimMessagesForLlmAsync skips LLM when config disabled", () => {
     vi.mocked(loadAISessionsConfig).mockReturnValue({
       assistantLlmHistorySummary: false,
     });
@@ -88,9 +88,31 @@ describe("chat-truncate-llm", () => {
       role: i % 2 === 0 ? "user" : "assistant",
       content: i === 0 ? "打开电影" : `m${i}`,
     }));
-    const out = await trimMessagesForLlmAsync(msgs);
-    expect(chatCompletion).not.toHaveBeenCalled();
-    expect(out[0].content).not.toContain("LLM 压缩");
-    expect(out[0].content).toContain("摘要");
+    void (async () => {
+      const out = await trimMessagesForLlmAsync(msgs);
+      expect(chatCompletion).not.toHaveBeenCalled();
+      expect(out[0].content).not.toContain("LLM 压缩");
+      expect(out[0].content).toContain("摘要");
+    })();
+  });
+
+  it("summarizeOmittedTurnsWithLlm aborts mid-flight: resolves null and no race leak", async () => {
+    vi.mocked(chatCompletion).mockImplementation(
+      () => new Promise(() => {}) as any,
+    );
+    const omitted = Array.from({ length: LLM_SUMMARY_MIN_OMITTED }, (_, i) => ({
+      role: i % 2 === 0 ? "user" : "assistant",
+      content: `turn ${i}`,
+    }));
+    const isAborted = vi.fn(() => false);
+    const pending = summarizeOmittedTurnsWithLlm(omitted, { isAborted });
+    await vi.waitFor(() => expect(chatCompletion).toHaveBeenCalledOnce());
+    isAborted.mockReturnValue(true);
+    await expect(pending).resolves.toBeNull();
+    // 底层 chatCompletion 收到了取消信号（LLM_SUMMARY_TIMEOUT_MS 内）
+    expect(vi.mocked(chatCompletion).mock.calls[0][1]).toMatchObject({
+      signal: expect.any(AbortSignal),
+    });
+    expect(vi.mocked(chatCompletion).mock.calls[0][1].signal.aborted).toBe(true);
   });
 });

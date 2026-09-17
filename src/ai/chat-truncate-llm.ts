@@ -64,24 +64,41 @@ export async function summarizeOmittedTurnsWithLlm<
   const transcript = formatTranscript(omitted);
   if (!transcript.trim()) return null;
 
+  const abort = new AbortController();
   const llm = await Promise.race([
     chatCompletion(
       [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
         { role: "user", content: transcript },
       ],
-      { model },
+      { model, signal: abort.signal },
     ),
     new Promise<{ ok: false; reason: string }>((resolve) => {
       const t = setTimeout(
-        () => resolve({ ok: false, reason: "summary_timeout" }),
+        () => {
+          abort.abort();
+          resolve({ ok: false, reason: "summary_timeout" });
+        },
         LLM_SUMMARY_TIMEOUT_MS,
       );
       if (t && typeof (t as { unref?: () => void }).unref === "function") {
         (t as { unref: () => void }).unref();
       }
     }),
-  ]);
+    new Promise<{ ok: false; reason: string }>((resolve) => {
+      // 轮询 isAborted（无回调注册通道）—— 取消后 ≤100ms 内掐断摘要请求
+      const iv = setInterval(() => {
+        if (opts.isAborted?.()) {
+          clearInterval(iv);
+          abort.abort();
+          resolve({ ok: false, reason: "cancelled" });
+        }
+      }, 100);
+      if (iv && typeof (iv as unknown as { unref?: () => void }).unref === "function") {
+        (iv as unknown as { unref: () => void }).unref();
+      }
+    }),
+  ]).finally(() => abort.abort());
 
   if (!llm.ok || !llm.text?.trim()) return null;
   return llm.text.trim().slice(0, LLM_SUMMARY_MAX_CHARS);

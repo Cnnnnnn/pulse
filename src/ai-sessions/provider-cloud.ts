@@ -192,7 +192,7 @@ export class CloudSummarizer {
  * @param {object} [opts.meta]  透传 (dateKey / locale / sessionCount)
  * @returns {Promise<string>} markdown summary
  */
- async summarize({ messages, model, config, httpClient }: any = {}) {
+ async summarize({ messages, model, config, httpClient, signal }: any = {}) {
  if (!httpClient) throw new TypeError('CloudSummarizer.summarize: httpClient not provided');
  if (!Array.isArray(messages) || messages.length ===0) {
  throw new TypeError('CloudSummarizer.summarize: messages must be non-empty array');
@@ -221,7 +221,7 @@ export class CloudSummarizer {
  url,
  body,
  { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
- { timeout: DEFAULT_TIMEOUT_MS }
+ { timeout: DEFAULT_TIMEOUT_MS, signal }
  );
  } else {
  // Anthropic: system message拆出, messages数组只剩 user/assistant
@@ -244,7 +244,7 @@ export class CloudSummarizer {
  'x-api-key': apiKey,
  'anthropic-version': ANTHROPIC_VERSION,
  },
- { timeout: DEFAULT_TIMEOUT_MS }
+ { timeout: DEFAULT_TIMEOUT_MS, signal }
  );
  }
 

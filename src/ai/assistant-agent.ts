@@ -274,7 +274,12 @@ async function callLlmRound0(
     return { ok: false, reason: llm.reason, error: llm.error, actions: [] };
   }
   const rawText = llm.text || "";
-  return { ok: true, text: rawText, actions: parseAllTextActions(rawText) };
+  return {
+    ok: true,
+    text: rawText,
+    actions: parseAllTextActions(rawText),
+    totalTokens: llm.totalTokens,
+  };
 }
 
 /**
@@ -321,7 +326,12 @@ async function callLlmFollowupRound(
     return { ok: false, reason: llm.reason, error: llm.error, actions: [] };
   }
   const rawText = llm.text || "";
-  return { ok: true, text: rawText, actions: parseAllTextActions(rawText) };
+  return {
+    ok: true,
+    text: rawText,
+    actions: parseAllTextActions(rawText),
+    totalTokens: llm.totalTokens,
+  };
 }
 
 /** P1-4: 单主进程工具硬超时 (ms) */
@@ -343,8 +353,11 @@ function toolRejectReason(
   action: AssistantAction,
   policyCtx?: ToolGuardContext,
 ): string | null {
-  if (!validateToolCall(action.tool, action.params).valid) {
-    return "调用不合法, 已拒绝执行";
+  const v = validateToolCall(action.tool, action.params);
+  if (v.valid === false) {
+    // 带上字段级原因 (missing_required:X.key 等) —— 回注给模型才能自纠。
+    // 注意用判等而非真值收窄: tsconfig.app (strict:false) 下 !v.valid 不会收窄 union。
+    return `调用不合法, 已拒绝执行: ${v.reason}`;
   }
   const verdict = checkToolPolicy(action.tool, action.params, policyCtx);
   if (verdict.kind === "deny") {
@@ -360,6 +373,7 @@ async function runToolWithTimeout(
   if (deps.isAborted?.()) return null;
   const t0 = Date.now();
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let poller: ReturnType<typeof setInterval> | null = null;
   const work = executeMainTool(action, {
     searchIndex: deps.searchIndex,
     fundScheduler: deps.fundScheduler,
@@ -372,8 +386,16 @@ async function runToolWithTimeout(
     timer = setTimeout(() => {
       resolve(toolFailureResult(action.tool, "工具执行超时，请稍后重试"));
     }, TOOL_TIMEOUT_MS);
-    if (timer && typeof (timer as unknown as { unref?: () => void }).unref === "function") {
-      (timer as unknown as { unref: () => void }).unref();
+    // 用户取消 → 立即放弃等待（executeMainTool 无取消通道，轮询探测）
+    poller = setInterval(() => {
+      if (deps.isAborted?.()) {
+        resolve(toolFailureResult(action.tool, "已取消"));
+      }
+    }, 100);
+    for (const t of [timer, poller] as Array<ReturnType<typeof setTimeout>>) {
+      if (t && typeof (t as unknown as { unref?: () => void }).unref === "function") {
+        (t as unknown as { unref: () => void }).unref();
+      }
     }
   });
 
@@ -396,6 +418,7 @@ async function runToolWithTimeout(
     return r;
   } finally {
     if (timer) clearTimeout(timer);
+    if (poller) clearInterval(poller);
   }
 }
 
@@ -630,6 +653,38 @@ export async function runAssistantAgent(
     allRendererActions.push(...renderer);
 
     if (main.length === 0) {
+      // 模型确实发起了主进程工具调用但全部被拒 → 回注字段级拒绝原因让它自纠,
+      // 不静默返回 (否则模型永远不知道调用没执行, 下轮大概率原样重发).
+      // 打转由轮数预算兜底 (耗尽后走上方 pre-verdict 收尾).
+      if (rawMain.length > 0) {
+        const rejectedResults = rawMain.map((a, i) =>
+          toolFailureResult(a.tool, rejectReasons[i] || "调用不合法, 已拒绝执行"),
+        );
+        if (pendingFcMeta && pendingFcMeta.toolCalls.length > 0) {
+          let mi = 0;
+          const fcFail = actions.map((a) => {
+            if (mi >= rawMain.length || rawMain[mi] !== a) return null;
+            const reason = rejectReasons[mi];
+            mi += 1;
+            return toolFailureResult(a.tool, reason ?? "调用不合法, 已拒绝执行");
+          });
+          llmThread = appendFcToolResults(
+            llmThread,
+            pendingFcMeta,
+            fcFail,
+            pendingFcText,
+          );
+          pendingFcMeta = undefined;
+          pendingFcText = "";
+        } else {
+          llmThread.push({ role: "assistant", content: finalText || "正在查询…" });
+          llmThread.push({
+            role: "user",
+            content: `[工具查询结果]\n${formatToolResultsForLlm(rejectedResults)}\n\n以上调用因参数不合法被拒绝。请修正参数后重试，或直接用已有信息回答用户。`,
+          });
+        }
+        continue;
+      }
       return {
         ok: true,
         text: finalText,

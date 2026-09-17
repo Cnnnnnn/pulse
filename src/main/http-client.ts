@@ -49,6 +49,7 @@ interface HttpClientOpts {
 }
 
 interface RequestInternal {
+  signal?: AbortSignal;
   method: string;
   headers?: Record<string, string>;
   timeout?: number;
@@ -148,6 +149,7 @@ export class HttpClient {
     };
     return this._request(url, {
       method: "POST",
+      signal: opts.signal,
       headers: merged as Record<string, string>,
       timeout,
       body: data,
@@ -227,6 +229,7 @@ export class HttpClient {
   _request(rawUrl: string, args: RequestInternal): Promise<HttpResponse> {
     const { method, headers = {}, timeout, body = null, maxBodyBytes = DEFAULT_MAX_BODY_BYTES, binary = false } = args;
     return new Promise<HttpResponse>((resolve: any) => {
+      if (args.signal?.aborted) return resolve({ status: 0, body: "", headers: {}, error: "cancelled" });
       let parsed: URL;
       try { parsed = new URL(rawUrl); }
       catch { return resolve({ status: 0, body: "", headers: {}, error: "network" }); }
@@ -299,7 +302,14 @@ export class HttpClient {
           });
         });
       });
+      const onAbort = () => {
+        resolve({ status: 0, body: "", headers: {}, error: "cancelled" });
+        req.destroy();
+      };
+      args.signal?.addEventListener("abort", onAbort, { once: true });
+      req.on("close", () => args.signal?.removeEventListener("abort", onAbort));
       req.on("error", () => resolve({ status: 0, body: "", headers: {}, error: "network" }));
+      if (args.signal?.aborted) { onAbort(); return; }
       if (timeout) {
         req.setTimeout(timeout, () => {
           try { req.destroy(new Error("timeout")); } catch { /* noop */ }

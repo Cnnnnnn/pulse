@@ -115,6 +115,34 @@ describe('HttpClient 重试 (Phase 24)', () => {
   });
 });
 
+it('POST 取消挂起请求会关闭连接且不重试', async () => {
+  const http = require('node:http');
+  let requests = 0;
+  let received!: () => void;
+  let closed!: () => void;
+  const arrived = new Promise<void>((resolve) => { received = resolve; });
+  const disconnected = new Promise<void>((resolve) => { closed = resolve; });
+  const server = http.createServer((req: any) => {
+    requests++;
+    req.socket.on('close', closed);
+    received();
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const controller = new AbortController();
+    const client = new HttpClient({ timeout: 100, maxRetries: 1, retryDelayMs: 1 });
+    const pending = client.post(`http://127.0.0.1:${server.address().port}`, {}, {}, { signal: controller.signal });
+    await arrived;
+    controller.abort();
+    expect(await pending).toMatchObject({ error: 'cancelled' });
+    await disconnected;
+    expect(requests).toBe(1);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(resolve));
+  }
+});
+
 describe('HttpClient body 超限不挂死 (real socket)', () => {
   let server: any;
   let baseUrl: string;

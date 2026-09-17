@@ -38,6 +38,7 @@ vi.mock("../../src/ai/assistant-tools.ts", async (importOriginal) => {
 
 import { MAX_ROUNDS, runAssistantAgent } from "../../src/ai/assistant-agent.ts";
 import { chatWithTools } from "../../src/ai/chat-with-tools.ts";
+import { chatCompletion } from "../../src/ai/shared-llm.ts";
 import { executeMainTool } from "../../src/ai/assistant-tools.ts";
 import { TOOL_POLICY } from "../../src/shared/assistant-tool-policy.ts";
 import { DEFAULT_BUDGET } from "../../src/ai/assistant-budget.ts";
@@ -143,6 +144,37 @@ describe("assistant-agent", () => {
     expect(String(toolMsgs[0].content)).toContain('"filter":"all"');
     expect(String(toolMsgs[1].content)).toContain("已拒绝执行");
     expect(String(toolMsgs[2].content)).toContain('"filter":"pending"');
+  });
+
+  it("全拒轮回注字段级拒绝原因, 模型可自纠后继续", async () => {
+    const responses = [
+      // 唯一的调用就被枚举校验拒绝 → 当前实现直接 return, 模型永远不知道
+      fcOk({
+        calls: [{ id: "c1", tool: "query_leaderboard", params: { category: "bogus" } }],
+      }),
+      // 第二轮: 模型看到拒绝原因后修正参数
+      fcOk({
+        calls: [{ id: "c2", tool: "query_leaderboard", params: { category: "code" } }],
+        text: "重新查一次",
+      }),
+      fcOk({ text: "已修正并回答" }),
+    ];
+    mockedFc.mockImplementation(async () => responses.shift() ?? fcOk({ text: "done" }));
+
+    const result = await runAssistantAgent(USER_MSG, {}, {});
+
+    // 全拒轮不再静默返回: 第二轮 LLM 被调用且 tool 消息带字段级原因
+    expect(mockedFc).toHaveBeenCalledTimes(3);
+    const secondArg: any = mockedFc.mock.calls[1][0];
+    const toolMsgs = secondArg.filter((m: any) => m.role === "tool");
+    expect(toolMsgs).toHaveLength(1);
+    expect(String(toolMsgs[0].content)).toContain("已拒绝执行");
+    expect(String(toolMsgs[0].content)).toContain("invalid_enum:query_leaderboard.category");
+    // 模型自纠的调用真正执行了
+    expect(mockedExec).toHaveBeenCalledTimes(1);
+    expect((mockedExec.mock.calls[0][0] as any).params).toEqual({ category: "code" });
+    expect(result.ok).toBe(true);
+    expect(result.text).toBe("已修正并回答");
   });
 
   it("末轮执行完工具后收尾, 不把工具结果原文拼进回复", async () => {
@@ -420,6 +452,29 @@ describe("assistant-agent — 预算驱动终止", () => {
     expect(mockedExec).toHaveBeenCalledTimes(DEFAULT_BUDGET.maxRounds);
     expect(result.toolResults).toHaveLength(DEFAULT_BUDGET.maxRounds);
   });
+
+  it("XML 降级轮的 totalTokens 计入预算（chatCompletion usage 回传生效）", async () => {
+    // FC 不可用 → 每轮都走 XML 降级 (chatCompletion)；每轮回传 500 token
+    vi.mocked(chatCompletion).mockClear();
+    mockedFc.mockResolvedValue({ ok: false, reason: "unsupported_provider" } as any);
+    vi.mocked(chatCompletion).mockImplementation(async () =>
+      ({
+        ok: true,
+        text: '<action>{"tool":"query_apps","params":{}}</action>',
+        totalTokens: 500,
+      }) as any,
+    );
+
+    const result = await runAssistantAgent(USER_MSG, {}, {
+      budget: { ...DEFAULT_BUDGET, maxRounds: 100, maxTokens: 100 },
+    });
+
+    expect(result.ok).toBe(true);
+    // 第 1 轮 500 token 已超 100 上限 → 软耗尽：只再发一次综合调用，共 2 次
+    // （不计入时会把 maxRounds=100 轮跑满）
+    expect(chatCompletion).toHaveBeenCalledTimes(2);
+    expect(mockedExec).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("assistant-agent — 工具调用审计", () => {
@@ -534,4 +589,34 @@ describe("assistant-agent — 单轮并发上限", () => {
       result.toolResults!.some((t) => String(t.summary).includes("并发上限")),
     ).toBe(false);
   });
+
+  it("工具执行期间取消 → 立即以「已取消」收尾，不等 15s 硬超时", async () => {
+    mockedFc.mockImplementation(async () =>
+      fcOk({ calls: [{ id: "c1", tool: "query_apps" }] }),
+    );
+    mockedExec.mockImplementation(
+      () => new Promise(() => {}) as any, // 挂起，模拟慢工具
+    );
+    const session = { aborted: false };
+    const isAborted = vi.fn(() => session.aborted);
+
+    const started = Date.now();
+    const pending = runAssistantAgent(USER_MSG, {}, {
+      isAborted,
+    });
+    // 工具已进入执行 → 模拟用户点停止
+    await vi.waitFor(() => expect(mockedExec).toHaveBeenCalled());
+    setTimeout(() => { session.aborted = true; isAborted(); }, 150);
+
+    const result = await pending;
+    const elapsed = Date.now() - started;
+
+    // 取消语义：整体 ok:false / reason=cancelled，但本轮工具结果已带「已取消」占位
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("cancelled");
+    expect(
+      result.toolResults!.some((t) => t.summary === "已取消"),
+    ).toBe(true);
+    expect(elapsed).toBeLessThan(5000); // 远小于 TOOL_TIMEOUT_MS 15s
+  }, 10_000);
 });

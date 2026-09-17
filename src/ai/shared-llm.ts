@@ -211,6 +211,7 @@ export async function chatCompletion(messages: any, opts: any = {}) {
       model,
       config: resolved.config,
       httpClient,
+      signal: opts.signal,
     });
     // P71: summarize 返回 { content, usage }; 兼容旧 string 返回
     const text = typeof result === "string" ? result : (result && result.content);
@@ -232,6 +233,11 @@ export async function chatCompletion(messages: any, opts: any = {}) {
     return {
       ok: true,
       text: sanitizeLlmOutput(String(text || "").trim()),
+      /** usage 回传 — 供 agent 预算累计 (provider 未回传时 undefined) */
+      totalTokens:
+        usage && typeof usage.total_tokens === "number" && usage.total_tokens > 0
+          ? usage.total_tokens
+          : undefined,
     };
   } catch (err: any) {
     recordLlmFailure(resolved.providerId as string);

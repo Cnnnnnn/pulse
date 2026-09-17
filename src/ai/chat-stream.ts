@@ -285,7 +285,12 @@ export async function chatCompletionStream(
       recordTokenSpend(totalTokens);
       recordLlmSuccess(providerId);
       recordLlmOutcome({ t0, providerId, model, ok: true, reason: "ok", totalTokens });
-      return { ok: true, text: sanitizeLlmOutput(String(text || "").trim()) };
+      return {
+        ok: true,
+        text: sanitizeLlmOutput(String(text || "").trim()),
+        /** usage 回传 — 供 agent 预算累计 */
+        totalTokens: totalTokens > 0 ? totalTokens : undefined,
+      };
     }
 
     if (ep.protocol === "anthropic") {
@@ -315,7 +320,11 @@ export async function chatCompletionStream(
       recordTokenSpend(totalTokens);
       recordLlmSuccess(providerId);
       recordLlmOutcome({ t0, providerId, model, ok: true, reason: "ok", totalTokens });
-      return { ok: true, text: sanitizeLlmOutput(String(text || "").trim()) };
+      return {
+        ok: true,
+        text: sanitizeLlmOutput(String(text || "").trim()),
+        totalTokens: totalTokens > 0 ? totalTokens : undefined,
+      };
     }
 
     return chatCompletion(messages, { model: opts.model });

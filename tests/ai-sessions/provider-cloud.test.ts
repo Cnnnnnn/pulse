@@ -281,6 +281,17 @@ describe('CloudSummarizer — summarize错误处理', () => {
  expect(opts).toEqual(expect.objectContaining({ timeout: DEFAULT_TIMEOUT_MS }));
  expect(DEFAULT_TIMEOUT_MS).toBe(120_000);
  });
+
+ it('summarize 把 signal 透传给 httpClient.post', async () => {
+ const http = makeHttpClient();
+ const s = new CloudSummarizer();
+ const signal = new AbortController().signal;
+ await s.summarize({
+ messages: [{ role: 'user', content: 'hi' }],
+ provider: 'openai', model: 'm', config: makeCfg('openai'), httpClient: http, signal,
+ });
+ expect(http.post.mock.calls[0][3]).toEqual(expect.objectContaining({ signal }));
+ });
 });
 
 describe('CloudSummarizer —校验 +边界', () => {

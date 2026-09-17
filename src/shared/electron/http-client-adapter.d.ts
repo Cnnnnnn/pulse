@@ -24,7 +24,7 @@ export type HttpResponse = {
   headers: Record<string, string>;
   finalUrl?: string;
   /** populated only when the request bailed out before/during the response */
-  error?: "network" | "timeout" | "too_large";
+  error?: "network" | "timeout" | "too_large" | "cancelled";
 };
 
 export type HttpGetOptions = {
@@ -38,6 +38,7 @@ export type HttpGetOptions = {
 };
 
 export type HttpPostOptions = {
+  signal?: AbortSignal;
   timeout?: number;
   maxBodyBytes?: number;
 };

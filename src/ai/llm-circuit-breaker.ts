@@ -89,6 +89,7 @@ export interface RetryBackoffOpts {
   attempts: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
+  signal?: AbortSignal;
   isRetryable?: (_result: RetryableResult) => boolean;
   onRetry?: (_attempt: number, _delayMs: number) => void;
 }
@@ -115,13 +116,27 @@ export async function withRetryBackoff<T>(
   const isRetryable = opts.isRetryable ?? defaultRetryable;
   let last: T;
   for (let attempt = 0; attempt < opts.attempts; attempt++) {
-    if (opts.isAborted?.()) break;
+    opts.signal?.throwIfAborted();
+    if (opts.isAborted?.()) throw new DOMException("Cancelled", "AbortError");
     last = await fn();
+    opts.signal?.throwIfAborted();
     if (attempt === opts.attempts - 1) break;
     if (!isRetryable(last as unknown as RetryableResult)) return last;
     const delay = Math.min(maxDelay, base * 2 ** attempt);
     opts.onRetry?.(attempt + 1, delay);
-    await new Promise((r) => setTimeout(r, delay));
+    await new Promise<void>((resolve, reject) => {
+      const onAbort = () => {
+        clearTimeout(timer);
+        opts.signal?.removeEventListener("abort", onAbort);
+        reject(opts.signal?.reason ?? new DOMException("Cancelled", "AbortError"));
+      };
+      const timer = setTimeout(() => {
+        opts.signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, delay);
+      opts.signal?.addEventListener("abort", onAbort, { once: true });
+      if (opts.signal?.aborted) onAbort();
+    });
   }
   return last!;
 }
