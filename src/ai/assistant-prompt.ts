@@ -10,6 +10,10 @@ import { PULSE_URI_CHEATSHEET } from "../shared/pulse-href";
 import { DIGEST_UI_TITLE } from "../shared/digest-labels";
 import { ASK_TOOLS, MAIN_EXECUTION_TOOLS, RENDERER_EXECUTION_TOOLS } from "../shared/assistant-tool-policy";
 import { formatAssistantFewShotBlock } from "./assistant-prompt-fewshot";
+import {
+  measurePromptParts,
+  recordPromptCost,
+} from "./prompt-cost";
 
 export type AssistantAction = {
   tool: string;
@@ -138,10 +142,22 @@ export function buildAssistantSystemPrompt(ctx?: {
   const useFc = Boolean(ctx?.useFunctionCalling);
   const fewShot = formatAssistantFewShotBlock(useFc);
 
-  if (useFc) {
-    return buildFcSystemPrompt(ctxLine, fewShot);
-  }
-  return buildXmlSystemPrompt(ctxLine, fewShot);
+  const prompt = useFc
+    ? buildFcSystemPrompt(ctxLine, fewShot)
+    : buildXmlSystemPrompt(ctxLine, fewShot);
+
+  // 请求侧成本测量：scaffold（静态骨架）/ fewshot / ctx（时间+界面快照+记忆）
+  // 三段占比。fewShot 与 ctxLine 在两种模板里都是唯一定界块，replace 字面量移除安全。
+  const scaffold = prompt.replace(fewShot, "").replace(ctxLine, "");
+  recordPromptCost(
+    useFc ? "assistant_fc" : "assistant_xml",
+    measurePromptParts([
+      { label: "scaffold", text: scaffold },
+      { label: "fewshot", text: fewShot },
+      { label: "ctx", text: ctxLine },
+    ]),
+  );
+  return prompt;
 }
 
 const ACTION_RE = /<action>\s*([\s\S]*?)\s*<\/action>/gi;

@@ -5,6 +5,11 @@
  * 默认值 = 此前硬编码原值; 用户可在 Settings 改 (含可选 few-shot).
  */
 
+import {
+  measurePromptParts,
+  recordPromptCost,
+} from "./prompt-cost";
+
 // ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
 const stateStore: any = require("../main/state-store.js");
 
@@ -287,21 +292,29 @@ export function resolvePrompt(key: any) {
   if (!def) throw new Error(`unknown prompt key: ${key}`);
   const userPrompts = stateStore.loadAiPrompts();
   const user = userPrompts && userPrompts[key];
-  if (
+  const resolved =
     user &&
     typeof user.system === "string" &&
     user.system.trim() &&
     typeof user.rules === "string"
-  ) {
-    return {
-      system: user.system,
-      rules: user.rules,
-      fewShot: typeof user.fewShot === "string" ? user.fewShot : "",
-    };
-  }
-  return {
-    system: def.system,
-    rules: def.rules,
-    fewShot: def.fewShot || "",
-  };
+      ? {
+          system: user.system,
+          rules: user.rules,
+          fewShot: typeof user.fewShot === "string" ? user.fewShot : "",
+        }
+      : {
+          system: def.system,
+          rules: def.rules,
+          fewShot: def.fewShot || "",
+        };
+  // 请求侧成本测量 — scene 即 prompt key，便于按 LLM 路径归因 prompt 体积
+  recordPromptCost(
+    key,
+    measurePromptParts([
+      { label: "system", text: resolved.system },
+      { label: "rules", text: resolved.rules },
+      { label: "fewShot", text: resolved.fewShot },
+    ]),
+  );
+  return resolved;
 }
