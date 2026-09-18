@@ -376,12 +376,23 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     const win = deps.getWindow ? deps.getWindow() : null;
     let result: SessionSyncResult = await runSync(deps);
 
+    // 服务端 ret 明确写 SESSION_EXPIRED = Havana 会话真过期(终态):
+    // 立即如实上报引导扫码, 且软刷新 /im 也救不回来, 不浪费一次 reload。
+    // 降级「同步异常」只留给短时令牌类(TOKEN_EXOIRED/TOKEN_EMPTY)与网关误报。
+    const failReason0 = result.ok === false ? result.reason : null;
+    const retStr0 =
+      result.ok === false && Array.isArray(result.ret)
+        ? result.ret.join(" | ")
+        : "";
+    const sessionDefinitelyExpired =
+      failReason0 === "auth_expired" && /SESSION_EXPIRED/i.test(retStr0);
+
     // auth_expired：令牌/会话被 mtop 拒；no_token 且登录 cookie 仍在：
     // 多半只是 _m_h5_tk 短时令牌过期被清。两者都先软刷新再重试一次。
-    const failReason = result.ok === false ? result.reason : null;
     const refreshWorthy =
-      failReason === "auth_expired" ||
-      (failReason === "no_token" && (await hasLoginCookies(deps)));
+      !sessionDefinitelyExpired &&
+      (failReason0 === "auth_expired" ||
+        (failReason0 === "no_token" && (await hasLoginCookies(deps))));
     if (refreshWorthy && deps.refreshSession && win) {
       authFailStreak += 1;
       const now = Date.now();
@@ -390,7 +401,7 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       if (canRefresh) {
         lastRefreshAt = now;
         log(
-          `${failReason} streak=${authFailStreak}, soft-refresh guest…`,
+          `${failReason0} streak=${authFailStreak}, soft-refresh guest…`,
         );
         try {
           await Promise.resolve(deps.refreshSession(win));
@@ -402,7 +413,7 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
         }
       } else {
         log(
-          `${failReason} streak=${authFailStreak}, skip refresh (cooldown)`,
+          `${failReason0} streak=${authFailStreak}, skip refresh (cooldown)`,
         );
       }
     }
@@ -410,12 +421,15 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
     if (result.ok === false) {
       const fail = result;
       let st = authFromFail(fail);
+      const prevSt = authStatus;
       // 登录 cookie 仍在却同步说没登录/过期：多半是 mtop 短时令牌缺失或网关误报，
       // 降级为同步异常，别逼用户扫码。但只在前几次失败时降级 —— 连续 ≥5 次
       // (authFailStreak) 说明服务端 Session 是真过期（如 Havana 到期），此时继续
       // 显示「同步异常」会误导用户；如实报「登录过期」引导重新扫码。
+      // ret 明确写 SESSION_EXPIRED 的直接跳过降级 —— 那是终态，不是误报。
       if (
         (st === "auth_expired" || st === "logged_out") &&
+        !sessionDefinitelyExpired &&
         authFailStreak < 5 &&
         (await hasLoginCookies(deps))
       ) {
@@ -427,34 +441,25 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
         );
       }
       pushAuth(win, st);
-      // 提示按降级后的 st 判定：no_token 但登录 cookie 在时 st 已是 error，不再催扫码
-      if (st === "logged_out") {
-        if (authFailStreak <= 1) {
-          try {
-            if (win && !win.isDestroyed()) {
-              win.webContents.send("goofish:alert", {
-                title: "闲鱼",
-                body: "尚未登录闲鱼，打开模块扫码登录后即可收消息通知",
-              });
-            }
-          } catch {
-            /* noop */
+      // 提示按降级后的 st 判定：no_token 但登录 cookie 在时 st 已是 error，不再催扫码。
+      // 门控用「状态翻转」而非 streak —— SESSION_EXPIRED 终态不走 streak 自增,
+      // 否则同一句提示会每个 tick 重复弹。
+      if (st !== prevSt && (st === "logged_out" || st === "auth_expired")) {
+        try {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("goofish:alert", {
+              title: "闲鱼",
+              body:
+                st === "logged_out"
+                  ? "尚未登录闲鱼，打开模块扫码登录后即可收消息通知"
+                  : "闲鱼登录已过期，请打开闲鱼重新扫码",
+            });
           }
+        } catch {
+          /* noop */
         }
-      } else if (st === "auth_expired") {
-        if (authFailStreak <= 1) {
-          try {
-            if (win && !win.isDestroyed()) {
-              win.webContents.send("goofish:alert", {
-                title: "闲鱼",
-                body: "闲鱼登录已过期，请打开闲鱼重新扫码",
-              });
-            }
-          } catch {
-            /* noop */
-          }
-        }
-      } else {
+      }
+      if (st === "error") {
         log(`sync fail: ${fail.reason} ${fail.detail || ""}`);
       }
       return;

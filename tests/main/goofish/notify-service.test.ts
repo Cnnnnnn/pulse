@@ -497,13 +497,13 @@ describe("goofish notify-service", () => {
     svc.stop();
   });
 
-  it("auth_expired 但登录 cookie 仍在 → 降级同步异常", async () => {
+  it("auth_expired(令牌类 TOKEN_EXOIRED) 但登录 cookie 仍在 → 降级同步异常", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);
     const sync = vi.fn(async () => ({
       ok: false as const,
       reason: "auth_expired" as const,
-      ret: ["FAIL_SYS_SESSION_EXPIRED::Session过期"],
+      ret: ["FAIL_SYS_TOKEN_EXOIRED::令牌过期"],
     }));
 
     const svc = startGoofishNotifyService({
@@ -524,7 +524,7 @@ describe("goofish notify-service", () => {
     svc.stop();
   });
 
-  it("auth_expired 连续 ≥5 次且登录 cookie 仍在 → 如实报登录过期, 引导重新扫码", async () => {
+  it("ret 明确 SESSION_EXPIRED → 第一次 tick 即如实报 auth_expired, 不软刷新, 提示只弹一次", async () => {
     vi.useFakeTimers();
     const sends: any[] = [];
     const win = makeWin(sends);
@@ -543,6 +543,47 @@ describe("goofish notify-service", () => {
       refreshSession,
     });
 
+    for (let i = 0; i < 3; i++) {
+      const p = svc.tickNow();
+      await vi.advanceTimersByTimeAsync(3_000);
+      await p;
+      await vi.advanceTimersByTimeAsync(10);
+    }
+
+    // 第一个 tick 就如实上报（不再压 5 次轮询的「同步异常」）
+    const auths = sends.filter((s) => s.ch === "goofish:auth");
+    expect(auths[0]?.payload?.status).toBe("auth_expired");
+    expect(auths.every((s) => s.payload?.status === "auth_expired")).toBe(true);
+    // 终态救不回来, 不浪费软刷新
+    expect(refreshSession).not.toHaveBeenCalled();
+    // 扫码引导 toast 只在状态翻转到 auth_expired 那次弹, 不逐 tick 重复
+    const alerts = sends.filter(
+      (s) => s.ch === "goofish:alert" && String(s.payload?.body).includes("重新扫码"),
+    );
+    expect(alerts.length).toBe(1);
+    svc.stop();
+    vi.useRealTimers();
+  });
+
+  it("令牌类 TOKEN_EXOIRED 连续 ≥5 次且登录 cookie 仍在 → 走降级阶梯后如实报登录过期", async () => {
+    vi.useFakeTimers();
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: false as const,
+      reason: "auth_expired" as const,
+      ret: ["FAIL_SYS_TOKEN_EXOIRED::令牌过期"],
+    }));
+    const refreshSession = vi.fn();
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      hasLoginCookies: () => true,
+      refreshSession,
+    });
+
     for (let i = 0; i < 6; i++) {
       const p = svc.tickNow();
       await vi.advanceTimersByTimeAsync(3_000); // 覆盖软刷新后的 2.5s 重试等待
@@ -550,8 +591,13 @@ describe("goofish notify-service", () => {
       await vi.advanceTimersByTimeAsync(10);
     }
 
-    const last = sends.filter((s) => s.ch === "goofish:auth").pop();
-    expect(last?.payload?.status).toBe("auth_expired");
+    // 前 4 次 tick 降级为 error(streak<5), 第 5 次起如实上报
+    const statuses = sends
+      .filter((s) => s.ch === "goofish:auth")
+      .map((s) => s.payload?.status);
+    expect(statuses[0]).toBe("error");
+    expect(statuses[statuses.length - 1]).toBe("auth_expired");
+    expect(statuses).toContain("error");
     svc.stop();
     vi.useRealTimers();
   });
