@@ -524,6 +524,38 @@ describe("goofish notify-service", () => {
     svc.stop();
   });
 
+  it("auth_expired 连续 ≥5 次且登录 cookie 仍在 → 如实报登录过期, 引导重新扫码", async () => {
+    vi.useFakeTimers();
+    const sends: any[] = [];
+    const win = makeWin(sends);
+    const sync = vi.fn(async () => ({
+      ok: false as const,
+      reason: "auth_expired" as const,
+      ret: ["FAIL_SYS_SESSION_EXPIRED::Session过期"],
+    }));
+    const refreshSession = vi.fn();
+
+    const svc = startGoofishNotifyService({
+      getWindow: () => win as any,
+      intervalMs: 60_000,
+      sync,
+      hasLoginCookies: () => true,
+      refreshSession,
+    });
+
+    for (let i = 0; i < 6; i++) {
+      const p = svc.tickNow();
+      await vi.advanceTimersByTimeAsync(3_000); // 覆盖软刷新后的 2.5s 重试等待
+      await p;
+      await vi.advanceTimersByTimeAsync(10);
+    }
+
+    const last = sends.filter((s) => s.ch === "goofish:auth").pop();
+    expect(last?.payload?.status).toBe("auth_expired");
+    svc.stop();
+    vi.useRealTimers();
+  });
+
   it("no_token 且登录 cookie 在时触发软刷新并重试", async () => {
     const sends: any[] = [];
     const win = makeWin(sends);

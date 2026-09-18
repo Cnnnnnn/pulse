@@ -1,136 +1,246 @@
 /* src/renderer/goofish/goofish.css
- * 闲鱼嵌入模块样式（v3.3：苹果原生风，与 vault/movies/concerts 同族）。
- * 仅用 var()/oklch()/color-mix()；域强调色 --goofish-accent（闲鱼黄）。
+ * 闲鱼嵌入模块样式 v2（单条工具栏：logo+登录态+搜索+图标化操作）。
+ * 仅用 var()/oklch()/color-mix()；域强调色 --goofish-accent（闲鱼黄）只作点缀。
  */
 
 .goofish-layout {
   --goofish-accent: #ffe600;
   --goofish-accent-strong: #d4b500;
+  /* 主题感知发丝线: tokens.css 已按 data-theme 给出深/浅两套, 裸 #000 混合在深色下不可见 */
+  --goofish-hairline: var(--border-subtle, rgba(0, 0, 0, 0.08));
+  /* 未读徽标底色: 比 --accent-red 深一档, 白字 9px 才够 AA 4.5 */
+  --goofish-badge-bg: oklch(56% 0.21 28);
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
+:root[data-theme="dark"] .goofish-layout {
+  --goofish-badge-bg: oklch(58% 0.2 28);
+}
 
-/* ── header ── */
+/* ── 单条工具栏：logo / 登录态 / 搜索 / 图标操作 ── */
 .goofish-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 22px 18px 6px;
-  background: transparent;
-}
-.goofish-header__left {
-  min-width: 0;
-}
-.goofish-header__title {
-  display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: var(--gray-800, #1d1d1f);
-}
-.goofish-header__meta {
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--gray-500, #6e6e73);
-}
-.goofish-header__auth {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  letter-spacing: 0;
-}
-.goofish-header__auth--ok {
-  color: #1a7f37;
-  background: color-mix(in oklch, #1a7f37 12%, transparent);
-}
-.goofish-header__auth--warn {
-  color: #9a6700;
-  background: color-mix(in oklch, #ffe600 35%, transparent);
-}
-.goofish-header__auth--err {
-  color: #cf222e;
-  background: color-mix(in oklch, #cf222e 12%, transparent);
-}
-.goofish-header__auth--muted {
-  color: var(--gray-500, #6e6e73);
-  background: color-mix(in oklch, var(--gray-200) 60%, transparent);
-}
-.goofish-header__actions {
-  display: flex;
-  gap: 8px;
+  height: 54px;
   flex-shrink: 0;
-}
-.goofish-btn--accent {
-  background: var(--goofish-accent, #ffe600);
-  color: #1d1d1f;
-  font-weight: 600;
+  padding: 0 14px;
+  background: color-mix(in oklch, var(--surface, #fff) 78%, transparent);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--goofish-hairline);
 }
 
-/* ── 按钮（胶囊，同 vault-btn）── */
-.goofish-btn {
+.goofish-header__logo {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ffe600, #ffd60a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 2px 8px color-mix(in oklch, #ffd60a 45%, transparent);
+}
+
+.goofish-header__title {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 登录态：色点 + 文字（ok 绿 / warn 黄 / err 红 / muted 灰） */
+.goofish-header__auth {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 30px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background: color-mix(in oklch, var(--gray-100) 80%, var(--surface, #fff));
-  color: var(--gray-700, #48484a);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  cursor: pointer;
+  padding: 3px 9px;
+  border-radius: 999px;
   white-space: nowrap;
 }
-.goofish-btn:hover {
-  filter: brightness(0.97);
+.goofish-header__auth i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.goofish-header__auth--ok {
+  color: #1a7f37;
+  background: color-mix(in oklch, #34c759 12%, transparent);
+}
+.goofish-header__auth--warn {
+  color: #8f5f00;
+  background: color-mix(in oklch, #ffe600 34%, transparent);
+}
+.goofish-header__auth--err {
+  color: #b81c28;
+  background: color-mix(in oklch, #cf222e 10%, transparent);
+}
+.goofish-header__auth--muted {
+  color: var(--text-secondary, #6e6e73);
+  background: var(--bg-tertiary, #ebebed);
 }
 
-/* ── 搜索工具条 ── */
+/* 深色主题: 浅色态用的深绿/深黄/深红在小尺寸下会糊进暗底, 提亮并加重底色 */
+:root[data-theme="dark"] .goofish-header__auth--ok {
+  color: oklch(82% 0.16 150);
+  background: color-mix(in oklch, #34c759 22%, transparent);
+}
+:root[data-theme="dark"] .goofish-header__auth--warn {
+  color: oklch(85% 0.15 95);
+  background: color-mix(in oklch, #ffe600 22%, transparent);
+}
+:root[data-theme="dark"] .goofish-header__auth--err {
+  color: oklch(78% 0.15 25);
+  background: color-mix(in oklch, #cf222e 26%, transparent);
+}
+
+/* ── 搜索胶囊（工具栏中区，撑开） ── */
 .goofish-toolbar {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 18px;
+  height: 34px;
+  padding: 0 6px 0 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--goofish-hairline);
+  border-radius: 999px;
+  color: var(--gray-400, #a1a1a6);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.goofish-toolbar:focus-within {
+  border-color: var(--goofish-accent-strong);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--goofish-accent) 28%, transparent);
 }
 .goofish-toolbar__input {
-  flex: 0 1 360px;
-  min-height: 30px;
-  padding: 0 12px;
-  border: 1px solid var(--gray-200, #e5e5ea);
-  border-radius: 999px;
-  background: var(--surface, #fff);
-  color: var(--gray-800, #1d1d1f);
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #1d1d1f);
   font-size: 12px;
   outline: none;
-}
-.goofish-toolbar__input:focus {
-  border-color: var(--goofish-accent-strong);
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--goofish-accent) 30%, transparent);
 }
 .goofish-toolbar__input::placeholder {
   color: var(--gray-400, #a1a1a6);
 }
+/* ⌘F 提示: 聚焦后由 :focus-within 收起, 不占输入空间 */
+.goofish-kbd {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--goofish-hairline);
+  border-radius: 5px;
+  color: var(--text-secondary, #6e6e73);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.goofish-toolbar:focus-within .goofish-kbd {
+  display: none;
+}
 .goofish-toolbar__go {
-  min-height: 30px;
-  padding: 0 16px;
+  flex: none;
+  min-height: 24px;
+  padding: 0 14px;
   border: none;
   border-radius: 999px;
-  background: var(--goofish-accent);
+  background: linear-gradient(135deg, #ffe600, #ffd60a);
   color: #1d1d1f;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 1px 4px color-mix(in oklch, #ffd60a 50%, transparent);
+  transition: filter 100ms ease;
 }
 .goofish-toolbar__go:hover {
+  filter: brightness(0.96);
+}
+
+/* ── 图标操作钮 ── */
+.goofish-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.goofish-header__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--goofish-hairline);
+  margin: 0 4px;
+}
+.goofish-icon-btn {
+  position: relative; /* 未读徽标的定位锚 */
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: none;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary, #6e6e73);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+.goofish-icon-btn:hover {
+  background: var(--hover-soft, rgba(0, 0, 0, 0.04));
+  color: var(--text-primary, #1d1d1f);
+}
+/* 消息钮未读徽标: 与 nav rail / FAB 同一数据源 (goofishUnreadBadge) */
+.goofish-icon-btn__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--goofish-badge-bg, var(--accent-red, oklch(65.42% 0.2321 28.7)));
+  border: 2px solid var(--surface, #fff);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 11px; /* height 15 - border 4 (border-box), 精确垂直居中 */
+  text-align: center;
+  /* 出血 4px 压到相邻钮的绘制区: 压过 DOM 靠后钮的 hover 底, 且不截获点击 */
+  z-index: 1;
+  pointer-events: none;
+}
+.goofish-icon-btn--ai {
+  background: color-mix(in oklch, #5856d6 10%, transparent);
+  color: #5856d6;
+}
+.goofish-icon-btn--ai:hover {
+  background: color-mix(in oklch, #5856d6 18%, transparent);
+  color: #5856d6;
+}
+
+/* 重新登录（未登录时出现）：闲鱼黄胶囊 */
+.goofish-btn--accent {
+  width: auto;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffe600, #ffd60a);
+  color: #1d1d1f;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px color-mix(in oklch, #ffd60a 50%, transparent);
+  transition: filter 100ms ease;
+}
+.goofish-btn--accent:hover {
   filter: brightness(0.96);
 }
 
@@ -139,11 +249,11 @@
   position: relative; /* guest 由主进程 WebContentsView 渲染, 此容器仅占位/量测 */
   flex: 1;
   min-height: 0;
-  margin: 8px 18px 0;
-  padding-bottom: 12px;
+  margin: 10px 14px 12px;
   border-radius: 12px;
   background: var(--surface, #fff);
-  border: 1px solid color-mix(in oklch, var(--gray-200, #e5e5ea) 70%, transparent);
+  /* 与 header 发丝线同一 token: 裸 gray-200 在深色下偏亮 */
+  border: 1px solid var(--goofish-hairline);
   overflow: hidden;
 }
 /* 遮挡冻结帧: 抽屉/弹窗压框时显示 guest 的最后一帧截图, 避免"空框"观感 */

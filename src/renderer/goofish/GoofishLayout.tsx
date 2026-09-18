@@ -16,14 +16,22 @@
  *      框上 (NavDrawer 弹出 / portal 抽屉 / 弹窗 / tooltip) 都必须隐藏 guest 让位。
  *      检测 = body 顶层 portal 扫描 + elementFromPoint 采样命中测试 + 矩形漂移轮询,
  *      三路合并, 不枚举具体浮层组件。
- *   3. 工具条 — 搜索 / 首页 / 刷新 / 外部打开
+ *   3. 工具条 — logo / 登录态 / 搜索 (⌘F, 由 AppShell 的 inputId 链聚焦) / 图标化操作
  */
 
 import { useEffect, useRef, useState } from "preact/hooks";
 import "./goofish.css";
 import { api } from "../api.ts";
 import { toggleGlobalChat } from "../assistant/assistant-store.ts";
-import { goofishAuthStatus } from "./store.ts";
+import { goofishAuthStatus, goofishUnreadBadge, clearGoofishUnreadBadge } from "./store.ts";
+import {
+  IconGlobe,
+  IconHome,
+  IconMessage,
+  IconRefresh,
+  IconSearch,
+  IconSparkles,
+} from "../components/icons.tsx";
 
 const GOOFISH_HOME = "https://www.goofish.com/";
 const GOOFISH_IM = "https://www.goofish.com/im";
@@ -233,71 +241,102 @@ export function GoofishLayout(_props: { onCheck?: () => void }) {
   };
 
   const auth = authLabel(goofishAuthStatus.value);
+  const unread = goofishUnreadBadge.value;
+
+  const openImAndClear = () => {
+    openIm();
+    // 乐观清零（main 侧 sync 若发现仍未读会重新 push）
+    clearGoofishUnreadBadge();
+  };
 
   return (
     <div class="goofish-layout">
       <div class="goofish-header">
-        <div class="goofish-header__left">
-          <div class="goofish-header__title">
-            闲鱼
-            <span class={`goofish-header__auth goofish-header__auth--${auth.tone}`}>
-              {auth.text}
-            </span>
-            <span class="goofish-header__meta">
-              web 版嵌入 · 消息通知走会话接口，登录态本机保留
-            </span>
-          </div>
+        <div class="goofish-header__logo" aria-hidden="true">
+          🐟
+        </div>
+        <span class="goofish-header__title">闲鱼</span>
+        <span
+          class={`goofish-header__auth goofish-header__auth--${auth.tone}`}
+          title={auth.text}
+          role="status"
+        >
+          <i aria-hidden="true" />
+          {auth.text}
+        </span>
+        <div class="goofish-toolbar">
+          <IconSearch size={14} />
+          <input
+            id="goofish-search-input"
+            class="goofish-toolbar__input"
+            type="text"
+            placeholder="搜索二手好物…"
+            value={query}
+            onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") doSearch();
+              else if (e.key === "Escape") {
+                setQuery("");
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+          />
+          <span class="goofish-kbd" aria-hidden="true">
+            ⌘F
+          </span>
+          <button class="goofish-toolbar__go" onClick={doSearch}>
+            搜索
+          </button>
         </div>
         <div class="goofish-header__actions">
           {(goofishAuthStatus.value === "logged_out" ||
             goofishAuthStatus.value === "auth_expired") && (
-            <button class="goofish-btn goofish-btn--accent" onClick={reLogin} title="打开首页重新扫码登录">
+            <button class="goofish-btn--accent" onClick={reLogin} title="打开首页重新扫码登录">
               重新登录
             </button>
           )}
-          <button class="goofish-btn" onClick={openIm} title="打开消息列表">
-            消息
+          <button
+            class="goofish-icon-btn"
+            onClick={openImAndClear}
+            title="打开消息列表"
+            aria-label={unread > 0 ? `消息（${unread} 条未读）` : "消息"}
+          >
+            <IconMessage size={14} />
+            {unread > 0 && (
+              <span class="goofish-icon-btn__badge" aria-hidden="true">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
           </button>
           <button
-            class="goofish-btn"
+            class="goofish-icon-btn goofish-icon-btn--ai"
             onClick={() => toggleGlobalChat()}
             title="AI 助手 (⌘⇧J) — 嵌入页上悬浮球由 WebContentsView 遮挡, 入口移至此处"
+            aria-label="AI 助手"
           >
-            ✦ AI 助手
+            <IconSparkles size={14} />
           </button>
           <button
-            class="goofish-btn"
+            class="goofish-icon-btn"
             onClick={() => api.goofishNav({ action: "home" }).catch(() => {})}
             title="回闲鱼首页"
+            aria-label="首页"
           >
-            ⌂ 首页
+            <IconHome size={14} />
           </button>
           <button
-            class="goofish-btn"
+            class="goofish-icon-btn"
             onClick={() => api.goofishNav({ action: "reload" }).catch(() => {})}
             title="刷新页面"
+            aria-label="刷新"
           >
-            ↻ 刷新
+            <IconRefresh size={14} />
           </button>
-          <button class="goofish-btn" onClick={openExternal} title="在系统浏览器打开当前页">
-            ↗ 外部打开
+          <span class="goofish-header__divider" aria-hidden="true" />
+          <button class="goofish-icon-btn" onClick={openExternal} title="在系统浏览器打开当前页" aria-label="外部打开">
+            <IconGlobe size={14} />
           </button>
         </div>
-      </div>
-      <div class="goofish-toolbar">
-        <input
-          class="goofish-toolbar__input"
-          type="text"
-          placeholder="在闲鱼搜索二手好物…"
-          value={query}
-          onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") doSearch();
-          }}
-        />
-        <button class="goofish-toolbar__go" onClick={doSearch}>
-          搜索
-        </button>
       </div>
       <div class="goofish-frame" ref={frameRef}>
         {frozenUrl && <img class="goofish-frame__freeze" src={frozenUrl} alt="" />}

@@ -411,9 +411,12 @@ async function tick(deps: GoofishNotifyDeps): Promise<void> {
       const fail = result;
       let st = authFromFail(fail);
       // 登录 cookie 仍在却同步说没登录/过期：多半是 mtop 短时令牌缺失或网关误报，
-      // 降级为同步异常，别逼用户扫码
+      // 降级为同步异常，别逼用户扫码。但只在前几次失败时降级 —— 连续 ≥5 次
+      // (authFailStreak) 说明服务端 Session 是真过期（如 Havana 到期），此时继续
+      // 显示「同步异常」会误导用户；如实报「登录过期」引导重新扫码。
       if (
         (st === "auth_expired" || st === "logged_out") &&
+        authFailStreak < 5 &&
         (await hasLoginCookies(deps))
       ) {
         st = "error";
