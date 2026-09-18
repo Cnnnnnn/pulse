@@ -646,11 +646,18 @@ function ensureView(win: electronType.BrowserWindow): electronType.WebContentsVi
       // 页面 loadURL 完成（包括 /im → 首页切换）立刻读一次右侧「消息」角标，
       // 否则定时器最快也要 ~1.2s+0.28s 后才同步，期间有 WS 帧到达也会因新页 DOM
       // 没出来读到陈旧值。
+      const wc = view.webContents;
       const onFinishLoad = () => {
+        // 落 URL — 白屏排查的关键证据 (guest 最终停在哪)
+        try {
+          embedLog(`did-finish-load url=${wc.getURL()}`);
+        } catch {
+          /* noop */
+        }
         // 250ms 后让首屏把右侧栏 mount 出来再读；kick 内部限频 800ms 容忍重入
         setTimeout(() => probeRailUnreadNow(), 250);
       };
-      view.webContents.on("did-finish-load", onFinishLoad);
+      wc.on("did-finish-load", onFinishLoad);
       // 未读：session.sync + WS + 右侧栏「消息」DOM 角标（站点真值，不是协议 57）
       // 首次停在 /im —— 官方 IM WebSocket 只在消息页建连，首页挂不住长连。
       installGuestWakeBridge(view.webContents);
@@ -849,8 +856,9 @@ export function goofishEmbedSync(
       loggedFirstSync = true;
       embedLog(`first sync: visible=${visible} rect=${JSON.stringify(rect)}`);
     }
-    if (!visible && payload.debug) {
-      embedLog(`hidden: ${payload.debug}`);
+    // 渲染端按 key 去重, 这里只在翻转时收到 — 白屏排查需要, 无条件落盘
+    if (!visible) {
+      embedLog(`hidden: ${payload && payload.debug ? payload.debug : "no-rect-or-covered"}`);
     }
     if (!visible || !rect || rect.width <= 0 || rect.height <= 0) {
       userViewing = false;
@@ -892,6 +900,9 @@ export function goofishEmbedNav(
     const target = ensureView(win);
     if (!target) return { ok: false, reason: "view_unavailable" };
     const action = payload && payload.action;
+    embedLog(
+      `nav ${action}${payload && payload.url ? ` url=${payload.url}` : ""}`,
+    );
     if (action === "home") {
       imKeepaliveOnly = false;
       target.webContents.loadURL(GOOFISH_HOME).catch(() => {});
