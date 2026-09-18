@@ -2778,9 +2778,10 @@
   }
 }
 
-/* Message tools live with the composer so the transcript keeps a clear first row. */
+/* Message tools live with the composer so the transcript keeps a clear first row.
+ * 注意: wrap 不设 position —— 浮层 body 锚到 .global-chat-input-meta 整行,
+ * 否则 right:0 + 固定 520px 会从按钮往左伸出抽屉左边界. */
 .global-chat-message-tools-wrap {
-  position: relative;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -2824,10 +2825,12 @@
 
 .global-chat-message-tools-wrap .global-chat-message-tools__body {
   position: absolute;
-  right: 0;
+  right: 24px;
   bottom: calc(100% + 9px);
   z-index: 8;
-  width: min(520px, calc(100vw - 40px));
+  /* 锚 = .global-chat-input-meta (整行 padding 盒). 100% = 抽屉宽,
+     两侧各收 24px 与行内容对齐, 窄抽屉下也不会溢出 */
+  width: min(520px, calc(100% - 48px));
   max-height: min(430px, 58vh);
   overflow-y: auto;
   padding: 10px;
@@ -2849,11 +2852,7 @@
   .global-chat-input-meta {
     align-items: center;
   }
-
-  .global-chat-message-tools-wrap .global-chat-message-tools__body {
-    right: -8px;
-    width: min(520px, calc(100vw - 28px));
-  }
+  /* 浮层宽度随锚(整行)自适应, 窄屏无需再单独覆盖 */
 }
 
 /* ── v2.84 AI 助手文档流重构（方向 B：无气泡 + 说话人标签 + 细分隔线）──
@@ -3101,7 +3100,9 @@
 .global-chat-quick-actions {
   padding: 12px 24px 0;
 }
+/* position: relative — 消息工具浮层(body)的定位锚, 让它整行对齐不出抽屉 */
 .global-chat-input-meta {
+  position: relative;
   padding: 8px 24px 0;
 }
 .global-chat-input {
