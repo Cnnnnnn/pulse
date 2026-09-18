@@ -112,22 +112,24 @@ export function ChatSessionsPanel() {
         {canPruneEmpty && (
           <button
             type="button"
-            class="global-chat-sessions-prune"
+            class="global-chat-sessions-tool"
             disabled={loading}
-            title="删除所有无消息的空会话"
+            title={`删除所有无消息的空会话 (${emptyCount})`}
+            aria-label={`删除所有无消息的空会话 (${emptyCount})`}
             onClick={() => handlePruneEmptyThreads(emptyCount)}
           >
-            清空空会话 ({emptyCount})
+            <IconTrash size={14} />
           </button>
         )}
         <button
           type="button"
-          class="global-chat-sessions-prune"
+          class="global-chat-sessions-tool"
           disabled={loading || threads.every((t) => t.messages.length === 0)}
           title="根据各会话首条用户消息批量重命名"
+          aria-label="全部自动命名"
           onClick={handleRetitleAllThreads}
         >
-          全部自动命名
+          <IconEdit size={14} />
         </button>
       </div>
       <div class="global-chat-sessions" role="listbox" aria-label="历史会话">

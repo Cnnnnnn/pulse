@@ -106,7 +106,6 @@ import {
   resolveAdjacentAssistantMessageIndex,
 } from "./chat-message-index.ts";
 import {
-  formatThreadStatsLabel,
   formatThreadStatsTitle,
   summarizeThreadStats,
 } from "./chat-thread-stats.ts";
@@ -134,6 +133,14 @@ import {
   AssistantQueuePanel,
   getAssistantQueueGroups,
 } from "./AssistantQueuePanel.tsx";
+
+/** 消息行说话人旁的 HH:MM 时间 — 老会话消息可能无 ts, 返回空串隐藏 */
+function msgTime(ts?: number): string {
+  if (!ts) return "";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+}
 
 export function GlobalChatDrawer() {
   const open = globalChatOpen.value;
@@ -174,7 +181,6 @@ export function GlobalChatDrawer() {
   );
   const feedbackStats = summarizeMessageFeedback(messages);
   const threadStats = summarizeThreadStats(messages);
-  const threadStatsLabel = formatThreadStatsLabel(threadStats);
   const threadStatsTitle = formatThreadStatsTitle(threadStats);
   const queueCount = getAssistantQueueGroups().reduce(
     (total, group) => total + group.items.length,
@@ -558,8 +564,8 @@ export function GlobalChatDrawer() {
   const showTyping = loading && !!status;
   const showCursor = loading && streaming;
 
-  // PR1 v2 头部切换 — 默认 undefined 保持向后兼容, 加 --v2-header 类即开
-  const drawerClass = "global-chat-drawer global-chat-drawer--v2-header";
+  // v3 重设计 — 440px 三段式: 悬浮头部 / 去气泡会话流 / 输入坞 (design/assistant-v3-proposal.html)
+  const drawerClass = "global-chat-drawer global-chat-drawer--v3";
 
   return (
     <DrawerShell
@@ -573,135 +579,117 @@ export function GlobalChatDrawer() {
       ariaLabel="AI 助手对话"
       header={(
         <header class="drawer-header global-chat-drawer__header">
-          <div class="global-chat-drawer__header-top">
-            <div class="global-chat-drawer__title-row">
-              <span class="global-chat-drawer__assistant-mark" aria-hidden="true">
-                <IconSparkles size={16} />
-              </span>
-              <h2 class="drawer-title">AI 助手</h2>
-              {activeThread && (
-                <div class="global-chat-session-switcher">
-                  <button
-                    type="button"
-                    class="global-chat-session-switcher__orb"
-                    onClick={toggleChatSessions}
-                    disabled={loading}
-                    title="切换会话"
-                    aria-label={`切换会话：${activeThread.title}`}
-                    aria-expanded={sessionsOpen}
-                    aria-controls="global-chat-sessions-panel"
-                  >
-                    <IconSparkles size={15} />
-                    {sessionsOpen && <span class="global-chat-session-switcher__orb-ring" aria-hidden="true" />}
-                  </button>
-                  <span class="global-chat-session-switcher__title" title={activeThread.title}>
-                    {activeThread.title}
-                  </span>
-                </div>
-              )}
-              {messages.length > 0 && (
-                <span
-                  class="global-chat-drawer__stats"
-                  title={threadStatsTitle}
+          <span class="global-chat-drawer__assistant-mark" aria-hidden="true">
+            <IconSparkles size={15} />
+          </span>
+          <h2 class="drawer-title">AI 助手</h2>
+          {activeThread && (
+            <button
+              type="button"
+              class="global-chat-session-pill"
+              onClick={toggleChatSessions}
+              disabled={loading}
+              title={messages.length > 0 ? `${activeThread.title} · ${threadStatsTitle}` : "切换会话"}
+              aria-expanded={sessionsOpen}
+              aria-controls="global-chat-sessions-panel"
+            >
+              <span class="global-chat-session-pill__title">{activeThread.title}</span>
+              <span class="global-chat-session-pill__chevron" aria-hidden="true">▾</span>
+            </button>
+          )}
+          <span class="global-chat-drawer__spacer" aria-hidden="true" />
+          <button
+            type="button"
+            class="global-chat-drawer__new-act"
+            onClick={newChatThread}
+            disabled={loading}
+            title="新建对话（⌘N）"
+            aria-label="新建对话"
+          >
+            ＋
+          </button>
+          <details class="global-chat-more">
+            <summary aria-label="更多助手操作">
+              <IconMoreHorizontal size={16} />
+            </summary>
+            <div class="global-chat-more__menu">
+              <div class="drawer-actions global-chat-drawer__model-row">
+                <select
+                  class="global-chat-drawer__model-select"
+                  value={threadModel.mode}
+                  disabled={loading}
+                  title="本会话使用的模型"
+                  onChange={(e) => {
+                    const mode = (e.currentTarget as HTMLSelectElement).value as
+                      | "default"
+                      | "fast"
+                      | "custom";
+                    setActiveThreadModel(mode, threadModel.custom);
+                  }}
                 >
-                  {threadStatsLabel}
+                  <option value="default">默认模型</option>
+                  <option value="fast">轻量模型</option>
+                  <option value="custom">自定义</option>
+                </select>
+                <span class="global-chat-drawer__model-label" title="当前会话模型">
+                  {modelLabel}
                 </span>
-              )}
+                {threadModel.mode === "custom" && (
+                  <input
+                    class={`global-chat-drawer__model-input${customModelMismatch ? " global-chat-drawer__model-input--warn" : ""}`}
+                    type="text"
+                    list="assistant-model-presets"
+                    value={threadModel.custom}
+                    disabled={loading}
+                    placeholder="模型名"
+                    title={
+                      customModelMismatch
+                        ? "该模型 ID 与当前 Provider 可能不匹配"
+                        : "自定义模型 ID"
+                    }
+                    onInput={(e) =>
+                      setActiveThreadModel(
+                        "custom",
+                        (e.currentTarget as HTMLInputElement).value,
+                      )
+                    }
+                  />
+                )}
+                {modelPresets.length > 0 && (
+                  <datalist id="assistant-model-presets">
+                    {modelPresets.map((p) => (
+                      <option key={p} value={p} />
+                    ))}
+                  </datalist>
+                )}
+              </div>
+              <div class="global-chat-more__actions">
+                <button type="button" class="global-chat-drawer__hdr-btn" onClick={() => duplicateChatThread()} disabled={messages.length === 0 || loading}>副本</button>
+                <button type="button" class="global-chat-drawer__hdr-btn" onClick={() => void copyChatConversation()} disabled={messages.length === 0 || loading} title={`复制对话（${exportHint}）`}>复制</button>
+                <button type="button" class="global-chat-drawer__hdr-btn" onClick={exportChatConversation} disabled={messages.length === 0 || loading} title={`导出 Markdown（${exportHint}）`}>导出</button>
+                <button type="button" class="global-chat-drawer__hdr-btn" onClick={clearProactiveSystemMessages} disabled={!hasProactiveSystem || loading}>清提醒</button>
+                <button type="button" class="global-chat-drawer__clear" onClick={handleClearChatHistory} disabled={messages.length === 0 || loading}>清空</button>
+              </div>
+              <div class="global-chat-more__toggles">
+                <label class="global-chat-export-toggle" title="复制/导出时是否包含系统提醒">
+                  <input type="checkbox" checked={exportIncludeSystem} disabled={loading} onChange={(e) => setExportIncludeSystem((e.target as HTMLInputElement).checked)} />
+                  含提醒
+                </label>
+                <label class="global-chat-export-toggle" title="复制/导出时是否包含消息时间">
+                  <input type="checkbox" checked={exportIncludeTimestamps} disabled={loading} onChange={(e) => setExportIncludeTimestamps((e.target as HTMLInputElement).checked)} />
+                  含时间
+                </label>
+              </div>
             </div>
-            <div class="global-chat-drawer__header-actions">
-              <button
-                type="button"
-                class="global-chat-drawer__new-btn"
-                onClick={newChatThread}
-                disabled={loading}
-                title="新建对话"
-              >
-                新对话
-              </button>
-              <details class="global-chat-more">
-                <summary aria-label="更多助手操作">
-                  <IconMoreHorizontal size={16} />
-                </summary>
-                <div class="global-chat-more__menu">
-                  <div class="drawer-actions global-chat-drawer__model-row">
-                    <select
-                      class="global-chat-drawer__model-select"
-                      value={threadModel.mode}
-                      disabled={loading}
-                      title="本会话使用的模型"
-                      onChange={(e) => {
-                        const mode = (e.currentTarget as HTMLSelectElement).value as
-                          | "default"
-                          | "fast"
-                          | "custom";
-                        setActiveThreadModel(mode, threadModel.custom);
-                      }}
-                    >
-                      <option value="default">默认模型</option>
-                      <option value="fast">轻量模型</option>
-                      <option value="custom">自定义</option>
-                    </select>
-                    <span class="global-chat-drawer__model-label" title="当前会话模型">
-                      {modelLabel}
-                    </span>
-                    {threadModel.mode === "custom" && (
-                      <input
-                        class={`global-chat-drawer__model-input${customModelMismatch ? " global-chat-drawer__model-input--warn" : ""}`}
-                        type="text"
-                        list="assistant-model-presets"
-                        value={threadModel.custom}
-                        disabled={loading}
-                        placeholder="模型名"
-                        title={
-                          customModelMismatch
-                            ? "该模型 ID 与当前 Provider 可能不匹配"
-                            : "自定义模型 ID"
-                        }
-                        onInput={(e) =>
-                          setActiveThreadModel(
-                            "custom",
-                            (e.currentTarget as HTMLInputElement).value,
-                          )
-                        }
-                      />
-                    )}
-                    {modelPresets.length > 0 && (
-                      <datalist id="assistant-model-presets">
-                        {modelPresets.map((p) => (
-                          <option key={p} value={p} />
-                        ))}
-                      </datalist>
-                    )}
-                  </div>
-                  <div class="global-chat-more__actions">
-                    <button type="button" class="global-chat-drawer__hdr-btn" onClick={() => duplicateChatThread()} disabled={messages.length === 0 || loading}>副本</button>
-                    <button type="button" class="global-chat-drawer__hdr-btn" onClick={() => void copyChatConversation()} disabled={messages.length === 0 || loading} title={`复制对话（${exportHint}）`}>复制</button>
-                    <button type="button" class="global-chat-drawer__hdr-btn" onClick={exportChatConversation} disabled={messages.length === 0 || loading} title={`导出 Markdown（${exportHint}）`}>导出</button>
-                    <button type="button" class="global-chat-drawer__hdr-btn" onClick={clearProactiveSystemMessages} disabled={!hasProactiveSystem || loading}>清提醒</button>
-                    <button type="button" class="global-chat-drawer__clear" onClick={handleClearChatHistory} disabled={messages.length === 0 || loading}>清空</button>
-                  </div>
-                  <div class="global-chat-more__toggles">
-                    <label class="global-chat-export-toggle" title="复制/导出时是否包含系统提醒">
-                      <input type="checkbox" checked={exportIncludeSystem} disabled={loading} onChange={(e) => setExportIncludeSystem((e.target as HTMLInputElement).checked)} />
-                      含提醒
-                    </label>
-                    <label class="global-chat-export-toggle" title="复制/导出时是否包含消息时间">
-                      <input type="checkbox" checked={exportIncludeTimestamps} disabled={loading} onChange={(e) => setExportIncludeTimestamps((e.target as HTMLInputElement).checked)} />
-                      含时间
-                    </label>
-                  </div>
-                </div>
-              </details>
-              <button
-                type="button"
-                class="drawer-icon-btn"
-                onClick={closeGlobalChat}
-                aria-label="关闭"
-              >
-                <IconX size={16} />
-              </button>
-            </div>
-          </div>
+          </details>
+          <button
+            type="button"
+            class="drawer-icon-btn"
+            onClick={closeGlobalChat}
+            aria-label="关闭"
+          >
+            <IconX size={16} />
+          </button>
         </header>
       )}
       footer={
@@ -1034,67 +1022,89 @@ export function GlobalChatDrawer() {
               data-msg-index={i}
               class={`global-chat-msg global-chat-msg--${m.role}${searchClassForIndex(i)}`}
             >
-              {m.attachments && m.attachments.length > 0 && (
-                <div class="global-chat-msg__attachments">
-                  {m.attachments.map((img: any, k: number) => (
-                    <img
-                      key={k}
-                      src={img.dataUrl}
-                      alt="附加截图"
-                      class="global-chat-msg__image"
-                    />
-                  ))}
+              <div class="global-chat-msg__avatar" aria-hidden="true">
+                {m.role === "user" ? "我" : <IconSparkles size={12} />}
+              </div>
+              <div class="global-chat-msg__main">
+                <div class="global-chat-msg__speaker">
+                  <span>{m.role === "user" ? "我" : "助手"}</span>
+                  {msgTime(m.ts) && (
+                    <span class="global-chat-msg__time">{msgTime(m.ts)}</span>
+                  )}
                 </div>
-              )}
-              {m.content ? (
-                <div class="global-chat-msg__bubble">
-                  {m.role === "assistant" ? (
-                    <>
+                {m.attachments && m.attachments.length > 0 && (
+                  <div class="global-chat-msg__attachments">
+                    {m.attachments.map((img: any, k: number) => (
+                      <img
+                        key={k}
+                        src={img.dataUrl}
+                        alt="附加截图"
+                        class="global-chat-msg__image"
+                      />
+                    ))}
+                  </div>
+                )}
+                {m.content ? (
+                  <div class="global-chat-msg__bubble">
+                    {m.role === "assistant" ? (
+                      <>
+                        <CollapsibleMessageContent
+                          role="assistant"
+                          content={m.content}
+                          highlightQuery={messageQuery}
+                        />
+                        {isLastAssistant && (
+                          <span class="global-chat-cursor" aria-hidden="true" />
+                        )}
+                      </>
+                    ) : (
                       <CollapsibleMessageContent
-                        role="assistant"
+                        role="user"
                         content={m.content}
                         highlightQuery={messageQuery}
                       />
-                      {isLastAssistant && (
-                        <span class="global-chat-cursor" aria-hidden="true" />
-                      )}
-                    </>
-                  ) : (
-                    <CollapsibleMessageContent
-                      role="user"
-                      content={m.content}
-                      highlightQuery={messageQuery}
-                    />
-                  )}
-                </div>
-              ) : isLastAssistant ? (
-                <div class="global-chat-msg__bubble">
-                  <span class="global-chat-cursor" aria-hidden="true" />
-                </div>
-              ) : null}
-              <ChatMessageActions
-                message={m}
-                messageIndex={i}
-                canRegenerate={canRegenerate}
-                canResendFromTurn={canResendFromTurn}
-                canEditUserMessage={canResendFromTurn}
-                canQuote={!!m.content?.trim()}
-                canFeedback={m.role === "assistant" && !!m.content?.trim()}
-                canDelete={!loading}
-                onEditUserMessage={handleEditUserMessage}
-                onQuoteMessage={handleQuoteMessage}
-                disabled={loading}
-              />
-              {m.toolCards && m.toolCards.length > 0 && (
-                <ChatToolCards cards={m.toolCards} />
-              )}
+                    )}
+                  </div>
+                ) : isLastAssistant ? (
+                  <div class="global-chat-msg__bubble">
+                    <span class="global-chat-cursor" aria-hidden="true" />
+                  </div>
+                ) : null}
+                <ChatMessageActions
+                  message={m}
+                  messageIndex={i}
+                  canRegenerate={canRegenerate}
+                  canResendFromTurn={canResendFromTurn}
+                  canEditUserMessage={canResendFromTurn}
+                  canQuote={!!m.content?.trim()}
+                  canFeedback={m.role === "assistant" && !!m.content?.trim()}
+                  canDelete={!loading}
+                  onEditUserMessage={handleEditUserMessage}
+                  onQuoteMessage={handleQuoteMessage}
+                  disabled={loading}
+                />
+                {m.toolCards && m.toolCards.length > 0 && (
+                  <ChatToolCards cards={m.toolCards} />
+                )}
+              </div>
             </div>
           );
         })}
         {showTyping && (
           <div class="global-chat-msg global-chat-msg--assistant">
-            <div class="global-chat-msg__bubble global-chat-msg__bubble--typing">
-              {status}
+            <div class="global-chat-msg__avatar" aria-hidden="true">
+              <IconSparkles size={12} />
+            </div>
+            <div class="global-chat-msg__main">
+              <div class="global-chat-msg__speaker">
+                <span>助手</span>
+              </div>
+              <div class="global-chat-msg__bubble global-chat-msg__bubble--typing">
+                {status && <span class="global-chat-typing-text">{status}</span>}
+                <span class="global-chat-typing-dots" aria-hidden="true">
+                  <i /><i /><i />
+                </span>
+              </div>
             </div>
           </div>
         )}

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Pulse AI 助手 v3 视觉提案</title>
+<style>
+  :root {
+    --accent: #5856d6;
+    --accent-soft: rgba(88, 86, 214, 0.08);
+    --accent-soft-2: rgba(88, 86, 214, 0.14);
+    --grad: linear-gradient(135deg, #5856d6, #af52de);
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --text-2: #86868b;
+    --hairline: rgba(0, 0, 0, 0.08);
+    --green: #34c759;
+    --red: #ff3b30;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+    background: #e8e8ed;
+    padding: 48px;
+    color: var(--text);
+  }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: var(--text-2); margin-bottom: 36px; }
+  .row { display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+  .board-label { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 0 0 10px 2px; letter-spacing: 0.4px; }
+
+  /* ── 抽屉画板 ── */
+  .drawer {
+    width: 440px; height: 780px;
+    background: var(--bg);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  /* 头部 */
+  .hdr {
+    height: 64px; flex: none;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 14px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .logo {
+    width: 28px; height: 28px; flex: none;
+    border-radius: 8px;
+    background: var(--grad);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(88,86,214,0.35);
+  }
+  .hdr-title { font-size: 15px; font-weight: 600; }
+  .hdr-pill {
+    margin-left: 4px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-2);
+    background: rgba(0,0,0,0.04);
+    border: 1px solid transparent;
+    padding: 4px 10px; border-radius: 999px;
+    max-width: 150px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hdr-pill b { color: var(--text); font-weight: 500; }
+  .hdr-spacer { flex: 1; }
+  .icon-btn {
+    width: 28px; height: 28px; flex: none;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--text-2);
+    background: transparent;
+  }
+  .icon-btn:hover { background: rgba(0,0,0,0.05); }
+  .icon-btn.plus { color: var(--accent); background: var(--accent-soft); }
+
+  /* 消息流 */
+  .flow { flex: 1; overflow: hidden; padding: 18px 18px 12px; display: flex; flex-direction: column; gap: 18px; }
+  .day-divider { text-align: center; font-size: 11px; color: var(--text-2); position: relative; margin: 2px 0; }
+  .msg { display: flex; gap: 10px; }
+  .avatar {
+    width: 24px; height: 24px; flex: none; margin-top: 2px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #fff;
+  }
+  .avatar.ai { background: var(--grad); box-shadow: 0 2px 6px rgba(88,86,214,0.3); }
+  .avatar.me { background: #c7c7cc; color: #fff; }
+  .msg-body { min-width: 0; flex: 1; }
+  .speaker { font-size: 11px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; display:flex; align-items:center; gap:6px;}
+  .speaker .t { font-weight: 400; color: rgba(134,134,139,0.7); }
+  .msg.ai .msg-text { font-size: 13px; line-height: 1.65; }
+  .msg.ai .msg-text b { font-weight: 600; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg.user .msg-body { display: flex; flex-direction: column; align-items: flex-end; }
+  .user-block {
+    background: var(--accent-soft);
+    border-radius: 14px 14px 4px 14px;
+    padding: 9px 13px;
+    font-size: 13px; line-height: 1.6;
+    max-width: 85%;
+  }
+  /* 工具卡片 */
+  .tool-card {
+    background: var(--card);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .tc-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .tc-ico {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .tc-title { font-size: 12px; font-weight: 600; }
+  .tc-meta { font-size: 11px; color: var(--text-2); margin-left: auto; }
+  .tc-row {
+    display: flex; align-items: center;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+  }
+  .tc-row:last-child { border-bottom: none; }
+  .tc-row .name { color: var(--text); }
+  .tc-row .code { color: var(--text-2); font-size: 11px; margin-left: 6px; }
+  .tc-row .val { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .tc-foot {
+    padding: 7px 12px; font-size: 11px; color: var(--accent);
+    background: rgba(88,86,214,0.03);
+    text-align: center;
+  }
+  /* 打字点 */
+  .typing { display: flex; gap: 5px; padding: 6px 0 2px; }
+  .typing i {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.25; animation: tp 1.2s infinite;
+  }
+  .typing i:nth-child(2) { animation-delay: 0.15s; }
+  .typing i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes tp { 0%,100%{opacity:.2; transform:translateY(0)} 40%{opacity:1; transform:translateY(-3px)} }
+
+  /* 输入坞 */
+  .dock {
+    flex: none;
+    padding: 10px 14px 14px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--hairline);
+  }
+  .dock-chips { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .chip.ghost { color: var(--text-2); background: rgba(0,0,0,0.04); }
+  .input-card {
+    background: var(--card);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 16px;
+    padding: 10px 12px 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .input-card.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft-2), 0 2px 12px rgba(0,0,0,0.05); }
+  .input-line { font-size: 13px; color: var(--text-2); min-height: 36px; }
+  .input-actions { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+  .ia {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--text-2);
+  }
+  .ia:hover { background: rgba(0,0,0,0.05); }
+  .input-hint { margin-left: auto; font-size: 10px; color: rgba(134,134,139,0.75); margin-right: 8px; }
+  .send {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--grad);
+    color: #fff; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(88,86,214,0.4);
+  }
+
+  /* 特写画板 */
+  .panel {
+    width: 460px;
+    background: var(--bg);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .panel-pad { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+  .sec-title { font-size: 11px; font-weight: 600; color: var(--text-2); letter-spacing: 0.5px; }
+
+  /* 会话浮层 */
+  .session-card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.16);
+    border: 1px solid rgba(0,0,0,0.05);
+    overflow: hidden;
+    width: 320px;
+  }
+  .sc-search { margin: 12px; background: var(--bg); border-radius: 9px; padding: 7px 10px; font-size: 12px; color: var(--text-2); }
+  .sc-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid rgba(0,0,0,0.04); }
+  .sc-row.active { background: var(--accent-soft); }
+  .sc-title { font-size: 13px; font-weight: 500; }
+  .sc-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .sc-time { margin-left: auto; font-size: 10px; color: var(--text-2); }
+
+  /* token 规范 */
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; }
+  .sw i { height: 44px; border-radius: 10px; display: block; border: 1px solid rgba(0,0,0,0.06); }
+  .sw b { font-size: 11px; font-weight: 600; }
+  .sw span { font-size: 10px; color: var(--text-2); font-family: ui-monospace, monospace; }
+  .type-spec { display: flex; flex-direction: column; gap: 10px; }
+  .type-spec div { display: flex; align-items: baseline; gap: 12px; }
+  .type-spec .k { font-size: 10px; color: var(--text-2); width: 150px; font-family: ui-monospace, monospace; }
+  .radius-spec { display: flex; gap: 14px; }
+  .radius-spec i { width: 56px; height: 44px; background: var(--card); border: 1.5px solid var(--accent); display: block; }
+</style>
+</head>
+<body>
+  <h1>Pulse AI 助手 v3 视觉提案</h1>
+  <div class="sub">三段式布局 · 去气泡沉浸流 · 工具结果卡片化 · 输入坞收敛 —— Apple 原生风 · 主色 #5856d6</div>
+
+  <div class="row">
+    <!-- 画板 A：完整抽屉 -->
+    <div>
+      <div class="board-label">A · 完整抽屉 440 × 780</div>
+      <div class="drawer">
+        <div class="hdr">
+          <div class="logo">✦</div>
+          <div class="hdr-title">AI 助手</div>
+          <div class="hdr-pill">💬 <b>基金盈亏分析</b> ▾</div>
+          <div class="hdr-spacer"></div>
+          <div class="icon-btn plus">＋</div>
+          <div class="icon-btn">⋯</div>
+          <div class="icon-btn">✕</div>
+        </div>
+        <div class="flow">
+          <div class="day-divider">今天 14:32</div>
+          <div class="msg user">
+            <div class="avatar me">我</div>
+            <div class="msg-body"><div class="user-block">早上发的那篇财经新闻，帮我解读一下核心观点</div></div>
+          </div>
+          <div class="msg ai">
+            <div class="avatar ai">✦</div>
+            <div class="msg-body">
+              <div class="speaker">助手 <span class="t">14:31</span></div>
+              <div class="msg-text">这篇文章的核心是 <b>美联储暂停加息预期升温</b>：文中给出 3 个信号——失业率回落、核心 PCE 连续两月走低、鲍威尔措辞转鸽。对 A 股影响偏利好，成长股弹性更大。</div>
+            </div>
+          </div>
+          <div class="msg user">
+            <div class="avatar me">我</div>
+            <div class="msg-body"><div class="user-block">帮我查下基金今天的盈亏情况</div></div>
+          </div>
+          <div class="msg ai">
+            <div class="avatar ai">✦</div>
+            <div class="msg-body">
+              <div class="speaker">助手 <span class="t">14:32</span></div>
+              <div class="msg-text">已查询你的 <b>5 只持仓</b>，今天整体小幅上涨，详情如下：</div>
+              <div class="tool-card">
+                <div class="tc-head">
+                  <div class="tc-ico">📊</div>
+                  <div class="tc-title">基金盈亏</div>
+                  <div class="tc-meta">5 只持仓 · 1.2s</div>
+                </div>
+                <div class="tc-row"><span class="name">沪深300ETF</span><span class="code">510300</span><span class="val up">+1.24%</span></div>
+                <div class="tc-row"><span class="name">中证500ETF</span><span class="code">510500</span><span class="val down">-0.41%</span></div>
+                <div class="tc-row"><span class="name">黄金ETF</span><span class="code">518880</span><span class="val up">+0.82%</span></div>
+                <div class="tc-foot">在助手中查看全部 5 条</div>
+              </div>
+            </div>
+          </div>
+          <div class="msg ai">
+            <div class="avatar ai">✦</div>
+            <div class="msg-body">
+              <div class="speaker">助手 <span class="t">正在输入</span></div>
+              <div class="typing"><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="dock-chips">
+            <span class="chip">◯ 当前页：基金</span>
+            <span class="chip ghost">⚡ 快捷操作</span>
+          </div>
+          <div class="input-card focus">
+            <div class="input-line">再帮我看看黄金后市怎么走？</div>
+            <div class="input-actions">
+              <div class="ia">📎</div>
+              <div class="ia"> 屏幕</div>
+              <span class="input-hint">⌘⏎ 发送</span>
+              <div class="send">↑</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右列 -->
+    <div style="display:flex; flex-direction:column; gap:40px;">
+      <div>
+        <div class="board-label">B · 头部 64px（3+1 收纳）</div>
+        <div class="panel">
+          <div class="hdr" style="border-radius:0;">
+            <div class="logo">✦</div>
+            <div class="hdr-title">AI 助手</div>
+            <div class="hdr-pill">💬 <b>基金盈亏分析</b> ▾</div>
+            <div class="hdr-spacer"></div>
+            <div class="icon-btn plus">＋</div>
+            <div class="icon-btn">⋯</div>
+            <div class="icon-btn">✕</div>
+          </div>
+          <div class="panel-pad" style="padding:14px 16px;">
+            <div class="sec-title">更多菜单（⋯）— 按组收纳，替代现状 6 控件平铺</div>
+            <div class="tool-card" style="margin-top:0;">
+              <div class="tc-head"><div class="tc-ico">⚙︎</div><div class="tc-title">模型</div><div class="tc-meta">GPT-4o ▾</div></div>
+              <div class="tc-row"><span class="name">会话</span><span class="code" style="margin-left:auto;">副本 · 清空</span></div>
+              <div class="tc-row"><span class="name">导出</span><span class="code" style="margin-left:auto;">复制 · Markdown · 含系统提醒 ☑</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="board-label">C · 会话切换浮层</div>
+        <div class="session-card">
+          <div class="sc-search">🔍 搜索会话</div>
+          <div class="sc-row active">
+            <div class="logo" style="width:22px;height:22px;font-size:10px;border-radius:6px;">✦</div>
+            <div><div class="sc-title">基金盈亏分析</div><div class="sc-sub">12 条消息</div></div>
+            <div class="sc-time">14:32</div>
+          </div>
+          <div class="sc-row">
+            <div class="logo" style="width:22px;height:22px;font-size:10px;border-radius:6px;background:#c7c7cc;box-shadow:none;">✦</div>
+            <div><div class="sc-title">App 更新检查</div><div class="sc-sub">8 条消息</div></div>
+            <div class="sc-time">昨天</div>
+          </div>
+          <div class="sc-row">
+            <div class="logo" style="width:22px;height:22px;font-size:10px;border-radius:6px;background:#c7c7cc;box-shadow:none;">✦</div>
+            <div><div class="sc-title">黄金行情解读</div><div class="sc-sub">3 条消息</div></div>
+            <div class="sc-time">周一</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="board-label">D · 设计 token</div>
+        <div class="panel">
+          <div class="panel-pad">
+            <div class="swatches">
+              <div class="sw"><i style="background:#5856d6;"></i><b>accent</b><span>#5856d6</span></div>
+              <div class="sw"><i style="background:linear-gradient(135deg,#5856d6,#af52de);"></i><b>grad</b><span>→#af52de</span></div>
+              <div class="sw"><i style="background:rgba(88,86,214,0.08);"></i><b>soft</b><span>8% 紫</span></div>
+              <div class="sw"><i style="background:#f5f5f7;"></i><b>bg</b><span>#f5f5f7</span></div>
+              <div class="sw"><i style="background:#ffffff;"></i><b>card</b><span>#ffffff</span></div>
+              <div class="sw"><i style="background:#1d1d1f;"></i><b>text</b><span>#1d1d1f</span></div>
+              <div class="sw"><i style="background:#86868b;"></i><b>text-2</b><span>#86868b</span></div>
+              <div class="sw"><i style="background:linear-gradient(135deg,#34c759 50%,#ff3b30 50%);"></i><b>涨/跌</b><span>C759/3B30</span></div>
+            </div>
+            <div class="type-spec">
+              <div><span class="k">标题 15/600</span><span style="font-size:15px;font-weight:600;">AI 助手</span></div>
+              <div><span class="k">正文 13/400 · 1.65</span><span style="font-size:13px;">已查询你的 5 只持仓</span></div>
+              <div><span class="k">辅助 11/400</span><span style="font-size:11px;color:var(--text-2);">5 只持仓 · 1.2s</span></div>
+            </div>
+            <div class="radius-spec">
+              <div class="sw"><i style="border-radius:12px;"></i><b>卡 12</b></div>
+              <div class="sw"><i style="border-radius:16px;"></i><b>输入 16</b></div>
+              <div class="sw"><i style="border-radius:999px;"></i><b>按钮 full</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
