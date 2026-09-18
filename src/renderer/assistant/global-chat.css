@@ -4228,3 +4228,67 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   入口 FAB v2 — 玻璃胶囊 (对齐抽屉 v3 设计语言)
+   磨砂白底 + 发丝描边 + 内嵌渐变紫 sparkle 徽标 + 文字标签;
+   待处理徽标挂 chip 右上角, 描边用页面底色在任何背景上都清晰.
+   主题自适应: 底色/文字走既有 surface/text 变量.
+   ═══════════════════════════════════════════════════════════════ */
+.global-chat-fab {
+  right: 16px;
+  bottom: 56px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  height: 40px;
+  padding: 0 14px 0 6px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--surface, #fff) 78%, transparent);
+  backdrop-filter: blur(20px);
+  color: var(--text-primary, #1d1d1f);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+.global-chat-fab:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--assistant-accent, #5856d6) 55%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.global-chat-fab__icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--assistant-accent-grad, linear-gradient(135deg, #5856d6, #af52de));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px color-mix(in oklch, var(--assistant-accent, #5856d6) 30%, transparent);
+}
+.global-chat-fab__label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.global-chat-fab__badge {
+  position: absolute;
+  top: -7px;
+  right: -2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--assistant-accent-grad, linear-gradient(135deg, #5856d6, #af52de));
+  border: 2px solid var(--bg-primary, #fff);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 13px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}

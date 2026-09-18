@@ -30,8 +30,9 @@ export function GlobalChatFab() {
       aria-expanded={false}
     >
       <span class="global-chat-fab__icon" aria-hidden="true">
-        <IconSparkles size={20} />
+        <IconSparkles size={14} />
       </span>
+      <span class="global-chat-fab__label">AI 助手</span>
       {badge > 0 && (
         <span class="global-chat-fab__badge" aria-hidden="true">
           {badge > 9 ? "9+" : badge}
