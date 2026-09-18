@@ -1,4 +1,5 @@
 import type { RefObject } from "preact";
+import { useEffect, useRef } from "preact/hooks";
 import { IconChevronDown } from "../components/icons.tsx";
 import type { MessageRoleFilter } from "./chat-message-filter.ts";
 
@@ -47,8 +48,36 @@ export function ChatMessageTools({
   onCopyMatches,
   onExportMatches,
 }: ChatMessageToolsProps) {
+  const wrapRef = useRef<HTMLDetailsElement>(null);
+
+  // 浮层开着时: 点面板外任意处 / 在非搜索框处按 Esc → 收起。
+  // 否则它会一直悬在会话上方盖住内容, 只能再点一次「消息工具」才能关。
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (event: PointerEvent) => {
+      const wrap = wrapRef.current;
+      if (!wrap) return;
+      if (event.target instanceof Node && !wrap.contains(event.target)) {
+        onToggle(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      // 搜索框内的 Esc 留给「清除搜索」(组件内已有), 不在这里抢
+      if (event.key === "Escape" && !(event.target instanceof HTMLInputElement)) {
+        onToggle(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onToggle]);
+
   return (
     <details
+      ref={wrapRef}
       class="global-chat-message-tools-wrap"
       data-placement="composer"
       open={open}
